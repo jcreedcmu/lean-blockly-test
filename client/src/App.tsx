@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import * as React from 'react';
+import { useCallback, useEffect, useRef, useState, JSX } from 'react'
+import * as React from 'react'
 import Split from 'react-split'
 import * as monaco from 'monaco-editor'
 import CodeMirror, { EditorView } from '@uiw/react-codemirror'
@@ -18,7 +18,7 @@ import { Entries } from './utils/Entries'
 import { save } from './utils/SaveToFile'
 import { fixedEncodeURIComponent, formatArgs, lookupUrl, parseArgs } from './utils/UrlParsing'
 import { useWindowDimensions } from './utils/WindowWidth'
-import { inject } from 'blockly'
+import * as blockly from 'blockly'
 
 // CSS
 import './css/App.css'
@@ -29,6 +29,80 @@ function isBrowserDefaultDark() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
+function useBlockly(ref: React.RefObject<HTMLDivElement>) {
+  React.useEffect(() => {
+
+    if (!ref.current) {
+      return;
+    }
+
+    if ((ref.current as any).alreadyInjected) {
+      console.log('already injected');
+      return;
+    }
+
+    (ref.current as any).alreadyInjected = true;
+
+    blockly.common.defineBlocksWithJsonArray([
+      {
+        "type": "play_sound",
+        "message0": "Play %1",
+        "args0": [
+          {
+            "type": "field_dropdown",
+            "name": "VALUE",
+            "options": [
+              ["C4", "sounds/c4.m4a"],
+              ["D4", "sounds/d4.m4a"],
+              ["E4", "sounds/e4.m4a"],
+              ["F4", "sounds/f4.m4a"],
+              ["G4", "sounds/g4.m4a"]
+            ]
+          }
+        ],
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": 355
+      }
+    ]);
+
+    const toolbox: blockly.utils.toolbox.ToolboxDefinition = {
+      'kind': 'flyoutToolbox',
+      'contents': [
+        {
+          'kind': 'block',
+          'type': 'controls_repeat_ext',
+          'inputs': {
+            'TIMES': {
+              'shadow': {
+                'type': 'math_number',
+                'fields': {
+                  'NUM': 5
+                }
+              }
+            }
+          }
+        },
+        {
+          'kind': 'block',
+          'type': 'play_sound'
+        }
+      ]
+    };
+
+    //    const toolbox: blockly.utils.toolbox.ToolboxDefinition = { kind: 'categoryToolbox', contents: [item] };
+    const newWorkspace = blockly.inject(ref.current, {
+      toolbox: toolbox,
+      scrollbars: false,
+    });
+  });
+}
+
+function Blockly(props: { style: React.CSSProperties }): JSX.Element {
+  const blocklyRef = React.useRef(null);
+  const foo = useBlockly(blocklyRef);
+  return <div style={props.style} ref={blocklyRef}></div>;
+}
 function Wrapp() {
   const editorRef = useRef<HTMLDivElement>(null)
   const infoviewRef = useRef<HTMLDivElement>(null)
@@ -488,8 +562,7 @@ function App() {
     setShow((e.currentTarget as HTMLInputElement).checked);
   }
   return <div style={myStyle}>
-    <div style={kid1} >
-      <label><input type="checkbox" checked={show} onChange={changeChecked} /> Show</label></div>
+    <Blockly style={kid1} />
     <div style={kid2} >{show ? <Wrapp /> : undefined}</div>
   </div>;
 }
