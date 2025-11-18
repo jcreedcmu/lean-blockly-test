@@ -20,6 +20,7 @@ import { fixedEncodeURIComponent, formatArgs, lookupUrl, parseArgs } from './uti
 import { useWindowDimensions } from './utils/WindowWidth'
 import * as blockly from 'blockly'
 
+
 // CSS
 import './css/App.css'
 import './css/Editor.css'
@@ -43,26 +44,91 @@ function useBlockly(ref: React.RefObject<HTMLDivElement>) {
 
     (ref.current as any).alreadyInjected = true;
 
+
     blockly.common.defineBlocksWithJsonArray([
       {
-        "type": "play_sound",
-        "message0": "Play %1",
+        "type": "tactic_proof",
+        "tooltip": "dfgdfg",
+        "helpUrl": "dfgdfgfggf",
+        "message0": "Tactic Proof %1",
         "args0": [
           {
-            "type": "field_dropdown",
-            "name": "VALUE",
-            "options": [
-              ["C4", "sounds/c4.m4a"],
-              ["D4", "sounds/d4.m4a"],
-              ["E4", "sounds/e4.m4a"],
-              ["F4", "sounds/f4.m4a"],
-              ["G4", "sounds/g4.m4a"]
-            ]
+            "type": "input_statement",
+            "name": "BODY"
+          }
+        ],
+        "output": null,
+        "colour": 120
+      },
+      {
+        "type": "intro",
+        "tooltip": "dfgdfg",
+        "helpUrl": "dfgdfgfggf",
+        "message0": "%1 %2 %3",
+        "args0": [
+          {
+            "type": "field_label_serializable",
+            "text": "intro",
+            "name": "LABEL"
+          },
+          {
+            "type": "field_variable",
+            "name": "VAR",
+            "variable": "var"
+          },
+          {
+            "type": "input_dummy",
+            "name": "BODY"
           }
         ],
         "previousStatement": null,
         "nextStatement": null,
-        "colour": 355
+        "colour": 255
+      },
+      {
+        "type": "exact",
+        "tooltip": "dfgdfg",
+        "helpUrl": "dfgdfgfggf",
+        "message0": "%1 %2",
+        "args0": [
+          {
+            "type": "field_label_serializable",
+            "text": "exact",
+            "name": "LABEL"
+          },
+          {
+            "type": "input_value",
+            "name": "BODY",
+            "align": "RIGHT"
+          }
+        ],
+        "previousStatement": null,
+        "colour": 45
+      },
+      {
+        "type": "number",
+        "tooltip": "dfgdfg",
+        "helpUrl": "dfgdfgfggf",
+        "message0": "%1 %2 %3",
+        "args0": [
+          {
+            "type": "field_label_serializable",
+            "text": "number",
+            "name": "LABEL"
+          },
+          {
+            "type": "field_number",
+            "name": "NAME",
+            "value": 0
+          },
+          {
+            "type": "input_dummy",
+            "name": "BODY",
+            "align": "RIGHT"
+          }
+        ],
+        "output": null,
+        "colour": 45
       }
     ]);
 
@@ -71,30 +137,42 @@ function useBlockly(ref: React.RefObject<HTMLDivElement>) {
       'contents': [
         {
           'kind': 'block',
-          'type': 'controls_repeat_ext',
-          'inputs': {
-            'TIMES': {
-              'shadow': {
-                'type': 'math_number',
-                'fields': {
-                  'NUM': 5
-                }
-              }
-            }
-          }
+          'type': 'tactic_proof'
         },
         {
           'kind': 'block',
-          'type': 'play_sound'
+          'type': 'intro'
+        },
+        {
+          'kind': 'block',
+          'type': 'exact'
+        },
+        {
+          'kind': 'block',
+          'type': 'number'
         }
       ]
     };
+
+    const leanGenerator = new blockly.CodeGenerator('Lean');
+
+    leanGenerator.forBlock['number'] = (block, generator) => { return 'number'; }
+    leanGenerator.forBlock['intro'] = (block, generator) => { return 'intro'; }
+    leanGenerator.forBlock['exact'] = (block, generator) => { return 'exact'; }
+    leanGenerator.forBlock['tactic_proof'] = (block, generator) => {
+      console.log('kids', block.getChildren(true));
+      console.log('fields', [...block.getFields()]);
+      return `tactic_proof[...]`;
+    }
 
     //    const toolbox: blockly.utils.toolbox.ToolboxDefinition = { kind: 'categoryToolbox', contents: [item] };
     const newWorkspace = blockly.inject(ref.current, {
       toolbox: toolbox,
       scrollbars: false,
     });
+    (window as any).debug = () => {
+      console.log(leanGenerator.workspaceToCode(newWorkspace));
+    }
   });
 }
 
