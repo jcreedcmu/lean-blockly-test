@@ -18,8 +18,7 @@ import { Entries } from './utils/Entries'
 import { save } from './utils/SaveToFile'
 import { fixedEncodeURIComponent, formatArgs, lookupUrl, parseArgs } from './utils/UrlParsing'
 import { useWindowDimensions } from './utils/WindowWidth'
-import * as blockly from 'blockly'
-
+import { Blockly } from './Blockly.tsx';
 
 // CSS
 import './css/App.css'
@@ -30,166 +29,19 @@ function isBrowserDefaultDark() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
-function useBlockly(ref: React.RefObject<HTMLDivElement>) {
-  React.useEffect(() => {
-
-    if (!ref.current) {
-      return;
-    }
-
-    if ((ref.current as any).alreadyInjected) {
-      console.log('already injected');
-      return;
-    }
-
-    (ref.current as any).alreadyInjected = true;
-
-
-    blockly.common.defineBlocksWithJsonArray([
-      {
-        "type": "tactic_proof",
-        "tooltip": "dfgdfg",
-        "helpUrl": "dfgdfgfggf",
-        "message0": "Tactic Proof %1",
-        "args0": [
-          {
-            "type": "input_statement",
-            "name": "BODY"
-          }
-        ],
-        "output": null,
-        "colour": 120
-      },
-      {
-        "type": "intro",
-        "tooltip": "dfgdfg",
-        "helpUrl": "dfgdfgfggf",
-        "message0": "%1 %2 %3",
-        "args0": [
-          {
-            "type": "field_label_serializable",
-            "text": "intro",
-            "name": "LABEL"
-          },
-          {
-            "type": "field_variable",
-            "name": "VAR",
-            "variable": "var"
-          },
-          {
-            "type": "input_dummy",
-            "name": "BODY"
-          }
-        ],
-        "previousStatement": null,
-        "nextStatement": null,
-        "colour": 255
-      },
-      {
-        "type": "exact",
-        "tooltip": "dfgdfg",
-        "helpUrl": "dfgdfgfggf",
-        "message0": "%1 %2",
-        "args0": [
-          {
-            "type": "field_label_serializable",
-            "text": "exact",
-            "name": "LABEL"
-          },
-          {
-            "type": "input_value",
-            "name": "BODY",
-            "align": "RIGHT"
-          }
-        ],
-        "previousStatement": null,
-        "colour": 45
-      },
-      {
-        "type": "number",
-        "tooltip": "dfgdfg",
-        "helpUrl": "dfgdfgfggf",
-        "message0": "%1 %2 %3",
-        "args0": [
-          {
-            "type": "field_label_serializable",
-            "text": "number",
-            "name": "LABEL"
-          },
-          {
-            "type": "field_number",
-            "name": "NAME",
-            "value": 0
-          },
-          {
-            "type": "input_dummy",
-            "name": "BODY",
-            "align": "RIGHT"
-          }
-        ],
-        "output": null,
-        "colour": 45
-      }
-    ]);
-
-    const toolbox: blockly.utils.toolbox.ToolboxDefinition = {
-      'kind': 'flyoutToolbox',
-      'contents': [
-        {
-          'kind': 'block',
-          'type': 'tactic_proof'
-        },
-        {
-          'kind': 'block',
-          'type': 'intro'
-        },
-        {
-          'kind': 'block',
-          'type': 'exact'
-        },
-        {
-          'kind': 'block',
-          'type': 'number'
-        }
-      ]
-    };
-
-    const leanGenerator = new blockly.CodeGenerator('Lean');
-
-    leanGenerator.forBlock['number'] = (block, generator) => { return 'number'; }
-    leanGenerator.forBlock['intro'] = (block, generator) => { return 'intro'; }
-    leanGenerator.forBlock['exact'] = (block, generator) => { return 'exact'; }
-    leanGenerator.forBlock['tactic_proof'] = (block, generator) => {
-      console.log('kids', block.getChildren(true));
-      console.log('fields', [...block.getFields()]);
-      return `tactic_proof[...]`;
-    }
-
-    //    const toolbox: blockly.utils.toolbox.ToolboxDefinition = { kind: 'categoryToolbox', contents: [item] };
-    const newWorkspace = blockly.inject(ref.current, {
-      toolbox: toolbox,
-      scrollbars: false,
-    });
-    (window as any).debug = () => {
-      console.log(leanGenerator.workspaceToCode(newWorkspace));
-    }
-  });
-}
-
-function Blockly(props: { style: React.CSSProperties }): JSX.Element {
-  const blocklyRef = React.useRef(null);
-  const foo = useBlockly(blocklyRef);
-  return <div style={props.style} ref={blocklyRef}></div>;
-}
-function Wrapp() {
+function Wrapp(props: {
+  editor: monaco.editor.IStandaloneCodeEditor,
+  setEditor: (e: monaco.editor.IStandaloneCodeEditor) => void,
+}) {
+  const { editor, setEditor } = props;
   const editorRef = useRef<HTMLDivElement>(null)
   const infoviewRef = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState<boolean | null>(false)
-  const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
   const [leanMonaco, setLeanMonaco] = useState<LeanMonaco>()
   const [loaded, setLoaded] = useState<boolean>(false)
   const [preferences, setPreferences] = useState<IPreferencesContext>(defaultSettings)
   const { width } = useWindowDimensions()
+
 
   // Lean4monaco options
   const [options, setOptions] = useState<LeanMonacoOptions>({
@@ -522,8 +374,10 @@ function Wrapp() {
   useEffect(() => {
     const handleContextMenu = (event: MouseEvent) => {
       const editorContainer = document.querySelector(".editor")
+      // Always prevent default context menu
+      event.preventDefault();
       if (editorContainer && !editorContainer.contains(event.target as Node)) {
-        event.stopPropagation()
+        event.stopPropagation();
       }
     }
     document.addEventListener("contextmenu", handleContextMenu, true)
@@ -623,6 +477,19 @@ function Wrapp() {
 
 function App() {
   const [show, setShow] = useState(true);
+  const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
+
+  function injectClick(s: string, p: monaco.IPosition) {
+    const model = editor.getModel();
+    model.setValue(s);
+    editor.setPosition(p);
+    // editor.focus();
+  }
+
+  function focusClick() {
+    editor.focus();
+  }
+
   const myStyle: React.CSSProperties = {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -631,7 +498,7 @@ function App() {
   };
   const kid1: React.CSSProperties = {
     flexGrow: 1,
-    backgroundColor: '#def',
+
   };
   const kid2: React.CSSProperties = {
     height: '300px',
@@ -640,10 +507,32 @@ function App() {
     setShow((e.currentTarget as HTMLInputElement).checked);
   }
   return <div style={myStyle}>
-    <Blockly style={kid1} />
-    <div style={kid2} >{show ? <Wrapp /> : undefined}</div>
+    <div
+      style={{
+        display: 'flex',
+        flexGrow: 1,
+        flexDirection: 'row',
+        backgroundColor: '#def',
+      }}>
+      <div style={{
+        width: '100px',
+        padding: '1em',
+      }}>
+        <button onClick={(_e) =>
+          injectClick('def foo : Nat := by sorry', { column: 21, lineNumber: 1 })}>Inject</button>
+        <p />
+        <button onClick={(_e) =>
+          focusClick()}>Focus</button>
+      </div>
+      <Blockly style={kid1} />
+    </div>
+    <div style={kid2} >{show ? <Wrapp editor={editor} setEditor={setEditor} /> : undefined}</div>
   </div>;
 }
 
-
+/* var selection = editor.getSelection();
+ * var id = { major: 1, minor: 1 };
+ * var text = "XXX";
+ * var op = {identifier: id, range: selection, text: text, forceMoveMarkers: true};
+ * editor.executeEdits("my-source", [op]); */
 export default App
