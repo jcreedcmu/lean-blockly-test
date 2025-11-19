@@ -222,6 +222,15 @@ function defineTactics() {
       'helpUrl': 'refl',
     },
     {
+      'type': 'tactic_grind',
+      'message0': 'grind',
+      'nextStatement': 'tactic',
+      'previousStatement': 'tactic',
+      'colour': 330,
+      'tooltip': 'grind',
+      'helpUrl': 'grind',
+    },
+    {
       'type': 'tactic_constructor',
       'message0': 'constructor %1',
       'args0': [

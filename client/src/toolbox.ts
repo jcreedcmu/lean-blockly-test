@@ -36,6 +36,10 @@ const LeanTacticsCategory = {
       kind: 'block',
       type: 'tactic_sorry',
     },
+    {
+      kind: 'block',
+      type: 'tactic_grind',
+    },
     ...blocks.singleArgTactics.map(t => ({ kind: 'block', type: `tactic_${t.name}` }))
   ],
 };

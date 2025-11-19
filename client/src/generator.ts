@@ -51,6 +51,7 @@ export function mkLeanGenerator(): blockly.CodeGenerator {
     return `(${decl} : ${def})`;
   };
   gen.forBlock['tactic_sorry'] = () => 'sorry\n';
+  gen.forBlock['tactic_grind'] = () => 'grind\n';
   gen.forBlock['tactic_refl'] = () => 'rfl\n';
 
   for (const t of blocks.singleArgTactics) {
