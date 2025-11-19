@@ -10,10 +10,6 @@ const LeanTacticsCategory = {
   contents: [
     {
       kind: 'block',
-      type: 'prop_declaration',
-    },
-    {
-      kind: 'block',
       type: 'lemma',
     },
     {
@@ -44,6 +40,17 @@ const LeanTacticsCategory = {
   ],
 };
 
+const LeanVariableCategory = {
+  kind: 'category',
+  name: 'Variables',
+  contents: [
+    {
+      kind: 'block',
+      type: 'prop_declaration',
+    },
+  ]
+};
+
 const LeanValueCategory = {
   kind: 'category',
   name: 'Values',
@@ -59,6 +66,7 @@ export const toolbox: blockly.utils.toolbox.ToolboxDefinition = {
   kind: 'categoryToolbox',
   contents: [
     LeanTacticsCategory,
+    LeanVariableCategory,
     LeanValueCategory,
   ],
 };

@@ -508,7 +508,12 @@ function App() {
   }
   function onBlocklyChange(code: string) {
     console.log(code, editor);
-    editor.getModel().setValue(code);
+    const prelude = `import Mathlib
+
+def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
+  ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
+`;
+    editor.getModel().setValue(prelude + code);
   }
   return <div style={myStyle}>
     <Blockly style={kid1} onBlocklyChange={onBlocklyChange} />

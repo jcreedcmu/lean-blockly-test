@@ -48,12 +48,12 @@ function defineLemma() {
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'lemma',
-      'message0': 'theorem %1 %2 variables %3 %4 %5 := %6 begin %7 %8 end',
+      'message0': 'theorem %1 %2 %3 if  %4 then %5 := %6 because %7 %8',
       'args0': [
         {
           'type': 'field_input',
           'name': 'THEOREM_NAME',
-          'text': 'example1',
+          'text': 'theorem_name',
         },
         {
           'type': 'input_dummy',
@@ -69,7 +69,7 @@ function defineLemma() {
         {
           'type': 'field_input',
           'name': 'THEOREM_DECLARATION',
-          'text': 'default',
+          'text': 'theorem_conclusion',
         },
         {
           'type': 'input_dummy',
