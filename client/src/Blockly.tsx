@@ -1,28 +1,8 @@
 import { useCallback, useEffect, useRef, useState, JSX } from 'react'
 import * as React from 'react'
 import * as blockly from 'blockly'
-
-const toolbox = {
-  'kind': 'flyoutToolbox',
-  'contents': [
-    {
-      'kind': 'block',
-      'type': 'tactic_proof'
-    },
-    {
-      'kind': 'block',
-      'type': 'intro'
-    },
-    {
-      'kind': 'block',
-      'type': 'exact'
-    },
-    {
-      'kind': 'block',
-      'type': 'number'
-    }
-  ]
-}
+import * as blocks from './blocks'
+import * as toolboxDef from './toolbox'
 
 function useBlockly(ref: React.RefObject<HTMLDivElement>) {
   React.useEffect(() => {
@@ -38,7 +18,7 @@ function useBlockly(ref: React.RefObject<HTMLDivElement>) {
 
     (ref.current as any).alreadyInjected = true;
 
-
+    blocks.defineBlocks();
     blockly.common.defineBlocksWithJsonArray([
       {
         "type": "tactic_proof",
@@ -126,39 +106,7 @@ function useBlockly(ref: React.RefObject<HTMLDivElement>) {
       }
     ]);
 
-    const toolbox: blockly.utils.toolbox.ToolboxDefinition = {
-      "kind": "categoryToolbox",
-      "contents": [
-        {
-          "kind": "category",
-          "name": "Control",
-          "contents": [
-            {
-              'kind': 'block',
-              'type': 'tactic_proof'
-            },
-            {
-              'kind': 'block',
-              'type': 'intro'
-            },
-            {
-              'kind': 'block',
-              'type': 'exact'
-            }
-          ]
-        },
-        {
-          "kind": "category",
-          "name": "Number",
-          "contents": [
-            {
-              "kind": "block",
-              "type": "number"
-            }
-          ]
-        }
-      ]
-    };
+    const toolbox = toolboxDef.toolbox;
 
     const leanGenerator = new blockly.CodeGenerator('Lean');
 
