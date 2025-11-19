@@ -512,6 +512,7 @@ function App() {
 
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
+
 `;
     editor.getModel().setValue(prelude + code);
   }
