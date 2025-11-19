@@ -506,6 +506,10 @@ function App() {
   function changeChecked(e: React.ChangeEvent) {
     setShow((e.currentTarget as HTMLInputElement).checked);
   }
+  function onBlocklyChange(code: string) {
+    console.log(code, editor);
+    editor.getModel().setValue(code);
+  }
   return <div style={myStyle}>
     <div
       style={{
@@ -524,7 +528,7 @@ function App() {
         <button onClick={(_e) =>
           focusClick()}>Focus</button>
       </div>
-      <Blockly style={kid1} />
+      <Blockly style={kid1} onBlocklyChange={onBlocklyChange} />
     </div>
     <div style={kid2} >{show ? <Wrapp editor={editor} setEditor={setEditor} /> : undefined}</div>
   </div>;

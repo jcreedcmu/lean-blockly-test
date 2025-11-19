@@ -3,9 +3,12 @@ import * as React from 'react'
 import * as blockly from 'blockly'
 import * as blocks from './blocks'
 import * as toolboxDef from './toolbox'
+import * as generator from './generator'
 
-function useBlockly(ref: React.RefObject<HTMLDivElement>) {
-  React.useEffect(() => {
+function useBlockly(ref: React.RefObject<HTMLDivElement>, onBlocklyChange?: BlocklyChangeHandler) {
+  const handlerRef: React.RefObject<BlocklyChangeHandler | undefined> = useRef(onBlocklyChange);
+
+  useEffect(() => {
 
     if (!ref.current) {
       return;
@@ -19,119 +22,39 @@ function useBlockly(ref: React.RefObject<HTMLDivElement>) {
     (ref.current as any).alreadyInjected = true;
 
     blocks.defineBlocks();
-    blockly.common.defineBlocksWithJsonArray([
-      {
-        "type": "tactic_proof",
-        "tooltip": "dfgdfg",
-        "helpUrl": "dfgdfgfggf",
-        "message0": "Proof by %1",
-        "args0": [
-          {
-            "type": "input_statement",
-            "name": "BODY"
-          }
-        ],
-        "output": null,
-        "colour": 120
-      },
-      {
-        "type": "intro",
-        "tooltip": "dfgdfg",
-        "helpUrl": "dfgdfgfggf",
-        "message0": "%1 %2 %3",
-        "args0": [
-          {
-            "type": "field_label_serializable",
-            "text": "intro",
-            "name": "LABEL"
-          },
-          {
-            "type": "field_variable",
-            "name": "VAR",
-            "variable": "var"
-          },
-          {
-            "type": "input_dummy",
-            "name": "BODY"
-          }
-        ],
-        "previousStatement": null,
-        "nextStatement": null,
-        "colour": 255
-      },
-      {
-        "type": "exact",
-        "tooltip": "dfgdfg",
-        "helpUrl": "dfgdfgfggf",
-        "message0": "%1 %2",
-        "args0": [
-          {
-            "type": "field_label_serializable",
-            "text": "exact",
-            "name": "LABEL"
-          },
-          {
-            "type": "input_value",
-            "name": "BODY",
-            "align": "RIGHT"
-          }
-        ],
-        "previousStatement": null,
-        "colour": 45
-      },
-      {
-        "type": "number",
-        "tooltip": "dfgdfg",
-        "helpUrl": "dfgdfgfggf",
-        "message0": "%1 %2 %3",
-        "args0": [
-          {
-            "type": "field_label_serializable",
-            "text": "number",
-            "name": "LABEL"
-          },
-          {
-            "type": "field_number",
-            "name": "NAME",
-            "value": 0
-          },
-          {
-            "type": "input_dummy",
-            "name": "BODY",
-            "align": "RIGHT"
-          }
-        ],
-        "output": null,
-        "colour": 45
-      }
-    ]);
-
     const toolbox = toolboxDef.toolbox;
-
-    const leanGenerator = new blockly.CodeGenerator('Lean');
-
-    leanGenerator.forBlock['number'] = (block, generator) => { return 'number'; }
-    leanGenerator.forBlock['intro'] = (block, generator) => { return 'intro'; }
-    leanGenerator.forBlock['exact'] = (block, generator) => { return 'exact'; }
-    leanGenerator.forBlock['tactic_proof'] = (block, generator) => {
-      console.log('kids', block.getChildren(true));
-      console.log('fields', [...block.getFields()]);
-      return `tactic_proof[...]`;
-    }
-
-    //    const toolbox: blockly.utils.toolbox.ToolboxDefinition = { kind: 'categoryToolbox', contents: [item] };
-    const newWorkspace = blockly.inject(ref.current, {
+    const leanGenerator = generator.mkLeanGenerator();
+    const ws = blockly.inject(ref.current, {
       toolbox: toolbox,
       scrollbars: false,
     });
-    (window as any).debug = () => {
-      console.log(leanGenerator.workspaceToCode(newWorkspace));
+
+    function localChangeListener() {
+      console.log('testing ');
+      if (handlerRef.current !== undefined) {
+
+        console.log('calling ', onBlocklyChange);
+        (handlerRef.current)(leanGenerator.workspaceToCode(ws));
+      }
+    }
+    console.log('XXX adding');
+    ws.addChangeListener(localChangeListener);
+    return () => {
+      console.log('XXX destroying');
     }
   });
+
+  useEffect(() => {
+    console.log('setting ', onBlocklyChange);
+    handlerRef.current = onBlocklyChange;
+  }, [onBlocklyChange]);
+
 }
 
-export function Blockly(props: { style: React.CSSProperties }): JSX.Element {
+export type BlocklyChangeHandler = (code: string) => void;
+
+export function Blockly(props: { style: React.CSSProperties, onBlocklyChange?: BlocklyChangeHandler }): JSX.Element {
   const blocklyRef = React.useRef(null);
-  const foo = useBlockly(blocklyRef);
+  useBlockly(blocklyRef, props.onBlocklyChange);
   return <div style={props.style} ref={blocklyRef}></div>;
 }
