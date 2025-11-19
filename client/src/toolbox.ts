@@ -1,5 +1,5 @@
 import * as blockly from 'blockly';
-
+import * as blocks from './blocks';
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
 */
@@ -40,6 +40,7 @@ const LeanTacticsCategory = {
       kind: 'block',
       type: 'tactic_sorry',
     },
+    ...blocks.singleArgTactics.map(t => ({ kind: 'block', type: `tactic_${t.name}` }))
   ],
 };
 

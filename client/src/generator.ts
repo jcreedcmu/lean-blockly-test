@@ -1,5 +1,7 @@
 import * as blockly from 'blockly';
 import { Block } from 'blockly';
+import * as blocks from './blocks';
+
 
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
@@ -51,6 +53,14 @@ export function mkLeanGenerator(): blockly.CodeGenerator {
   gen.forBlock['tactic_sorry'] = () => 'sorry\n';
   gen.forBlock['tactic_refl'] = () => 'rfl\n';
 
+  for (const t of blocks.singleArgTactics) {
+    gen.forBlock[`tactic_${t.name}`] = block => {
+      let code = `${t.name} `;
+      code += gen.valueToCode(block, 'ARG', LeanPrec.ORDER_ATOMIC);
+      return code + '\n';
+    };
+  }
+
   gen.forBlock['tactic_rw'] = block => {
     let code = 'rw [';
 
@@ -84,9 +94,9 @@ export function mkLeanGenerator(): blockly.CodeGenerator {
     return code + '\n';
   };
   gen.forBlock['tactic_show'] = block => {
-    let code = 'show ' + gen.valueToCode(block, 'GOAL', LeanPrec.ORDER_ATOMIC) + ' by ';
-    code += gen.statementToCode(block, 'PROOF').replace(/^  /, '');
-    return code;
+    let code = 'show ' + gen.valueToCode(block, 'GOAL', LeanPrec.ORDER_ATOMIC) + ' by\n';
+    code += gen.statementToCode(block, 'PROOF').replace(/\n$/, '');
+    return [code, LeanPrec.ORDER_ATOMIC];
   };
 
 

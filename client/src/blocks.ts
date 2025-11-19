@@ -8,6 +8,40 @@ export function defineBlocks() {
   defineLemma();
   defineProposition();
   defineTactics();
+  defineMisc();
+}
+
+type TacticProps = { name: string, msg: string };
+export const singleArgTactics: TacticProps[] = [
+  { name: 'unfold', msg: 'Unfold' },
+  { name: 'exact', msg: 'Exactly' },
+  { name: 'intro', msg: 'Intro' },
+  { name: 'use', msg: 'Use' }
+];
+
+function defineMisc() {
+  function single_arg_tactic(props: TacticProps) {
+    const { name, msg } = props;
+    return {
+      'type': `tactic_${name}`,
+      'message0': `${msg} %1`,
+      'args0': [
+        {
+          'type': 'input_value',
+          'name': 'ARG',
+          'check': 'proposition',
+          'align': 'LEFT',
+        },
+      ],
+      'inputsInline': false,
+      'previousStatement': 'tactic',
+      'nextStatement': 'tactic',
+      'style': 'logic_blocks',
+      'tooltip': name,
+      'helpUrl': name,
+    };
+  }
+  blockly.defineBlocksWithJsonArray(singleArgTactics.map(single_arg_tactic));
 }
 
 function defineLemma() {
