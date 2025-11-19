@@ -49,7 +49,7 @@ export function mkLeanGenerator(): blockly.CodeGenerator {
     return `(${decl} : ${def})`;
   };
   gen.forBlock['tactic_sorry'] = () => 'sorry\n';
-  gen.forBlock['tactic_refl'] = () => 'refl\n';
+  gen.forBlock['tactic_refl'] = () => 'rfl\n';
 
   gen.forBlock['tactic_rw'] = block => {
     let code = 'rw [';
