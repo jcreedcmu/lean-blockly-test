@@ -78,13 +78,15 @@ export function mkLeanGenerator(): blockly.CodeGenerator {
 
     return code + '\n';
   };
-  gen.forBlock['tactic_induction'] = block => {
-    let code = 'induction ';
-
-    code += gen.valueToCode(block, 'EXPR',
-      LeanPrec.ORDER_ATOMIC);
-
+  gen.forBlock['tactic_constructor'] = block => {
+    let code = 'constructor\n';
+    code += gen.statementToCode(block, 'BODY').replace(/^ /mg, '·');
     return code + '\n';
+  };
+  gen.forBlock['tactic_show'] = block => {
+    let code = 'show ' + gen.valueToCode(block, 'GOAL', LeanPrec.ORDER_ATOMIC) + ' by ';
+    code += gen.statementToCode(block, 'PROOF').replace(/^  /, '');
+    return code;
   };
 
 

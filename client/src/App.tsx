@@ -511,25 +511,7 @@ function App() {
     editor.getModel().setValue(code);
   }
   return <div style={myStyle}>
-    <div
-      style={{
-        display: 'flex',
-        flexGrow: 1,
-        flexDirection: 'row',
-        backgroundColor: '#def',
-      }}>
-      <div style={{
-        width: '100px',
-        padding: '1em',
-      }}>
-        <button onClick={(_e) =>
-          injectClick('def foo : Nat := by sorry', { column: 21, lineNumber: 1 })}>Inject</button>
-        <p />
-        <button onClick={(_e) =>
-          focusClick()}>Focus</button>
-      </div>
-      <Blockly style={kid1} onBlocklyChange={onBlocklyChange} />
-    </div>
+    <Blockly style={kid1} onBlocklyChange={onBlocklyChange} />
     <div style={kid2} >{show ? <Wrapp editor={editor} setEditor={setEditor} /> : undefined}</div>
   </div>;
 }

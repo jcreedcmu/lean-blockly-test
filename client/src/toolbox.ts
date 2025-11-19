@@ -30,7 +30,11 @@ const LeanTacticsCategory = {
     },
     {
       kind: 'block',
-      type: 'tactic_induction',
+      type: 'tactic_constructor',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_show',
     },
     {
       kind: 'block',

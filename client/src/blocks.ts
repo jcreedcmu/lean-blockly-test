@@ -184,16 +184,16 @@ function defineTactics() {
       'message0': 'sorry',
       'previousStatement': 'tactic',
       'colour': 330,
-      'tooltip': 'but are you really sorry?',
+      'tooltip': 'hole in proof',
       'helpUrl': 'refl',
     },
     {
-      'type': 'tactic_induction',
-      'message0': 'induction %1',
+      'type': 'tactic_constructor',
+      'message0': 'constructor %1',
       'args0': [
         {
-          'type': 'input_value',
-          'name': 'EXPR',
+          'type': 'input_statement',
+          'name': 'BODY',
         },
       ],
       'inputsInline': false,
@@ -203,5 +203,23 @@ function defineTactics() {
       'tooltip': '',
       'helpUrl': '',
     },
+    {
+      "type": "tactic_show",
+      "tooltip": "tactic_show",
+      "helpUrl": "tactic_show",
+      "message0": "show %1 by %2",
+      "args0": [
+        {
+          "type": "input_value",
+          "name": "GOAL"
+        },
+        {
+          "type": "input_statement",
+          "name": "PROOF"
+        },
+      ],
+      "output": "proposition",
+      "colour": 60
+    }
   ]);
 }
