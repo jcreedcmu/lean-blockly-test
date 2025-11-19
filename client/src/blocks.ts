@@ -222,29 +222,39 @@ function defineTactics() {
       'helpUrl': 'refl',
     },
     {
-      'type': 'tactic_grind',
-      'message0': 'grind',
-      'nextStatement': 'tactic',
-      'previousStatement': 'tactic',
-      'colour': 330,
-      'tooltip': 'grind',
-      'helpUrl': 'grind',
-    },
-    {
-      'type': 'tactic_constructor',
-      'message0': 'constructor %1',
+      'type': 'tactic_other',
+      'message0': '%1',
       'args0': [
         {
-          'type': 'input_statement',
-          'name': 'BODY',
+          'type': 'field_input',
+          'name': 'PROP_NAME',
+          'text': 'h',
         },
       ],
-      'inputsInline': false,
+      'nextStatement': 'tactic',
+      'previousStatement': 'tactic',
+      'colour': 110,
+      'tooltip': 'other tactic',
+      'helpUrl': 'other tactic',
+    },
+    {
+      "type": "tactic_constructor",
+      "tooltip": "",
+      "helpUrl": "",
+      "message0": "pair %1 %2",
+      "args0": [
+        {
+          "type": "input_statement",
+          "name": "BODY1"
+        },
+        {
+          "type": "input_statement",
+          "name": "BODY2"
+        }
+      ],
       'previousStatement': 'tactic',
       'nextStatement': 'tactic',
-      'style': 'logic_blocks',
-      'tooltip': '',
-      'helpUrl': '',
+      "colour": 165
     },
     {
       "type": "tactic_show",

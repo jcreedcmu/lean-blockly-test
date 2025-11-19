@@ -44,6 +44,7 @@ export function mkLeanGenerator(): blockly.CodeGenerator {
   gen.forBlock['lemma'] = genLemma;
   gen.forBlock['prop'] = genProp;
   gen.forBlock['prop_dynamic'] = genProp;
+  gen.forBlock['tactic_other'] = block => block.getFieldValue('PROP_NAME') + '\n';
 
   gen.forBlock['prop_declaration'] = block => {
     const decl = block.getFieldValue('VARIABLE_DECL');
@@ -51,7 +52,6 @@ export function mkLeanGenerator(): blockly.CodeGenerator {
     return `(${decl} : ${def})`;
   };
   gen.forBlock['tactic_sorry'] = () => 'sorry\n';
-  gen.forBlock['tactic_grind'] = () => 'grind\n';
   gen.forBlock['tactic_refl'] = () => 'rfl\n';
 
   for (const t of blocks.singleArgTactics) {
@@ -91,7 +91,8 @@ export function mkLeanGenerator(): blockly.CodeGenerator {
   };
   gen.forBlock['tactic_constructor'] = block => {
     let code = 'constructor\n';
-    code += gen.statementToCode(block, 'BODY').replace(/^ /mg, '·');
+    code += gen.statementToCode(block, 'BODY1').replace(/^ /, '·');
+    code += gen.statementToCode(block, 'BODY2').replace(/^ /, '·');
     return code + '\n';
   };
   gen.forBlock['tactic_show'] = block => {
