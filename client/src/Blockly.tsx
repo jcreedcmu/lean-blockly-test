@@ -1,4 +1,4 @@
-import { useEffect, useRef, JSX } from 'react'
+import { useEffect, useRef, JSX, forwardRef, useImperativeHandle } from 'react'
 import * as React from 'react'
 import * as blockly from 'blockly'
 import * as blocks from './blocks'
@@ -7,13 +7,17 @@ import * as generator from './generator'
 
 export type BlocklyState = object;
 
+export type BlocklyHandle = {
+  loadWorkspace: (data: BlocklyState) => void;
+};
+
 function useBlockly(
   ref: React.RefObject<HTMLDivElement>,
+  wsRef: React.MutableRefObject<blockly.WorkspaceSvg | null>,
   initialData: BlocklyState | undefined,
   onBlocklyChange?: BlocklyChangeHandler,
 ) {
   const handlerRef = useRef<BlocklyChangeHandler | undefined>(onBlocklyChange);
-  const wsRef = useRef<blockly.WorkspaceSvg | null>(null);
 
   useEffect(() => {
     handlerRef.current = onBlocklyChange;
@@ -71,8 +75,19 @@ export type BlocklyProps = {
   onBlocklyChange?: BlocklyChangeHandler;
 };
 
-export function Blockly(props: BlocklyProps): JSX.Element {
-  const blocklyRef = React.useRef(null);
-  useBlockly(blocklyRef, props.initialData, props.onBlocklyChange);
+export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
+  const blocklyRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<blockly.WorkspaceSvg | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    loadWorkspace: (data: BlocklyState) => {
+      if (wsRef.current) {
+        blockly.serialization.workspaces.load(data, wsRef.current);
+      }
+    }
+  }), []);
+
+  useBlockly(blocklyRef, wsRef, props.initialData, props.onBlocklyChange);
+
   return <div style={props.style} ref={blocklyRef}></div>;
-}
+});
