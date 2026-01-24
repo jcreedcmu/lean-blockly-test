@@ -500,7 +500,11 @@ function App() {
   };
   const kid1: React.CSSProperties = {
     flexGrow: 1,
-
+    display: 'flex',
+    flexDirection: 'row',
+  };
+  const blocklyContainer: React.CSSProperties = {
+    flexGrow: 1,
   };
   const kid2: React.CSSProperties = {
     height: '300px',
@@ -519,7 +523,14 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     editor.getModel().setValue(prelude + code);
   }
   return <div style={myStyle}>
-    <Blockly style={kid1} onBlocklyChange={onBlocklyChange} initialData={initialData} />
+    <div style={kid1}>
+      <div className="buttons">
+        <button>1</button>
+        <button>2</button>
+        <button>3</button>
+      </div>
+      <Blockly style={blocklyContainer} onBlocklyChange={onBlocklyChange} initialData={initialData} />
+    </div>
     <div style={kid2} >{show ? <Wrapp editor={editor} setEditor={setEditor} /> : undefined}</div>
   </div>;
 }

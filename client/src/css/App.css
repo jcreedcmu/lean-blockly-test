@@ -36,3 +36,15 @@
 .hidden {
   display: none !important;
 }
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 8px;
+}
+
+.buttons button {
+  font-size: 3em;
+  padding: 0.25em;
+}
