@@ -22,6 +22,7 @@ import { Blockly, BlocklyHandle, BlocklyState } from './Blockly.tsx';
 import { Goals } from './infoview';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
+import { getGoalsAtEndOfCode } from './leanApi';
 
 type ExampleDefinition = {
   name: string;
@@ -687,7 +688,24 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
 
 `;
-    editor.getModel().setValue(prelude + code);
+    const fullCode = prelude + code;
+
+    // Update Monaco editor (for debugging/viewing)
+    editor.getModel().setValue(fullCode);
+
+    // Independently fetch goals from Lean server
+    (async () => {
+      try {
+        const goals = await getGoalsAtEndOfCode(fullCode);
+        if (goals) {
+          console.log('[onBlocklyChange] Received goals:', goals);
+        } else {
+          console.log('[onBlocklyChange] No goals received');
+        }
+      } catch (err) {
+        console.error('[onBlocklyChange] Error fetching goals:', err);
+      }
+    })();
   }
   return <div style={myStyle}>
     <div style={kid1}>
