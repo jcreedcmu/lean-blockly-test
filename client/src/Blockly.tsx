@@ -9,6 +9,7 @@ export type BlocklyState = object;
 
 export type BlocklyHandle = {
   loadWorkspace: (data: BlocklyState) => void;
+  saveWorkspace: () => BlocklyState | null;
 };
 
 function useBlockly(
@@ -84,6 +85,12 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
       if (wsRef.current) {
         blockly.serialization.workspaces.load(data, wsRef.current);
       }
+    },
+    saveWorkspace: () => {
+      if (wsRef.current) {
+        return blockly.serialization.workspaces.save(wsRef.current);
+      }
+      return null;
     }
   }), []);
 

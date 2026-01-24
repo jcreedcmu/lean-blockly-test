@@ -102,8 +102,6 @@ const example3: BlocklyState = {
   }
 };
 
-const examples: BlocklyState[] = [example1, example2, example3];
-
 // CSS
 import './css/App.css'
 import './css/Editor.css'
@@ -563,6 +561,26 @@ function App() {
   const [show, setShow] = useState(true);
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
   const blocklyRef = useRef<BlocklyHandle>(null);
+  const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
+  const [exampleStates, setExampleStates] = useState<BlocklyState[]>([example1, example2, example3]);
+
+  function switchToExample(newIndex: number) {
+    if (newIndex === currentExampleIndex) return;
+
+    // Save current workspace state
+    const currentState = blocklyRef.current?.saveWorkspace();
+    if (currentState) {
+      setExampleStates(prev => {
+        const updated = [...prev];
+        updated[currentExampleIndex] = currentState;
+        return updated;
+      });
+    }
+
+    // Load the new example
+    blocklyRef.current?.loadWorkspace(exampleStates[newIndex]);
+    setCurrentExampleIndex(newIndex);
+  }
 
   function injectClick(s: string, p: monaco.IPosition) {
     const model = editor.getModel();
@@ -608,9 +626,9 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   return <div style={myStyle}>
     <div style={kid1}>
       <div className="buttons">
-        <button onClick={() => blocklyRef.current?.loadWorkspace(examples[0])}>1</button>
-        <button onClick={() => blocklyRef.current?.loadWorkspace(examples[1])}>2</button>
-        <button onClick={() => blocklyRef.current?.loadWorkspace(examples[2])}>3</button>
+        <button onClick={() => switchToExample(0)}>1</button>
+        <button onClick={() => switchToExample(1)}>2</button>
+        <button onClick={() => switchToExample(2)}>3</button>
       </div>
       <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} initialData={example1} />
     </div>
