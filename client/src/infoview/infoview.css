@@ -1,0 +1,158 @@
+/* Infoview goal display styles */
+
+.goals {
+  font-family: 'Droid Sans Mono', 'monospace', monospace;
+  font-size: 14px;
+  padding: 0.5em;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.goals-empty {
+  color: #666;
+  font-style: italic;
+}
+
+.goals-tabs {
+  display: flex;
+  gap: 0.25em;
+  margin-bottom: 0.5em;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.5em;
+}
+
+.goals-tab {
+  padding: 0.25em 0.75em;
+  border: 1px solid #ccc;
+  border-radius: 4px 4px 0 0;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.goals-tab:hover {
+  background: #e8e8e8;
+}
+
+.goals-tab.active {
+  background: #007acc;
+  color: white;
+  border-color: #007acc;
+}
+
+.goals-content {
+  padding: 0.5em 0;
+}
+
+.goals-count {
+  font-size: 0.85em;
+  color: #666;
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+  border-top: 1px solid #ddd;
+}
+
+/* Single goal */
+.goal {
+  line-height: 1.5;
+}
+
+.goal-case {
+  margin-bottom: 0.5em;
+  color: #666;
+}
+
+.goal-case-label {
+  font-weight: bold;
+}
+
+.goal-case-name {
+  color: #007acc;
+}
+
+.goal-hyps {
+  margin-bottom: 0.5em;
+  padding-bottom: 0.5em;
+  border-bottom: 1px solid #ddd;
+}
+
+.goal-target {
+  margin-top: 0.5em;
+}
+
+.goal-vdash {
+  color: #666;
+}
+
+.goal-type {
+  color: #000;
+}
+
+/* Hypothesis */
+.hyp {
+  margin: 0.2em 0;
+}
+
+.hyp-names {
+  font-weight: bold;
+  color: #001080;
+}
+
+.hyp-name {
+  margin-right: 0.25em;
+}
+
+.hyp-name.inserted {
+  background-color: #d4edda;
+}
+
+.hyp-name.removed {
+  background-color: #f8d7da;
+  text-decoration: line-through;
+}
+
+.hyp-name.inaccessible {
+  color: #999;
+}
+
+.hyp-colon,
+.hyp-assign {
+  color: #666;
+}
+
+.hyp-type,
+.hyp-val {
+  color: #000;
+}
+
+/* Interactive code */
+.interactive-code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.subexpr {
+  /* Subexpressions can be styled or highlighted */
+}
+
+.subexpr:hover {
+  background-color: rgba(0, 122, 204, 0.1);
+  border-radius: 2px;
+}
+
+/* Diff status styling */
+.diff-wasChanged,
+.diff-willChange {
+  background-color: #fff3cd;
+}
+
+.diff-wasDeleted,
+.diff-willDelete {
+  background-color: #f8d7da;
+  text-decoration: line-through;
+}
+
+.diff-wasInserted,
+.diff-willInsert {
+  background-color: #d4edda;
+}

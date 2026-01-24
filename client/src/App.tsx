@@ -19,6 +19,9 @@ import { save } from './utils/SaveToFile'
 import { fixedEncodeURIComponent, formatArgs, lookupUrl, parseArgs } from './utils/UrlParsing'
 import { useWindowDimensions } from './utils/WindowWidth'
 import { Blockly, BlocklyHandle, BlocklyState } from './Blockly.tsx';
+import { Goals } from './infoview';
+import './infoview/infoview.css';
+import type { InteractiveGoals } from '@leanprover/infoview-api';
 
 type ExampleDefinition = {
   name: string;
@@ -115,6 +118,43 @@ const exampleDefinitions: ExampleDefinition[] = [
     }
   }
 ];
+
+// Static example goal data for the infoview
+const exampleGoals: InteractiveGoals = {
+  goals: [
+    {
+      hyps: [
+        {
+          names: ['n'],
+          type: { text: 'Nat' },
+          isInstance: false,
+          isType: false,
+        },
+        {
+          names: ['h'],
+          type: { append: [{ text: 'n > ' }, { text: '0' }] },
+          isInstance: false,
+          isType: false,
+        },
+      ],
+      type: { append: [{ text: 'n + ' }, { text: '1 > ' }, { text: '1' }] },
+    },
+    {
+      hyps: [
+        {
+          names: ['x', 'y'],
+          type: { text: 'Int' },
+        },
+        {
+          names: ['hxy'],
+          type: { append: [{ text: 'x = ' }, { text: 'y' }] },
+        },
+      ],
+      type: { append: [{ text: 'x + ' }, { text: '1 = y + ' }, { text: '1' }] },
+      userName: 'add_one',
+    },
+  ],
+};
 
 // CSS
 import './css/App.css'
