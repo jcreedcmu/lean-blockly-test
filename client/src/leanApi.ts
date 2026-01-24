@@ -19,6 +19,7 @@ let processingResolvers: Array<() => void> = [];
 
 /**
  * Get the active LeanClient from lean4monaco.
+ * TODO: this is a bad use of global state, I should be passing in the LSP client from the outside.
  */
 function getActiveClient() {
   const leanMonaco = LeanMonaco.activeInstance;
@@ -203,14 +204,4 @@ export async function getGoalsForCode(
   const goals = await fetchGoals(line, character);
   console.log('[leanApi] Goals:', goals);
   return goals;
-}
-
-/**
- * Convenience function to get goals at the end of the code.
- */
-export async function getGoalsAtEndOfCode(code: string): Promise<InteractiveGoals | null> {
-  const lines = code.split('\n');
-  const lastLine = lines.length - 1;
-  const lastChar = lines[lastLine]?.length ?? 0;
-  return getGoalsForCode(code, lastLine, lastChar);
 }

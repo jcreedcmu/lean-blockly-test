@@ -22,7 +22,7 @@ import { Blockly, BlocklyHandle, BlocklyState } from './Blockly.tsx';
 import { Goals } from './infoview';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
-import { getGoalsAtEndOfCode } from './leanApi';
+import { getGoalsForCode } from './leanApi';
 
 type ExampleDefinition = {
   name: string;
@@ -614,6 +614,7 @@ function Wrapp(props: {
 
 function App() {
   const [show, setShow] = useState(true);
+  const [goals, setGoals] = useState(exampleGoals);
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
   const blocklyRef = useRef<BlocklyHandle>(null);
   const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
@@ -693,12 +694,19 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     // Update Monaco editor (for debugging/viewing)
     editor.getModel().setValue(fullCode);
 
+    // Test with simple code to confirm API works
+    const testCode = `def foo : 1 + 2 = 3 := by
+  have h : 3 + 4 = 7 := by sorry
+  sorry
+`;
     // Independently fetch goals from Lean server
     (async () => {
       try {
-        const goals = await getGoalsAtEndOfCode(fullCode);
+        // Get goals at the sorry position (line 2, char 2 - where "sorry" starts)
+        const goals = await getGoalsForCode(testCode, 2, 2);
         if (goals) {
           console.log('[onBlocklyChange] Received goals:', goals);
+          setGoals(goals);
         } else {
           console.log('[onBlocklyChange] No goals received');
         }
@@ -723,7 +731,7 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
       </div>
       <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} initialData={exampleDefinitions[0].initial} />
       <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
-        <Goals goals={exampleGoals} />
+        <Goals goals={goals} />
       </div>
     </div>
     <div style={kid2} >{show ? <Wrapp editor={editor} setEditor={setEditor} /> : undefined}</div>
