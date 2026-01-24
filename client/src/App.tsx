@@ -704,6 +704,9 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
         <button onClick={resetCurrentExample}>Reset</button>
       </div>
       <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} initialData={exampleDefinitions[0].initial} />
+      <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
+        <Goals goals={exampleGoals} />
+      </div>
     </div>
     <div style={kid2} >{show ? <Wrapp editor={editor} setEditor={setEditor} /> : undefined}</div>
   </div>;
