@@ -219,7 +219,8 @@ function blockToChunks(
   }
 
   // Handle chained blocks (next connection) for tactics
-  if (block.next?.block && tp !== 'prop_declaration') {
+  // Note: prop_declaration returns early with its own next handling
+  if (block.next?.block) {
     chunks.push(...blockToChunks(block.next.block, indent));
   }
 
@@ -307,16 +308,19 @@ function flattenChunks(chunks: CodeChunk[]): WorkspaceToLeanResult {
  */
 export function workspaceToLean(workspace: BlocklyState): WorkspaceToLeanResult {
   const ws = workspace as SerializedWorkspace;
-  const topBlocks = ws.blocks?.blocks ?? [];
+  const allTopBlocks = ws.blocks?.blocks ?? [];
+
+  // Only process lemma blocks (main theorems), ignore loose tactics or other blocks
+  const lemmaBlocks = allTopBlocks.filter(block => block.type === 'lemma');
 
   const allChunks: CodeChunk[] = [];
 
-  for (let i = 0; i < topBlocks.length; i++) {
-    const chunks = blockToChunks(topBlocks[i], '');
+  for (let i = 0; i < lemmaBlocks.length; i++) {
+    const chunks = blockToChunks(lemmaBlocks[i], '');
     allChunks.push(...chunks);
 
     // Add blank line between top-level blocks
-    if (i < topBlocks.length - 1) {
+    if (i < lemmaBlocks.length - 1) {
       allChunks.push(text('\n'));
     }
   }
