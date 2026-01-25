@@ -20,7 +20,7 @@ theorem fun_limit_fact : FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
     simp
     rw [away y hy]
     rw [show y + 1 - 2 = y - 1 by
-  grind]
+        grind]
     exact hy2
 `;
 

@@ -26,7 +26,7 @@ interface SerializedWorkspace {
 /**
  * Generate Lean code from a single block and its children.
  */
-function blockToCode(block: SerializedBlock | undefined, indent: string = ''): string {
+function blockToCode(block: SerializedBlock | undefined, indent: string = '', noFirstIndent: boolean = false): string {
   if (!block) return '';
 
   const type = block.type;
@@ -41,7 +41,7 @@ function blockToCode(block: SerializedBlock | undefined, indent: string = ''): s
       const declaration = fields['THEOREM_DECLARATION'] ?? '';
       const variables = blockToCode(inputs['VARIABLES']?.block, '');
       const proof = blockToCode(inputs['LEMMA_PROOF']?.block, indent + '  ');
-      code = `${indent}theorem ${name}${variables} : ${declaration} := by\n${proof}`;
+      code = `theorem ${name}${variables} : ${declaration} := by\n${proof}`;
       break;
     }
 
@@ -64,18 +64,18 @@ function blockToCode(block: SerializedBlock | undefined, indent: string = ''): s
     }
 
     case 'tactic_sorry': {
-      code = `${indent}sorry\n`;
+      code = `sorry\n`;
       break;
     }
 
     case 'tactic_refl': {
-      code = `${indent}rfl\n`;
+      code = `rfl\n`;
       break;
     }
 
     case 'tactic_other': {
       const name = fields['PROP_NAME'] ?? '';
-      code = `${indent}${name}\n`;
+      code = `${name}\n`;
       break;
     }
 
@@ -90,27 +90,27 @@ function blockToCode(block: SerializedBlock | undefined, indent: string = ''): s
     case 'tactic_obtain': {
       const tacticName = type.replace('tactic_', '');
       const arg = blockToCode(inputs['ARG']?.block, '');
-      code = `${indent}${tacticName} ${arg}\n`;
+      code = `${tacticName} ${arg}\n`;
       break;
     }
 
     case 'tactic_rw': {
       const direction = fields['DIRECTION_TYPE'];
-      const source = blockToCode(inputs['REWRITE_SOURCE']?.block, '');
+      const source = blockToCode(inputs['REWRITE_SOURCE']?.block, indent + '  ', true);
       const arrow = direction === 'LEFT' ? '← ' : '';
-      code = `${indent}rw [${arrow}${source}]\n`;
+      code = `rw [${arrow}${source}]\n`;
       break;
     }
 
     case 'tactic_rw_at': {
-      const source = blockToCode(inputs['REWRITE_SOURCE']?.block, '');
-      const target = blockToCode(inputs['REWRITE_TARGET']?.block, '');
-      code = `${indent}rw ${source} at ${target}\n`;
+      const source = blockToCode(inputs['REWRITE_SOURCE']?.block, indent + '  ', true);
+      const target = blockToCode(inputs['REWRITE_TARGET']?.block, indent + '  ', true);
+      code = `rw ${source} at ${target}\n`;
       break;
     }
 
     case 'tactic_constructor': {
-      code = `${indent}constructor\n`;
+      code = `constructor\n`;
       const body1 = blockToCode(inputs['BODY1']?.block, indent + '  ');
       const body2 = blockToCode(inputs['BODY2']?.block, indent + '  ');
       // Replace leading spaces with bullet point for first line of each body
@@ -134,6 +134,10 @@ function blockToCode(block: SerializedBlock | undefined, indent: string = ''): s
     default:
       console.warn(`[workspaceToLean] Unknown block type: ${type}`);
       break;
+  }
+
+  if (!noFirstIndent) {
+    code = indent + code;
   }
 
   // Handle chained blocks (next connection) for tactics
