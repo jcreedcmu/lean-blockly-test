@@ -48,3 +48,8 @@
   font-size: 3em;
   padding: 0.25em;
 }
+
+/* Blockly theorem statement - monospace font */
+.blocklyTheoremStatement {
+  font-family: 'Droid Sans Mono', 'Consolas', 'Monaco', monospace !important;
+}

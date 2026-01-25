@@ -1,8 +1,33 @@
 import * as blockly from 'blockly';
+import { FieldLabelSerializable, FieldConfig } from 'blockly';
 
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
 */
+
+/**
+ * Custom field for theorem statements with monospace styling.
+ */
+class FieldTheoremStatement extends FieldLabelSerializable {
+  constructor(value?: string) {
+    super(value ?? '');
+  }
+
+  initView(): void {
+    super.initView();
+    // Add custom CSS class to the text element
+    if (this.textElement_) {
+      blockly.utils.dom.addClass(this.textElement_, 'blocklyTheoremStatement');
+    }
+  }
+
+  static fromJson(options: FieldConfig & { text?: string }): FieldTheoremStatement {
+    return new FieldTheoremStatement(options.text);
+  }
+}
+
+// Register the custom field type
+blockly.fieldRegistry.register('field_theorem_statement', FieldTheoremStatement);
 
 export function defineBlocks() {
   defineLemma();
@@ -59,7 +84,7 @@ function defineLemma() {
           'type': 'input_dummy',
         },
         {
-          'type': 'field_label_serializable',
+          'type': 'field_theorem_statement',
           'name': 'THEOREM_DECLARATION',
           'text': 'theorem_statement',
         },
