@@ -92,6 +92,20 @@ function defineMisc() {
 }
 
 function defineLemma() {
+  // Register extension to add shadow block to LEMMA_PROOF (only once)
+  if (!blockly.Extensions.isRegistered('lemma_proof_shadow')) {
+    blockly.Extensions.register('lemma_proof_shadow', function(this: blockly.BlockSvg) {
+      const input = this.getInput('LEMMA_PROOF');
+      if (input && input.connection) {
+        const shadowBlock = this.workspace.newBlock('tactic_sorry') as blockly.BlockSvg;
+        shadowBlock.setShadow(true);
+        shadowBlock.initSvg();
+        shadowBlock.render();
+        input.connection.connect(shadowBlock.previousConnection);
+      }
+    });
+  }
+
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'lemma',
@@ -123,6 +137,7 @@ function defineLemma() {
       'style': 'procedure_blocks',
       'tooltip': '',
       'helpUrl': '',
+      'extensions': ['lemma_proof_shadow'],
     },
   ]);
 }
