@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as blockly from 'blockly'
 import * as blocks from './blocks'
 import * as toolboxDef from './toolbox'
-import { workspaceToLean } from './workspaceToLean'
+import { workspaceToLean, WorkspaceToLeanResult } from './workspaceToLean'
 
 export type BlocklyState = object;
 
@@ -68,7 +68,7 @@ function useBlockly(
 
 }
 
-export type BlocklyChangeHandler = (code: string) => void;
+export type BlocklyChangeHandler = (result: WorkspaceToLeanResult) => void;
 
 export type BlocklyProps = {
   style: React.CSSProperties;

@@ -27,6 +27,17 @@ theorem fun_limit_fact : FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
 describe('workspaceToLean', () => {
   it('should convert example 1 workspace to expected Lean code', () => {
     const result = workspaceToLean(example1Data);
-    expect(result).toBe(expectedOutput);
+    expect(result.leanCode).toBe(expectedOutput);
+  });
+
+  it('should produce sourceInfo for all blocks', () => {
+    const result = workspaceToLean(example1Data);
+    // Should have sourceInfo entries for blocks
+    expect(result.sourceInfo.length).toBeGreaterThan(0);
+
+    // Check that the lemma block is tracked
+    const awayLemma = result.sourceInfo.find(s => s.id === '3yAUmdNL2=WYh]Gxi)]X');
+    expect(awayLemma).toBeDefined();
+    expect(awayLemma!.startLineCol[0]).toBe(0); // First line
   });
 });

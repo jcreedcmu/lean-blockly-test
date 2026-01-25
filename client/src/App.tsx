@@ -19,6 +19,7 @@ import { save } from './utils/SaveToFile'
 import { fixedEncodeURIComponent, formatArgs, lookupUrl, parseArgs } from './utils/UrlParsing'
 import { useWindowDimensions } from './utils/WindowWidth'
 import { Blockly, BlocklyHandle, BlocklyState } from './Blockly.tsx';
+import type { WorkspaceToLeanResult } from './workspaceToLean';
 import { Goals } from './infoview';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
@@ -681,15 +682,16 @@ function App() {
   function changeChecked(e: React.ChangeEvent) {
     setShow((e.currentTarget as HTMLInputElement).checked);
   }
-  function onBlocklyChange(code: string) {
-    console.log(code, editor);
+  function onBlocklyChange(result: WorkspaceToLeanResult) {
+    const { leanCode, sourceInfo } = result;
+    console.log(leanCode, sourceInfo, editor);
     const prelude = `import Mathlib
 
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
 
 `;
-    const fullCode = prelude + code;
+    const fullCode = prelude + leanCode;
 
     // Update Monaco editor (for debugging/viewing)
     editor.getModel().setValue(fullCode);
