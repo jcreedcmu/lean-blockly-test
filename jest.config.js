@@ -2,9 +2,9 @@
 export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/client/src'],
+  roots: ['<rootDir>/client'],
   moduleFileExtensions: ['ts', 'tsx', 'js'],
-  testMatch: ['**/*.test.ts'],
+  testMatch: ['**/*.test.ts', '**/test/**/*.ts'],
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       useESM: true,
