@@ -23,7 +23,7 @@ import type { WorkspaceToLeanResult, SourceInfo } from './workspaceToLean';
 import { Goals } from './infoview';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
-import { getGoalsForCode, getCurrentRequestId } from './leanApi';
+import { RpcSessionManager } from './RpcSessionManager';
 
 type ExampleDefinition = {
   name: string;
@@ -617,6 +617,9 @@ function Wrapp(props: {
 
 }
 
+// Virtual document URI for Blockly code (must match what RpcSessionManager uses)
+const BLOCKLY_DOC_URI = 'file:///blockly/Blockly.lean';
+
 function App() {
   const [show, setShow] = useState(true);
   const [goals, setGoals] = useState(exampleGoals);
@@ -626,6 +629,41 @@ function App() {
   const [exampleStates, setExampleStates] = useState<BlocklyState[]>(
     () => exampleDefinitions.map(ex => ex.initial)
   );
+
+  // RPC session manager for Blockly code
+  const rpcManagerRef = useRef<RpcSessionManager | null>(null);
+  const [rpcManagerReady, setRpcManagerReady] = useState(false);
+
+  // Initialize RPC session manager when editor is ready (Lean client available)
+  useEffect(() => {
+    if (!editor) return;
+
+    // Create manager if not exists
+    if (!rpcManagerRef.current) {
+      rpcManagerRef.current = new RpcSessionManager(BLOCKLY_DOC_URI);
+    }
+
+    // Try to initialize (may need to retry if Lean client not ready yet)
+    const initManager = async () => {
+      const success = await rpcManagerRef.current!.initialize();
+      if (success) {
+        console.log('[App] RpcSessionManager initialized');
+        setRpcManagerReady(true);
+      } else {
+        // Retry after a delay - Lean client may not be ready yet
+        console.log('[App] RpcSessionManager init failed, retrying in 1s...');
+        setTimeout(initManager, 1000);
+      }
+    };
+
+    initManager();
+
+    return () => {
+      rpcManagerRef.current?.dispose();
+      rpcManagerRef.current = null;
+      setRpcManagerReady(false);
+    };
+  }, [editor]);
 
   function switchToExample(newIndex: number) {
     if (newIndex === currentExampleIndex) return;
@@ -737,6 +775,11 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
       return;
     }
 
+    if (!rpcManagerRef.current) {
+      console.log('[onRequestGoals] RPC manager not initialized');
+      return;
+    }
+
     // Use the start position of the block to query for goals
     const [line, col] = blockSourceInfo.startLineCol;
 
@@ -762,19 +805,13 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     }
 
     try {
-      console.log('[onRequestGoals] Fetching goals...');
-      const result = await getGoalsForCode(fullCode, adjustedLine, col);
-      console.log('[onRequestGoals] Result:', result);
+      console.log('[onRequestGoals] Fetching goals via RpcSessionManager...');
+      const goals = await rpcManagerRef.current.getGoals(fullCode, adjustedLine, col);
+      console.log('[onRequestGoals] Goals received:', goals);
 
-      // Check if this result is still current (not superseded by a newer request)
-      if (result.requestId !== getCurrentRequestId()) {
-        console.log('[onRequestGoals] Result is stale (request', result.requestId, 'vs current', getCurrentRequestId(), '), ignoring');
-        return;
-      }
-
-      if (result.goals) {
-        console.log('[onRequestGoals] Setting goals from request', result.requestId);
-        setGoals(result.goals);
+      if (goals) {
+        console.log('[onRequestGoals] Setting goals');
+        setGoals(goals);
       } else {
         console.log('[onRequestGoals] No goals returned');
       }

@@ -128,7 +128,9 @@ async function updateBlocklyDocument(code: string): Promise<{ updated: boolean; 
         contentChanges: [{ text: code }],
       });
       lastDocumentContent = code;
-      console.log('[leanApi] Updated Blockly document, version:', documentVersion);
+      // Invalidate RPC session - it's tied to the document state
+      currentSessionId = null;
+      console.log('[leanApi] Updated Blockly document, version:', documentVersion, '(session invalidated)');
     }
     return { updated: true, changed: true };
   } catch (err) {
@@ -163,8 +165,9 @@ async function ensureRpcSession(): Promise<string | null> {
 
 /**
  * Fetch interactive goals at a given position in the Blockly document.
+ * Automatically retries once with a fresh session if the session is stale.
  */
-async function fetchGoals(line: number, character: number): Promise<InteractiveGoals | null> {
+async function fetchGoals(line: number, character: number, isRetry = false): Promise<InteractiveGoals | null> {
   const client = getActiveClient();
   if (!client) return null;
 
@@ -183,10 +186,14 @@ async function fetchGoals(line: number, character: number): Promise<InteractiveG
       },
     });
     return result as InteractiveGoals;
-  } catch (err) {
+  } catch (err: any) {
     console.error('[leanApi] Failed to get interactive goals:', err);
-    // Session might be stale, clear it for next time
+    // Session might be stale, clear it and retry once
     currentSessionId = null;
+    if (!isRetry && err?.message?.includes('Outdated RPC session')) {
+      console.log('[leanApi] Retrying with fresh session...');
+      return fetchGoals(line, character, true);
+    }
     return null;
   }
 }
