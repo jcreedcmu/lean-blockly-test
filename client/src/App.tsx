@@ -125,43 +125,6 @@ const exampleDefinitions: ExampleDefinition[] = [
   }
 ];
 
-// Static example goal data for the infoview
-const exampleGoals: InteractiveGoals = {
-  goals: [
-    {
-      hyps: [
-        {
-          names: ['n'],
-          type: { text: 'Nat' },
-          isInstance: false,
-          isType: false,
-        },
-        {
-          names: ['h'],
-          type: { append: [{ text: 'n > ' }, { text: '0' }] },
-          isInstance: false,
-          isType: false,
-        },
-      ],
-      type: { append: [{ text: 'n + ' }, { text: '1 > ' }, { text: '1' }] },
-    },
-    {
-      hyps: [
-        {
-          names: ['x', 'y'],
-          type: { text: 'Int' },
-        },
-        {
-          names: ['hxy'],
-          type: { append: [{ text: 'x = ' }, { text: 'y' }] },
-        },
-      ],
-      type: { append: [{ text: 'x + ' }, { text: '1 = y + ' }, { text: '1' }] },
-      userName: 'add_one',
-    },
-  ],
-};
-
 // CSS
 import './css/App.css'
 import './css/Editor.css'
@@ -622,7 +585,8 @@ const BLOCKLY_DOC_URI = 'file:///blockly/Blockly.lean';
 
 function App() {
   const [show, setShow] = useState(true);
-  const [goals, setGoals] = useState(exampleGoals);
+  const [goals, setGoals] = useState<InteractiveGoals | null>(null);
+  const [goalsLoading, setGoalsLoading] = useState(false);
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
   const blocklyRef = useRef<BlocklyHandle>(null);
   const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
@@ -804,6 +768,7 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
       console.log('[onRequestGoals] Character at position:', JSON.stringify(codeLines[adjustedLine]?.[col]));
     }
 
+    setGoalsLoading(true);
     try {
       console.log('[onRequestGoals] Fetching goals via RpcSessionManager...');
       const goals = await rpcManagerRef.current.getGoals(fullCode, adjustedLine, col);
@@ -817,6 +782,8 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
       }
     } catch (err) {
       console.error('[onRequestGoals] Error fetching goals:', err);
+    } finally {
+      setGoalsLoading(false);
     }
   }
 
@@ -855,7 +822,14 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
         </div>
         <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} onRequestGoals={onRequestGoals} initialData={exampleDefinitions[0].initial} />
         <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
-          <Goals goals={goals} />
+          {goalsLoading ? (
+            <div className="goals-loading">
+              <div className="spinner" />
+              <span>Loading goals...</span>
+            </div>
+          ) : (
+            <Goals goals={goals} />
+          )}
         </div>
       </div>
       <div style={{ overflow: 'hidden' }}>{show ? <Wrapp editor={editor} setEditor={setEditor} /> : undefined}</div>

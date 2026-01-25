@@ -62,12 +62,7 @@ function renderTaggedText(
   return null;
 }
 
-function getSubexprClassName(info: SubexprInfo): string {
-  const classes = ['subexpr'];
-
-  if (info.diffStatus) {
-    classes.push(`diff-${info.diffStatus}`);
-  }
-
-  return classes.join(' ');
+function getSubexprClassName(_info: SubexprInfo): string {
+  // Note: info.diffStatus is available for goal diffing, but we don't use it currently
+  return 'subexpr';
 }
