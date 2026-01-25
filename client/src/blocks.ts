@@ -48,10 +48,10 @@ function defineLemma() {
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'lemma',
-      'message0': 'theorem %1 %2 %3 if  %4 then %5 := %6 because %7 %8',
+      'message0': 'theorem %1 %2   %3 %4 because %5',
       'args0': [
         {
-          'type': 'field_input',
+          'type': 'field_label_serializable',
           'name': 'THEOREM_NAME',
           'text': 'theorem_name',
         },
@@ -59,21 +59,9 @@ function defineLemma() {
           'type': 'input_dummy',
         },
         {
-          'type': 'input_dummy',
-        },
-        {
-          'type': 'input_statement',
-          'name': 'VARIABLES',
-          'check': 'prop_declaration',
-        },
-        {
-          'type': 'field_input',
+          'type': 'field_label_serializable',
           'name': 'THEOREM_DECLARATION',
-          'text': 'theorem_conclusion',
-        },
-        {
-          'type': 'input_dummy',
-          'align': 'CENTRE',
+          'text': 'theorem_statement',
         },
         {
           'type': 'input_dummy',

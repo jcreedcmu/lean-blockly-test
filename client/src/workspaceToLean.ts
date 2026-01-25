@@ -75,12 +75,10 @@ function blockToChunks(
     case 'lemma': {
       const name = fields['THEOREM_NAME'] ?? 'unnamed';
       const declaration = fields['THEOREM_DECLARATION'] ?? '';
-      const variableChunks = blockToChunks(inputs['VARIABLES']?.block, '');
       const proofChunks = blockToChunks(inputs['LEMMA_PROOF']?.block, indent + '  ');
+      // THEOREM_DECLARATION should contain the full signature, e.g. "(a b : ℕ) : a + b = b + a"
       chunks = [
-        chunk(`theorem ${name}`, blockId),
-        ...variableChunks,
-        chunk(` : ${declaration} := by\n`, blockId),
+        chunk(`theorem ${name} ${declaration} := by\n`, blockId),
         ...proofChunks,
       ];
       break;
