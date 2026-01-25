@@ -19,7 +19,7 @@ import { save } from './utils/SaveToFile'
 import { fixedEncodeURIComponent, formatArgs, lookupUrl, parseArgs } from './utils/UrlParsing'
 import { useWindowDimensions } from './utils/WindowWidth'
 import { Blockly, BlocklyHandle, BlocklyState } from './Blockly.tsx';
-import type { WorkspaceToLeanResult } from './workspaceToLean';
+import type { WorkspaceToLeanResult, SourceInfo } from './workspaceToLean';
 import { Goals } from './infoview';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
@@ -686,7 +686,6 @@ function App() {
   }
   function onBlocklyChange(result: WorkspaceToLeanResult) {
     const { leanCode, sourceInfo } = result;
-    console.log(leanCode, sourceInfo, editor);
     const prelude = `import Mathlib
 
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
@@ -698,27 +697,85 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     // Update Monaco editor (for debugging/viewing)
     editor.getModel().setValue(fullCode);
 
-    // Test with simple code to confirm API works
-    const testCode = `def foo : 1 + 2 = 3 := by
-  have h : 3 + 4 = 7 := by sorry
-  sorry
-`;
+
     // Independently fetch goals from Lean server
-    (async () => {
-      try {
-        // Get goals at the sorry position (line 2, char 2 - where "sorry" starts)
-        const goals = await getGoalsForCode(testCode, 2, 2);
-        if (goals) {
-          console.log('[onBlocklyChange] Received goals:', goals);
-          setGoals(goals);
-        } else {
-          console.log('[onBlocklyChange] No goals received');
-        }
-      } catch (err) {
-        console.error('[onBlocklyChange] Error fetching goals:', err);
-      }
-    })();
+    // (async () => {
+    //   try {
+    //     // Get goals at the sorry position (line 2, char 2 - where "sorry" starts)
+    //     const goals = await getGoalsForCode(testCode, 2, 2);
+    //     if (goals) {
+    //       console.log('[onBlocklyChange] Received goals:', goals);
+
+    //     } else {
+    //       console.log('[onBlocklyChange] No goals received');
+    //     }
+    //   } catch (err) {
+    //     console.error('[onBlocklyChange] Error fetching goals:', err);
+    //   }
+    // })();
   }
+
+  const prelude = `import Mathlib
+
+def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
+  ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
+
+`;
+
+  async function onRequestGoals(
+    blockId: string,
+    leanCode: string,
+    sourceInfo: SourceInfo[],
+    blockSourceInfo: SourceInfo | undefined
+  ) {
+    console.log('[onRequestGoals] ========================================');
+    console.log('[onRequestGoals] Block ID:', blockId);
+    console.log('[onRequestGoals] Block source info:', blockSourceInfo);
+
+    if (!blockSourceInfo) {
+      console.log('[onRequestGoals] No source info for block, cannot fetch goals');
+      return;
+    }
+
+    // Use the start position of the block to query for goals
+    const [line, col] = blockSourceInfo.startLineCol;
+
+    // Account for the prelude offset
+    const preludeLines = prelude.split('\n').length - 1; // -1 because split gives one more
+    const adjustedLine = line + preludeLines;
+
+    const fullCode = prelude + leanCode;
+
+    console.log('[onRequestGoals] Prelude lines:', preludeLines);
+    console.log('[onRequestGoals] Original position: line', line, 'col', col);
+    console.log('[onRequestGoals] Adjusted position: line', adjustedLine, 'col', col);
+    console.log('[onRequestGoals] Full code being sent:');
+    console.log('---BEGIN CODE---');
+    console.log(fullCode);
+    console.log('---END CODE---');
+
+    // Show the specific line we're querying
+    const codeLines = fullCode.split('\n');
+    if (adjustedLine < codeLines.length) {
+      console.log('[onRequestGoals] Line at query position:', JSON.stringify(codeLines[adjustedLine]));
+      console.log('[onRequestGoals] Character at position:', JSON.stringify(codeLines[adjustedLine]?.[col]));
+    }
+
+    try {
+      console.log('[onRequestGoals] Fetching goals...');
+      const goals = await getGoalsForCode(fullCode, adjustedLine, col);
+      console.log('[onRequestGoals] Goals received:', goals);
+
+      if (goals) {
+        setGoals(goals);
+      } else {
+        console.log('[onRequestGoals] No goals returned');
+      }
+    } catch (err) {
+      console.error('[onRequestGoals] Error fetching goals:', err);
+    }
+  }
+
   return <div style={myStyle}>
     <Split
       className={dragging ? 'dragging' : ''}
@@ -752,7 +809,7 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
           ))}
           <button onClick={resetCurrentExample}>Reset</button>
         </div>
-        <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} initialData={exampleDefinitions[0].initial} />
+        <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} onRequestGoals={onRequestGoals} initialData={exampleDefinitions[0].initial} />
         <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
           <Goals goals={goals} />
         </div>
