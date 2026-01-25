@@ -24,6 +24,8 @@ import { Goals } from './infoview';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { RpcSessionManager } from './RpcSessionManager';
+import { example as example1 } from './examples/example-1.ts';
+import { example as example2 } from './examples/example-2.ts';
 import { example as example4 } from './examples/example-4.ts';
 
 type LevelDefinition = {
@@ -33,88 +35,12 @@ type LevelDefinition = {
 
 const levelDefinitions: LevelDefinition[] = [
   {
-    name: "Simple Add",
-    initial: {
-      "blocks": {
-        "languageVersion": 0,
-        "blocks": [{
-          "type": "lemma",
-          "id": "example2-lemma",
-          "x": 20,
-          "y": 20,
-          "fields": {
-            "THEOREM_NAME": "simple_add",
-            "THEOREM_DECLARATION": ": 1 + 1 = 2"
-          },
-          "inputs": {
-            "LEMMA_PROOF": {
-              "block": {
-                "type": "tactic_other",
-                "id": "example2-tactic",
-                "fields": { "PROP_NAME": "rfl" }
-              }
-            }
-          }
-        }]
-      }
-    }
+    name: "Use Hypothesis",
+    initial: example1,
   },
   {
-    name: "Add Comm",
-    initial: {
-      "blocks": {
-        "languageVersion": 0,
-        "blocks": [{
-          "type": "lemma",
-          "id": "example3-lemma",
-          "x": 20,
-          "y": 20,
-          "fields": {
-            "THEOREM_NAME": "add_comm_example",
-            "THEOREM_DECLARATION": "(a b : ℕ) : a + b = b + a"
-          },
-          "inputs": {
-            "LEMMA_PROOF": {
-              "block": {
-                "type": "tactic_intro",
-                "id": "example3-intro1",
-                "inputs": {
-                  "ARG": {
-                    "block": {
-                      "type": "prop",
-                      "id": "example3-prop1",
-                      "fields": { "PROP_NAME": "a" }
-                    }
-                  }
-                },
-                "next": {
-                  "block": {
-                    "type": "tactic_intro",
-                    "id": "example3-intro2",
-                    "inputs": {
-                      "ARG": {
-                        "block": {
-                          "type": "prop",
-                          "id": "example3-prop2",
-                          "fields": { "PROP_NAME": "b" }
-                        }
-                      }
-                    },
-                    "next": {
-                      "block": {
-                        "type": "tactic_other",
-                        "id": "example3-tactic",
-                        "fields": { "PROP_NAME": "ring" }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }]
-      }
-    }
+    name: "Reflexivity",
+    initial: example2,
   },
   {
     name: "Field 𝕜",
