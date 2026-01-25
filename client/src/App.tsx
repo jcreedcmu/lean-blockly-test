@@ -736,7 +736,6 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
       }}
       gutterStyle={() => ({
         height: '5px',
-        cursor: 'row-resize',
         backgroundColor: '#ccc',
       })}
     >

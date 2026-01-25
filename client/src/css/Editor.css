@@ -51,14 +51,13 @@
   background-repeat: no-repeat;
   background-position: 50%;
 }
-/*
 .gutter-vertical {
-  width: 100% !important;
+  cursor: row-resize;
 }
 
 .gutter-horizontal {
-  height: 100% !important;
-} */
+  cursor: col-resize;
+}
 
 .gutter:hover, .dragging .gutter{
   background-color: var(--vscode-focusBorder);
