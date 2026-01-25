@@ -748,22 +748,37 @@ function App() {
     // Update Monaco editor (for debugging/viewing)
     editor?.getModel()?.setValue(fullCode);
 
-    // Check proof status by fetching goals at the end of the code
+    // Check proof status by fetching goals at the end of the theorem
     if (rpcManagerRef.current) {
       setProofComplete(null); // Set to "checking" state
 
-      // Find position at end of code to check for remaining goals
-      const lines = fullCode.split('\n');
-      const lastLine = lines.length - 1;
-      const lastCol = lines[lastLine]?.length ?? 0;
+      // Find the end position of the theorem by looking at source info
+      // Use the maximum end position among all blocks (end of last tactic)
+      const preludeLines = prelude.split('\n').length - 1;
+      let goalLine = preludeLines;
+      let goalCol = 0;
+
+      for (const info of sourceInfo) {
+        const [endLine, endCol] = info.endLineCol;
+        const adjustedLine = endLine + preludeLines;
+        if (adjustedLine > goalLine || (adjustedLine === goalLine && endCol > goalCol)) {
+          goalLine = adjustedLine;
+          goalCol = endCol;
+        }
+      }
+
+      console.log('[onBlocklyChange] Fetching goals at end of theorem:', goalLine, goalCol);
 
       (async () => {
         try {
-          const goals = await rpcManagerRef.current!.getGoals(fullCode, lastLine, lastCol);
-          console.log('[onBlocklyChange] Goals at end:', goals);
+          const goals = await rpcManagerRef.current!.getGoals(fullCode, goalLine, goalCol);
+          console.log('[onBlocklyChange] Goals at end of theorem:', goals);
 
           // Store goals for later reference (diagnostics callback can update status)
           latestGoalsRef.current = goals;
+
+          // Also update displayed goals
+          setGoals(goals);
 
           // Update proof status based on current goals and diagnostics
           updateProofStatus();
