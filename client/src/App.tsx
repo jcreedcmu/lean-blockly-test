@@ -842,6 +842,13 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
             </button>
           ))}
           <button onClick={resetCurrentLevel}>Reset</button>
+          <button onClick={() => {
+            const state = blocklyRef.current?.saveWorkspace();
+            if (state) {
+              navigator.clipboard.writeText(JSON.stringify(state, null, 2));
+              console.log('Workspace copied to clipboard');
+            }
+          }}>Copy</button>
         </div>
         <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} onRequestGoals={onRequestGoals} initialData={levelDefinitions[0].initial} />
         <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
