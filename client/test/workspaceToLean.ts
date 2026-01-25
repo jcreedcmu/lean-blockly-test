@@ -1,3 +1,4 @@
+import { describe, it, expect } from '@jest/globals';
 import { workspaceToLean } from '../src/workspaceToLean';
 
 // Example 1 data from App.tsx (exampleDefinitions[0].initial)
