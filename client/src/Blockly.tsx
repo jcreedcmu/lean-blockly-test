@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as blockly from 'blockly'
 import * as blocks from './blocks'
 import * as toolboxDef from './toolbox'
-import * as generator from './generator'
+import { workspaceToLean } from './workspaceToLean'
 
 export type BlocklyState = object;
 
@@ -29,7 +29,6 @@ function useBlockly(
 
     blocks.defineBlocks();
     const toolbox = toolboxDef.toolbox;
-    const leanGenerator = generator.mkLeanGenerator();
 
     const ws = blockly.inject(ref.current, {
       toolbox: toolbox,
@@ -54,7 +53,8 @@ function useBlockly(
 
     function changeListener() {
       if (handlerRef.current !== undefined) {
-        handlerRef.current(leanGenerator.workspaceToCode(ws));
+        const state = blockly.serialization.workspaces.save(ws);
+        handlerRef.current(workspaceToLean(state));
       }
     }
     ws.addChangeListener(changeListener);
