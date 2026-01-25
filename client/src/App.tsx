@@ -637,8 +637,11 @@ function App() {
     console.log('[updateProofStatus] Has errors:', hasErrors, 'Goals:', currentGoals?.goals?.length ?? 'null');
     console.log('[updateProofStatus] Diagnostics:', diagnostics);
 
+    // Don't update status if we don't have goals data yet (still checking)
+    if (currentGoals === null) return;
+
     // Proof is complete only if there are no goals AND no errors
-    const noGoals = currentGoals !== null && currentGoals.goals.length === 0;
+    const noGoals = currentGoals.goals.length === 0;
     const isComplete = noGoals && !hasErrors;
     setProofComplete(isComplete);
   }, []);
