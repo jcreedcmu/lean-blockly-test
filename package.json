@@ -27,7 +27,8 @@
     "test:prod": "concurrently -k -s first -n server,cypress -c blue,cyan \"npm run build && PORT=3000 npm run production\" \"npm run test:prod:bare\"",
     "test:prod:windows:bare": "wait-on \"http://localhost:3000\" && CYPRESS_USER_AGENT_OS=\"Windows NT 10.0; Win64; x64\" cypress run --browser chromium",
     "test:prod:windows": "concurrently -k -s first -n server,cypress -c blue,cyan \"npm run build && PORT=3000 npm run production\" \"npm run test:prod:windows:bare\"",
-    "test": "npm run test:dev"
+    "test": "npm run test:dev",
+    "test:unit": "NODE_OPTIONS='--experimental-vm-modules' jest"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -38,6 +39,7 @@
     "@types/file-saver": "^2.0.7",
     "@types/lz-string": "^1.5.0",
     "@uiw/react-codemirror": "^4.23.10",
+    "blockly": "^12.0.0",
     "concurrently": "^9.1.2",
     "eslint": "^9.21.0",
     "express": "^4.21.2",
@@ -52,11 +54,11 @@
     "react-dom": "^19.0.0",
     "react-split": "^2.0.14",
     "vscode-ws-jsonrpc": "^3.4.0",
-    "ws": "^8.18.1",
-    "blockly": "^12.0.0"
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@codingame/esbuild-import-meta-url-plugin": "^1.0.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.13.9",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
@@ -64,6 +66,8 @@
     "cypress": "^13.17.0",
     "cypress-iframe": "^1.0.1",
     "cypress-real-events": "^1.14.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
     "typescript": "^5.8.2",
     "vite": "^6.2.0",
     "vite-plugin-node-polyfills": "0.23.0",
@@ -71,7 +75,7 @@
     "vite-plugin-svgr": "^4.3.0",
     "wait-on": "^8.0.2"
   },
-  "engines" : {
-    "node" : ">=22.0.0"
+  "engines": {
+    "node": ">=22.0.0"
   }
 }
