@@ -59,3 +59,36 @@
 .blocklyTrash {
   translate: 0 calc(-100% + 100px);
 }
+
+/* Proof status indicator */
+.proof-status {
+  padding: 0.5em;
+  margin-bottom: 0.5em;
+  border-radius: 4px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.proof-complete {
+  color: #155724;
+  background-color: #d4edda;
+  display: block;
+  padding: 0.5em;
+  border-radius: 4px;
+}
+
+.proof-incomplete {
+  color: #856404;
+  background-color: #fff3cd;
+  display: block;
+  padding: 0.5em;
+  border-radius: 4px;
+}
+
+.proof-checking {
+  color: #666;
+  background-color: #f0f0f0;
+  display: block;
+  padding: 0.5em;
+  border-radius: 4px;
+}

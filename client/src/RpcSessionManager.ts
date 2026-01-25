@@ -6,6 +6,7 @@
 import { LeanMonaco } from 'lean4monaco';
 import type { InteractiveGoals, LeanFileProgressProcessingInfo } from '@leanprover/infoview-api';
 import type { RpcConnected } from '@leanprover/infoview-api';
+import type { Diagnostic } from 'vscode-languageserver-protocol';
 
 const KEEPALIVE_PERIOD_MS = 10000; // 10 seconds, matching lean4monaco
 
@@ -34,6 +35,11 @@ export class RpcSessionManager {
   private processingResolvers: Array<() => void> = [];
   private progressListenerSetup = false;
 
+  // Diagnostics state
+  private currentDiagnostics: Diagnostic[] = [];
+  private diagnosticsListenerSetup = false;
+  private onDiagnosticsChange?: (diagnostics: Diagnostic[]) => void;
+
   constructor(uri: string) {
     this.uri = uri;
   }
@@ -49,6 +55,7 @@ export class RpcSessionManager {
     }
 
     this.ensureProgressListener();
+    this.ensureDiagnosticsListener();
     return true;
   }
 
@@ -78,8 +85,16 @@ export class RpcSessionManager {
 
       this.startKeepalive();
       return this.sessionId;
-    } catch (err) {
+    } catch (err: any) {
       console.error('[RpcSessionManager] Failed to connect:', err);
+
+      // If the file is closed, reset document state so next updateDocument will reopen it
+      if (err?.message?.includes('closed file')) {
+        console.log('[RpcSessionManager] File was closed, resetting document state for retry...');
+        this.documentOpen = false;
+        this.lastDocumentContent = null;
+      }
+
       return null;
     }
   }
@@ -141,6 +156,46 @@ export class RpcSessionManager {
 
     this.progressListenerSetup = true;
     console.log('[RpcSessionManager] Progress listener set up');
+  }
+
+  private ensureDiagnosticsListener(): void {
+    if (this.diagnosticsListenerSetup || !this.client) return;
+
+    this.client.diagnostics((event: { uri: string; diagnostics: Diagnostic[] }) => {
+      const { uri, diagnostics } = event;
+      if (uri === this.uri) {
+        console.log('[RpcSessionManager] Diagnostics changed for', uri, ':', diagnostics.length, 'items');
+        this.currentDiagnostics = diagnostics;
+        if (this.onDiagnosticsChange) {
+          this.onDiagnosticsChange(diagnostics);
+        }
+      }
+    });
+
+    this.diagnosticsListenerSetup = true;
+    console.log('[RpcSessionManager] Diagnostics listener set up');
+  }
+
+  /**
+   * Set a callback to be notified when diagnostics change.
+   */
+  setDiagnosticsCallback(callback: (diagnostics: Diagnostic[]) => void): void {
+    this.onDiagnosticsChange = callback;
+  }
+
+  /**
+   * Get current diagnostics for this document.
+   */
+  getDiagnostics(): Diagnostic[] {
+    return this.currentDiagnostics;
+  }
+
+  /**
+   * Check if there are any error-level diagnostics.
+   */
+  hasErrors(): boolean {
+    // DiagnosticSeverity.Error = 1
+    return this.currentDiagnostics.some(d => d.severity === 1);
   }
 
   private waitForProcessingComplete(): Promise<void> {
@@ -205,8 +260,8 @@ export class RpcSessionManager {
    * Get interactive goals at a position.
    * Handles document updates, processing wait, and session management.
    */
-  async getGoals(code: string, line: number, character: number): Promise<InteractiveGoals | null> {
-    console.log('[RpcSessionManager] getGoals called, line:', line, 'char:', character);
+  async getGoals(code: string, line: number, character: number, isRetry = false): Promise<InteractiveGoals | null> {
+    console.log('[RpcSessionManager] getGoals called, line:', line, 'char:', character, 'isRetry:', isRetry);
 
     // Update document if needed
     const { success, changed } = await this.updateDocument(code);
@@ -226,6 +281,11 @@ export class RpcSessionManager {
     const sessionId = await this.connect();
     if (!sessionId) {
       console.warn('[RpcSessionManager] Failed to connect');
+      // If this wasn't already a retry, try again (connect() may have reset document state)
+      if (!isRetry && !this.documentOpen) {
+        console.log('[RpcSessionManager] Retrying after document state reset...');
+        return this.getGoals(code, line, character, true);
+      }
       return null;
     }
 

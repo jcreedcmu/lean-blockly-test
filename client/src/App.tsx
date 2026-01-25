@@ -611,6 +611,7 @@ function App() {
   const [show, setShow] = useState(true);
   const [goals, setGoals] = useState<InteractiveGoals | null>(null);
   const [goalsLoading, setGoalsLoading] = useState(false);
+  const [proofComplete, setProofComplete] = useState<boolean | null>(null); // null = checking, true = complete, false = incomplete
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
   const blocklyRef = useRef<BlocklyHandle>(null);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
@@ -621,6 +622,26 @@ function App() {
   // RPC session manager for Blockly code
   const rpcManagerRef = useRef<RpcSessionManager | null>(null);
   const [rpcManagerReady, setRpcManagerReady] = useState(false);
+
+  // Track latest goals for proof status updates
+  const latestGoalsRef = useRef<InteractiveGoals | null>(null);
+
+  // Function to update proof status based on current goals and diagnostics
+  const updateProofStatus = useCallback(() => {
+    if (!rpcManagerRef.current) return;
+
+    const hasErrors = rpcManagerRef.current.hasErrors();
+    const diagnostics = rpcManagerRef.current.getDiagnostics();
+    const currentGoals = latestGoalsRef.current;
+
+    console.log('[updateProofStatus] Has errors:', hasErrors, 'Goals:', currentGoals?.goals?.length ?? 'null');
+    console.log('[updateProofStatus] Diagnostics:', diagnostics);
+
+    // Proof is complete only if there are no goals AND no errors
+    const noGoals = currentGoals !== null && currentGoals.goals.length === 0;
+    const isComplete = noGoals && !hasErrors;
+    setProofComplete(isComplete);
+  }, []);
 
   // Initialize RPC session manager when editor is ready (Lean client available)
   useEffect(() => {
@@ -636,6 +657,13 @@ function App() {
       const success = await rpcManagerRef.current!.initialize();
       if (success) {
         console.log('[App] RpcSessionManager initialized');
+
+        // Set up diagnostics change callback to update proof status
+        rpcManagerRef.current!.setDiagnosticsCallback((diagnostics) => {
+          console.log('[App] Diagnostics changed:', diagnostics.length, 'items');
+          updateProofStatus();
+        });
+
         setRpcManagerReady(true);
       } else {
         // Retry after a delay - Lean client may not be ready yet
@@ -651,7 +679,7 @@ function App() {
       rpcManagerRef.current = null;
       setRpcManagerReady(false);
     };
-  }, [editor]);
+  }, [editor, updateProofStatus]);
 
   function switchToLevel(newIndex: number) {
     if (newIndex === currentLevelIndex) return;
@@ -712,33 +740,36 @@ function App() {
   }
   function onBlocklyChange(result: WorkspaceToLeanResult) {
     const { leanCode, sourceInfo } = result;
-    const prelude = `import Mathlib
-
-def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
-  ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
-
-`;
     const fullCode = prelude + leanCode;
 
     // Update Monaco editor (for debugging/viewing)
-    editor.getModel().setValue(fullCode);
+    editor?.getModel()?.setValue(fullCode);
 
+    // Check proof status by fetching goals at the end of the code
+    if (rpcManagerRef.current) {
+      setProofComplete(null); // Set to "checking" state
 
-    // Independently fetch goals from Lean server
-    // (async () => {
-    //   try {
-    //     // Get goals at the sorry position (line 2, char 2 - where "sorry" starts)
-    //     const goals = await getGoalsForCode(testCode, 2, 2);
-    //     if (goals) {
-    //       console.log('[onBlocklyChange] Received goals:', goals);
+      // Find position at end of code to check for remaining goals
+      const lines = fullCode.split('\n');
+      const lastLine = lines.length - 1;
+      const lastCol = lines[lastLine]?.length ?? 0;
 
-    //     } else {
-    //       console.log('[onBlocklyChange] No goals received');
-    //     }
-    //   } catch (err) {
-    //     console.error('[onBlocklyChange] Error fetching goals:', err);
-    //   }
-    // })();
+      (async () => {
+        try {
+          const goals = await rpcManagerRef.current!.getGoals(fullCode, lastLine, lastCol);
+          console.log('[onBlocklyChange] Goals at end:', goals);
+
+          // Store goals for later reference (diagnostics callback can update status)
+          latestGoalsRef.current = goals;
+
+          // Update proof status based on current goals and diagnostics
+          updateProofStatus();
+        } catch (err) {
+          console.error('[onBlocklyChange] Error checking proof status:', err);
+          setProofComplete(false);
+        }
+      })();
+    }
   }
 
   const prelude = `import Mathlib
@@ -853,6 +884,15 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
         </div>
         <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} onRequestGoals={onRequestGoals} initialData={levelDefinitions[0].initial} />
         <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
+          <div className="proof-status">
+            {proofComplete === null ? (
+              <span className="proof-checking">Checking...</span>
+            ) : proofComplete ? (
+              <span className="proof-complete">✓ Proof complete!</span>
+            ) : (
+              <span className="proof-incomplete">Proof incomplete</span>
+            )}
+          </div>
           {goalsLoading ? (
             <div className="goals-loading">
               <div className="spinner" />
