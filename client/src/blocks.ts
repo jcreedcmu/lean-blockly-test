@@ -308,6 +308,35 @@ function defineTactics() {
       ],
       "output": "proposition",
       "colour": 60
+    },
+    {
+      "type": "tactic_have",
+      "tooltip": "Introduce a local lemma",
+      "helpUrl": "have",
+      "message0": "have %1 : %2 %3 by %4",
+      "args0": [
+        {
+          "type": "field_monospace_input",
+          "name": "NAME",
+          "text": "h"
+        },
+        {
+          "type": "field_monospace_input",
+          "name": "TYPE",
+          "text": "True"
+        },
+        {
+          "type": "input_dummy"
+        },
+        {
+          "type": "input_statement",
+          "name": "PROOF",
+          "check": "tactic"
+        }
+      ],
+      "previousStatement": "tactic",
+      "nextStatement": "tactic",
+      "style": "procedure_blocks"
     }
   ]);
 }

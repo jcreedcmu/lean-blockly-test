@@ -123,7 +123,6 @@ function blockToChunks(
     case 'tactic_apply':
     case 'tactic_use':
     case 'tactic_unfold':
-    case 'tactic_have':
     case 'tactic_cases':
     case 'tactic_induction':
     case 'tactic_obtain': {
@@ -134,6 +133,18 @@ function blockToChunks(
         chunk(`${tacticName} `, blockId),
         ...argChunks,
         chunk(`\n`, blockId),
+      ];
+      break;
+    }
+
+    case 'tactic_have': {
+      const name = fields['NAME'] ?? 'h';
+      const type = fields['TYPE'] ?? 'True';
+      const proofChunks = blockToChunks(inputs['PROOF']?.block, indent + '  ');
+      chunks = [
+        ...indentChunk,
+        chunk(`have ${name} : ${type} := by\n`, blockId),
+        ...proofChunks,
       ];
       break;
     }
