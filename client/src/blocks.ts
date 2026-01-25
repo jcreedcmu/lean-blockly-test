@@ -1,5 +1,5 @@
 import * as blockly from 'blockly';
-import { FieldLabelSerializable, FieldConfig } from 'blockly';
+import { FieldLabelSerializable, FieldTextInput, FieldConfig } from 'blockly';
 
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
@@ -17,7 +17,7 @@ class FieldTheoremStatement extends FieldLabelSerializable {
     super.initView();
     // Add custom CSS class to the text element
     if (this.textElement_) {
-      blockly.utils.dom.addClass(this.textElement_, 'blocklyTheoremStatement');
+      blockly.utils.dom.addClass(this.textElement_, 'blocklyMonospace');
     }
   }
 
@@ -26,8 +26,30 @@ class FieldTheoremStatement extends FieldLabelSerializable {
   }
 }
 
-// Register the custom field type
+/**
+ * Custom editable text field with monospace styling.
+ */
+class FieldMonospaceInput extends FieldTextInput {
+  constructor(value?: string) {
+    super(value ?? '');
+  }
+
+  initView(): void {
+    super.initView();
+    // Add custom CSS class to the text element
+    if (this.textElement_) {
+      blockly.utils.dom.addClass(this.textElement_, 'blocklyMonospace');
+    }
+  }
+
+  static fromJson(options: FieldConfig & { text?: string }): FieldMonospaceInput {
+    return new FieldMonospaceInput(options.text);
+  }
+}
+
+// Register the custom field types
 blockly.fieldRegistry.register('field_theorem_statement', FieldTheoremStatement);
+blockly.fieldRegistry.register('field_monospace_input', FieldMonospaceInput);
 
 export function defineBlocks() {
   defineLemma();
@@ -38,10 +60,10 @@ export function defineBlocks() {
 
 type TacticProps = { name: string, msg: string };
 export const singleArgTactics: TacticProps[] = [
-  { name: 'unfold', msg: 'Unfold' },
-  { name: 'exact', msg: 'Exactly' },
-  { name: 'intro', msg: 'Intro' },
-  { name: 'use', msg: 'Use' }
+  { name: 'unfold', msg: 'unfold' },
+  { name: 'exact', msg: 'exactly' },
+  { name: 'intro', msg: 'intro' },
+  { name: 'use', msg: 'use' }
 ];
 
 function defineMisc() {
@@ -112,12 +134,12 @@ function defineProposition() {
       'message0': '%1 : %2',
       'args0': [
         {
-          'type': 'field_input',
+          'type': 'field_monospace_input',
           'name': 'VARIABLE_DECL',
           'text': 'default',
         },
         {
-          'type': 'field_input',
+          'type': 'field_monospace_input',
           'name': 'VARIABLE_DEF',
           'text': 'default',
         },
@@ -133,7 +155,7 @@ function defineProposition() {
       'message0': '%1',
       'args0': [
         {
-          'type': 'field_input',
+          'type': 'field_monospace_input',
           'name': 'PROP_NAME',
           'text': 'h',
         },
@@ -148,7 +170,7 @@ function defineProposition() {
       'message0': '%1',
       'args0': [
         {
-          'type': 'field_input',
+          'type': 'field_monospace_input',
           'name': 'PROP_NAME',
           'text': 'h',
         },
@@ -239,7 +261,7 @@ function defineTactics() {
       'message0': '%1',
       'args0': [
         {
-          'type': 'field_input',
+          'type': 'field_monospace_input',
           'name': 'PROP_NAME',
           'text': 'h',
         },
