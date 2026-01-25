@@ -248,8 +248,10 @@ function flattenChunks(chunks: CodeChunk[]): WorkspaceToLeanResult {
     const startCol = col;
 
     // Update position as we add text
-    for (const char of chunk.text) {
-      if (char === '\n') {
+    // Use index-based loop to count UTF-16 code units (LSP convention)
+    // rather than Unicode codepoints (which for...of would give)
+    for (let i = 0; i < chunk.text.length; i++) {
+      if (chunk.text[i] === '\n') {
         line++;
         col = 0;
       } else {

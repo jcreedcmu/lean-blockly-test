@@ -40,4 +40,48 @@ describe('workspaceToLean', () => {
     expect(awayLemma).toBeDefined();
     expect(awayLemma!.startLineCol[0]).toBe(0); // First line
   });
+
+  it('should count characters outside BMP as 2 UTF-16 code units', () => {
+    // 𝕜 (U+1D55C, blackboard bold k) is outside BMP and takes 2 UTF-16 code units
+    // This is important for LSP compatibility
+    const workspaceWithBMP = {
+      blocks: {
+        languageVersion: 0,
+        blocks: [{
+          type: 'lemma',
+          id: 'test-lemma',
+          fields: {
+            THEOREM_NAME: 'test',
+            THEOREM_DECLARATION: '𝕜 = 𝕜'  // Two 𝕜 characters
+          },
+          inputs: {
+            LEMMA_PROOF: {
+              block: {
+                type: 'tactic_other',
+                id: 'test-tactic',
+                fields: { PROP_NAME: 'rfl' }
+              }
+            }
+          }
+        }]
+      }
+    };
+
+    const result = workspaceToLean(workspaceWithBMP);
+
+    // Output should be: "theorem test : 𝕜 = 𝕜 := by\n  rfl\n"
+    // The lemma block spans from start to end of " := by\n"
+    // "theorem test" = 12 chars, then " : " = 3 chars = col 15
+    // Then "𝕜 = 𝕜" where each 𝕜 is 2 UTF-16 units: 2 + 3 + 2 = 7 UTF-16 units
+    // So " := by\n" starts at col 15 + 7 = 22
+
+    const lemmaInfo = result.sourceInfo.find(s => s.id === 'test-lemma');
+    expect(lemmaInfo).toBeDefined();
+
+    // The tactic starts on line 1, col 2 (after "  " indent)
+    const tacticInfo = result.sourceInfo.find(s => s.id === 'test-tactic');
+    expect(tacticInfo).toBeDefined();
+    expect(tacticInfo!.startLineCol).toEqual([1, 2]);
+    expect(tacticInfo!.endLineCol).toEqual([2, 0]); // ends after newline
+  });
 });

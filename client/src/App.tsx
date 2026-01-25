@@ -118,6 +118,10 @@ const exampleDefinitions: ExampleDefinition[] = [
         }]
       }
     }
+  },
+  {
+    name: "Field 𝕜",
+    initial: {"blocks":{"languageVersion":0,"blocks":[{"type":"lemma","id":"test-lemma","x":20,"y":20,"fields":{"THEOREM_NAME":"test","THEOREM_DECLARATION":"𝕜 = 𝕜"},"inputs":{"LEMMA_PROOF":{"block":{"type":"tactic_other","id":"test-tactic","fields":{"PROP_NAME":"rfl"}}}}}]}}
   }
 ];
 
@@ -662,22 +666,20 @@ function App() {
     editor.focus();
   }
 
+  const [dragging, setDragging] = useState(false);
+
   const myStyle: React.CSSProperties = {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    display: 'flex',
-    flexDirection: 'column',
+    overflow: 'hidden',
   };
   const kid1: React.CSSProperties = {
-    flexGrow: 1,
     display: 'flex',
     flexDirection: 'row',
+    overflow: 'hidden',
   };
   const blocklyContainer: React.CSSProperties = {
     flexGrow: 1,
-  };
-  const kid2: React.CSSProperties = {
-    height: '300px',
   };
   function changeChecked(e: React.ChangeEvent) {
     setShow((e.currentTarget as HTMLInputElement).checked);
@@ -718,25 +720,46 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     })();
   }
   return <div style={myStyle}>
-    <div style={kid1}>
-      <div className="buttons">
-        {exampleDefinitions.map((ex, i) => (
-          <button
-            key={i}
-            onClick={() => switchToExample(i)}
-            style={{ fontWeight: i === currentExampleIndex ? 'bold' : 'normal' }}
-          >
-            {i + 1}
-          </button>
-        ))}
-        <button onClick={resetCurrentExample}>Reset</button>
+    <Split
+      className={dragging ? 'dragging' : ''}
+      direction="vertical"
+      sizes={[60, 40]}
+      minSize={100}
+      gutterSize={5}
+      onDragStart={() => setDragging(true)}
+      onDragEnd={() => setDragging(false)}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
+      gutter={() => {
+        const gutter = document.createElement('div');
+        gutter.className = 'gutter gutter-vertical';
+        return gutter;
+      }}
+      gutterStyle={() => ({
+        height: '5px',
+        cursor: 'row-resize',
+        backgroundColor: '#ccc',
+      })}
+    >
+      <div style={kid1}>
+        <div className="buttons">
+          {exampleDefinitions.map((ex, i) => (
+            <button
+              key={i}
+              onClick={() => switchToExample(i)}
+              style={{ fontWeight: i === currentExampleIndex ? 'bold' : 'normal' }}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button onClick={resetCurrentExample}>Reset</button>
+        </div>
+        <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} initialData={exampleDefinitions[0].initial} />
+        <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
+          <Goals goals={goals} />
+        </div>
       </div>
-      <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} initialData={exampleDefinitions[0].initial} />
-      <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
-        <Goals goals={goals} />
-      </div>
-    </div>
-    <div style={kid2} >{show ? <Wrapp editor={editor} setEditor={setEditor} /> : undefined}</div>
+      <div style={{ overflow: 'hidden' }}>{show ? <Wrapp editor={editor} setEditor={setEditor} /> : undefined}</div>
+    </Split>
   </div>;
 }
 
