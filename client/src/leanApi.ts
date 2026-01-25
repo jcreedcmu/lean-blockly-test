@@ -13,9 +13,20 @@ const BLOCKLY_DOC_URI = 'file:///blockly/Blockly.lean';
 let documentVersion = 0;
 let documentOpen = false;
 let currentSessionId: string | null = null;
+let lastDocumentContent: string | null = null;
+
+// Request tracking for staleness detection
+let currentRequestId = 0;
 
 // For tracking when processing is complete
 let processingResolvers: Array<() => void> = [];
+
+/**
+ * Get the current request ID. Use this to check if a response is stale.
+ */
+export function getCurrentRequestId(): number {
+  return currentRequestId;
+}
 
 /**
  * Get the active LeanClient from lean4monaco.
@@ -79,10 +90,17 @@ function waitForProcessingComplete(): Promise<void> {
 
 /**
  * Open or update the virtual Blockly document on the Lean server.
+ * Returns true if the document was actually updated, false if skipped or failed.
  */
-async function updateBlocklyDocument(code: string): Promise<boolean> {
+async function updateBlocklyDocument(code: string): Promise<{ updated: boolean; changed: boolean }> {
   const client = getActiveClient();
-  if (!client) return false;
+  if (!client) return { updated: false, changed: false };
+
+  // Check if content actually changed
+  if (documentOpen && code === lastDocumentContent) {
+    console.log('[leanApi] Document content unchanged, skipping update');
+    return { updated: true, changed: false };
+  }
 
   ensureProgressListener();
 
@@ -98,6 +116,7 @@ async function updateBlocklyDocument(code: string): Promise<boolean> {
         },
       });
       documentOpen = true;
+      lastDocumentContent = code;
       console.log('[leanApi] Opened Blockly document');
     } else {
       // Update existing document
@@ -108,12 +127,13 @@ async function updateBlocklyDocument(code: string): Promise<boolean> {
         },
         contentChanges: [{ text: code }],
       });
+      lastDocumentContent = code;
       console.log('[leanApi] Updated Blockly document, version:', documentVersion);
     }
-    return true;
+    return { updated: true, changed: true };
   } catch (err) {
     console.error('[leanApi] Failed to update document:', err);
-    return false;
+    return { updated: false, changed: false };
   }
 }
 
@@ -172,6 +192,14 @@ async function fetchGoals(line: number, character: number): Promise<InteractiveG
 }
 
 /**
+ * Result of a goal request, includes request ID for staleness checking.
+ */
+export type GoalRequestResult = {
+  requestId: number;
+  goals: InteractiveGoals | null;
+};
+
+/**
  * Submit code to the Lean server and get interactive goals.
  * This is the main entry point - it handles document updates, waits for processing,
  * and fetches goals.
@@ -179,29 +207,39 @@ async function fetchGoals(line: number, character: number): Promise<InteractiveG
  * @param code - The full Lean code to process
  * @param line - Line number to get goals at (0-indexed)
  * @param character - Character position (0-indexed)
- * @returns Promise resolving to InteractiveGoals or null
+ * @returns Promise resolving to GoalRequestResult with request ID for staleness checking
  */
 export async function getGoalsForCode(
   code: string,
   line: number,
   character: number
-): Promise<InteractiveGoals | null> {
-  console.log('[leanApi] getGoalsForCode called, line:', line, 'char:', character);
+): Promise<GoalRequestResult> {
+  const requestId = ++currentRequestId;
+  console.log('[leanApi] getGoalsForCode called, requestId:', requestId, 'line:', line, 'char:', character);
 
-  // Update the document
-  const updated = await updateBlocklyDocument(code);
+  // Update the document (only if content changed)
+  const { updated, changed } = await updateBlocklyDocument(code);
   if (!updated) {
     console.warn('[leanApi] Failed to update document');
-    return null;
+    return { requestId, goals: null };
   }
 
-  // Wait for processing to complete
-  console.log('[leanApi] Waiting for processing to complete...');
-  await waitForProcessingComplete();
-  console.log('[leanApi] Processing complete, fetching goals...');
+  // Only wait for processing if the document actually changed
+  if (changed) {
+    console.log('[leanApi] Waiting for processing to complete...');
+    await waitForProcessingComplete();
+    console.log('[leanApi] Processing complete');
+  }
+
+  // Check if this request is still current before fetching goals
+  if (requestId !== currentRequestId) {
+    console.log('[leanApi] Request', requestId, 'superseded by', currentRequestId, ', aborting');
+    return { requestId, goals: null };
+  }
 
   // Fetch and return goals
+  console.log('[leanApi] Fetching goals for request', requestId);
   const goals = await fetchGoals(line, character);
-  console.log('[leanApi] Goals:', goals);
-  return goals;
+  console.log('[leanApi] Goals for request', requestId, ':', goals);
+  return { requestId, goals };
 }

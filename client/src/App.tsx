@@ -23,7 +23,7 @@ import type { WorkspaceToLeanResult, SourceInfo } from './workspaceToLean';
 import { Goals } from './infoview';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
-import { getGoalsForCode } from './leanApi';
+import { getGoalsForCode, getCurrentRequestId } from './leanApi';
 
 type ExampleDefinition = {
   name: string;
@@ -763,11 +763,18 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
 
     try {
       console.log('[onRequestGoals] Fetching goals...');
-      const goals = await getGoalsForCode(fullCode, adjustedLine, col);
-      console.log('[onRequestGoals] Goals received:', goals);
+      const result = await getGoalsForCode(fullCode, adjustedLine, col);
+      console.log('[onRequestGoals] Result:', result);
 
-      if (goals) {
-        setGoals(goals);
+      // Check if this result is still current (not superseded by a newer request)
+      if (result.requestId !== getCurrentRequestId()) {
+        console.log('[onRequestGoals] Result is stale (request', result.requestId, 'vs current', getCurrentRequestId(), '), ignoring');
+        return;
+      }
+
+      if (result.goals) {
+        console.log('[onRequestGoals] Setting goals from request', result.requestId);
+        setGoals(result.goals);
       } else {
         console.log('[onRequestGoals] No goals returned');
       }
