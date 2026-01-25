@@ -54,3 +54,8 @@
 .blocklyHtmlInput {
   font-family: 'Droid Sans Mono', 'Consolas', 'Monaco', monospace !important;
 }
+
+/* Move Blockly trashcan to top right */
+.blocklyTrash {
+  translate: 0 calc(-100% + 100px);
+}
