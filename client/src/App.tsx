@@ -44,10 +44,12 @@ const levelDefinitions: LevelDefinition[] = [
   {
     name: "Reflexivity",
     initial: example2,
+    allowedBlocks: ['tactic_refl'],
   },
   {
     name: "Rewrite",
     initial: example3,
+    allowedBlocks: ['tactic_rw', 'prop'],
   },
   {
     name: "Limit Example",
