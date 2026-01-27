@@ -1,9 +1,9 @@
-import { useEffect, useRef, JSX, forwardRef, useImperativeHandle } from 'react'
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import * as React from 'react'
 import * as blockly from 'blockly'
 import type { ContextMenuRegistry, BlockSvg } from 'blockly'
 import * as blocks from './blocks'
-import * as toolboxDef from './toolbox'
+import { toolbox as defaultToolbox, filterToolbox } from './toolbox'
 import { workspaceToLean, WorkspaceToLeanResult, SourceInfo } from './workspaceToLean'
 
 export type BlocklyState = object;
@@ -27,6 +27,7 @@ function useBlockly(
   initialData: BlocklyState | undefined,
   onBlocklyChange?: BlocklyChangeHandler,
   onRequestGoals?: GoalRequestHandler,
+  allowedBlocks?: string[],
 ) {
   const handlerRef = useRef<BlocklyChangeHandler | undefined>(onBlocklyChange);
   const goalHandlerRef = useRef<GoalRequestHandler | undefined>(onRequestGoals);
@@ -39,11 +40,18 @@ function useBlockly(
     goalHandlerRef.current = onRequestGoals;
   }, [onRequestGoals]);
 
+  // Update toolbox when allowedBlocks changes
+  useEffect(() => {
+    if (!wsRef.current) return;
+    const toolbox = allowedBlocks ? filterToolbox(allowedBlocks) : defaultToolbox;
+    wsRef.current.updateToolbox(toolbox);
+  }, [allowedBlocks]);
+
   useEffect(() => {
     if (!ref.current) return;
 
     blocks.defineBlocks();
-    const toolbox = toolboxDef.toolbox;
+    const toolbox = allowedBlocks ? filterToolbox(allowedBlocks) : defaultToolbox;
 
     const ws = blockly.inject(ref.current, {
       toolbox: toolbox,
@@ -136,6 +144,7 @@ export type BlocklyProps = {
   initialData?: BlocklyState;
   onBlocklyChange?: BlocklyChangeHandler;
   onRequestGoals?: GoalRequestHandler;
+  allowedBlocks?: string[];
 };
 
 export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
@@ -156,7 +165,7 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
     }
   }), []);
 
-  useBlockly(blocklyRef, wsRef, props.initialData, props.onBlocklyChange, props.onRequestGoals);
+  useBlockly(blocklyRef, wsRef, props.initialData, props.onBlocklyChange, props.onRequestGoals, props.allowedBlocks);
 
   return <div style={props.style} ref={blocklyRef}></div>;
 });

@@ -4,7 +4,10 @@ import * as blocks from './blocks';
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
 */
 
-const LeanTacticsCategory = {
+type BlockItem = { kind: 'block'; type: string };
+type CategoryItem = { kind: 'category'; name: string; contents: BlockItem[] };
+
+const LeanTacticsCategory: CategoryItem = {
   kind: 'category',
   name: 'Tactics',
   contents: [
@@ -44,11 +47,11 @@ const LeanTacticsCategory = {
       kind: 'block',
       type: 'tactic_other',
     },
-    ...blocks.singleArgTactics.map(t => ({ kind: 'block', type: `tactic_${t.name}` }))
+    ...blocks.singleArgTactics.map(t => ({ kind: 'block' as const, type: `tactic_${t.name}` }))
   ],
 };
 
-const LeanVariableCategory = {
+const LeanVariableCategory: CategoryItem = {
   kind: 'category',
   name: 'Variables',
   contents: [
@@ -59,7 +62,7 @@ const LeanVariableCategory = {
   ]
 };
 
-const LeanValueCategory = {
+const LeanValueCategory: CategoryItem = {
   kind: 'category',
   name: 'Values',
   contents: [
@@ -70,11 +73,33 @@ const LeanValueCategory = {
   ],
 };
 
+const allCategories: CategoryItem[] = [
+  LeanTacticsCategory,
+  LeanVariableCategory,
+  LeanValueCategory,
+];
+
 export const toolbox: blockly.utils.toolbox.ToolboxDefinition = {
   kind: 'categoryToolbox',
-  contents: [
-    LeanTacticsCategory,
-    LeanVariableCategory,
-    LeanValueCategory,
-  ],
+  contents: allCategories,
 };
+
+/**
+ * Create a filtered toolbox containing only the specified block types.
+ * Categories with no matching blocks are omitted.
+ */
+export function filterToolbox(allowedBlocks: string[]): blockly.utils.toolbox.ToolboxDefinition {
+  const allowedSet = new Set(allowedBlocks);
+
+  const filteredCategories = allCategories
+    .map(category => ({
+      ...category,
+      contents: category.contents.filter(block => allowedSet.has(block.type))
+    }))
+    .filter(category => category.contents.length > 0);
+
+  return {
+    kind: 'categoryToolbox',
+    contents: filteredCategories,
+  };
+}

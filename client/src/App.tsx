@@ -39,6 +39,7 @@ const levelDefinitions: LevelDefinition[] = [
   {
     name: "Use Hypothesis",
     initial: example1,
+    allowedBlocks: ['tactic_apply', 'prop'],
   },
   {
     name: "Reflexivity",
@@ -766,7 +767,14 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
             }
           }}>Copy</button>
         </div>
-        <Blockly ref={blocklyRef} style={blocklyContainer} onBlocklyChange={onBlocklyChange} onRequestGoals={onRequestGoals} initialData={levelDefinitions[0].initial} />
+        <Blockly
+          ref={blocklyRef}
+          style={blocklyContainer}
+          onBlocklyChange={onBlocklyChange}
+          onRequestGoals={onRequestGoals}
+          initialData={levelDefinitions[0].initial}
+          allowedBlocks={levelDefinitions[currentLevelIndex].allowedBlocks}
+        />
         <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
           <div className="proof-status">
             {proofComplete === null ? (

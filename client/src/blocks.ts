@@ -61,6 +61,7 @@ export function defineBlocks() {
 type TacticProps = { name: string, msg: string };
 export const singleArgTactics: TacticProps[] = [
   { name: 'unfold', msg: 'unfold' },
+  { name: 'apply', msg: 'apply' },
   { name: 'exact', msg: 'exactly' },
   { name: 'intro', msg: 'intro' },
   { name: 'use', msg: 'use' }

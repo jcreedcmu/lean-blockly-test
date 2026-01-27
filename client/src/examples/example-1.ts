@@ -13,14 +13,20 @@ export const example = {
         }
       },
       {
-        "type": "tactic_other",
-        "id": "B)QpyJPg_LEbKC0%,Gu$",
-        "x": 484,
-        "y": 103,
+        "type": "tactic_apply",
+        "id": "G:iDmo3hYFr1J3hSY`AO",
+        "x": 455,
+        "y": 163
+      },
+      {
+        "type": "prop",
+        "id": "]:LsoWT@uhp2!_`o`[[I",
+        "x": 259,
+        "y": 195,
         "fields": {
-          "PROP_NAME": "apply h"
+          "PROP_NAME": "h"
         }
       }
     ]
   }
-};
+}
