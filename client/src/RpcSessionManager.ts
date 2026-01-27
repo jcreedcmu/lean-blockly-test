@@ -4,13 +4,60 @@
  * Based on lean4monaco's RpcSessionAtPos pattern.
  */
 import { LeanMonaco } from 'lean4monaco';
-import type { InteractiveGoals, LeanFileProgressProcessingInfo } from '@leanprover/infoview-api';
-import type { RpcConnected } from '@leanprover/infoview-api';
+import type {
+  InteractiveGoals,
+  InteractiveGoal,
+  InteractiveDiagnostic,
+  TaggedText,
+  MsgEmbed,
+  LeanFileProgressProcessingInfo,
+  RpcConnected,
+} from '@leanprover/infoview-api';
 import type { Diagnostic } from 'vscode-languageserver-protocol';
 
 const KEEPALIVE_PERIOD_MS = 10000; // 10 seconds, matching lean4monaco
 
 type LeanClient = ReturnType<typeof getActiveClient>;
+
+/**
+ * Extract goals embedded in a TaggedText<MsgEmbed> structure.
+ * Goals are embedded within diagnostic messages via the MsgEmbed.goal variant.
+ */
+function extractGoalsFromTaggedText(tt: TaggedText<MsgEmbed>): InteractiveGoal[] {
+  const goals: InteractiveGoal[] = [];
+
+  function traverse(node: TaggedText<MsgEmbed>) {
+    if ('text' in node) {
+      return; // Plain text, no goals
+    }
+    if ('append' in node) {
+      node.append.forEach(traverse);
+      return;
+    }
+    if ('tag' in node) {
+      const [embed, content] = node.tag;
+      if ('goal' in embed) {
+        goals.push(embed.goal);
+      }
+      traverse(content);
+    }
+  }
+
+  traverse(tt);
+  return goals;
+}
+
+/**
+ * Extract all goals from an array of interactive diagnostics.
+ * Returns them in InteractiveGoals format for compatibility with existing UI.
+ */
+function extractGoalsFromDiagnostics(diagnostics: InteractiveDiagnostic[]): InteractiveGoals {
+  const allGoals: InteractiveGoal[] = [];
+  for (const diag of diagnostics) {
+    allGoals.push(...extractGoalsFromTaggedText(diag.message));
+  }
+  return { goals: allGoals };
+}
 
 function getActiveClient() {
   const leanMonaco = LeanMonaco.activeInstance;
@@ -256,25 +303,25 @@ export class RpcSessionManager {
     }
   }
 
-  private async callRpc(sessionId: string, line: number, character: number): Promise<InteractiveGoals> {
+  private async callRpc(sessionId: string): Promise<InteractiveDiagnostic[]> {
     return await this.client!.sendRequest('$/lean/rpc/call', {
       textDocument: { uri: this.uri },
-      position: { line, character },
+      position: { line: 0, character: 0 }, // Position still required for session
       sessionId,
-      method: 'Lean.Widget.getInteractiveGoals',
+      method: 'Lean.Widget.getInteractiveDiagnostics',
       params: {
         textDocument: { uri: this.uri },
-        position: { line, character },
       },
-    }) as InteractiveGoals;
+    }) as InteractiveDiagnostic[];
   }
 
   /**
-   * Get interactive goals at a position.
+   * Get interactive goals for the entire file.
+   * Extracts goals from diagnostic messages using getInteractiveDiagnostics.
    * Handles document updates, processing wait, and session management.
    */
-  async getGoals(code: string, line: number, character: number): Promise<InteractiveGoals | null> {
-    console.log('[RpcSessionManager] getGoals called, line:', line, 'char:', character);
+  async getGoals(code: string): Promise<InteractiveGoals | null> {
+    console.log('[RpcSessionManager] getGoals called');
 
     for (let attempt = 0; attempt < 2; attempt++) {
       const { success, changed } = await this.updateDocument(code);
@@ -300,11 +347,13 @@ export class RpcSessionManager {
       }
 
       try {
-        const result = await this.callRpc(sessionId, line, character);
-        console.log('[RpcSessionManager] Goals received:', result);
-        return result;
+        const diagnostics = await this.callRpc(sessionId);
+        console.log('[RpcSessionManager] Diagnostics received:', diagnostics);
+        const goals = extractGoalsFromDiagnostics(diagnostics);
+        console.log('[RpcSessionManager] Goals extracted:', goals);
+        return goals;
       } catch (err: any) {
-        console.error('[RpcSessionManager] Failed to get goals:', err);
+        console.error('[RpcSessionManager] Failed to get diagnostics:', err);
         if (err?.message?.includes('Outdated RPC session') && attempt === 0) {
           console.log('[RpcSessionManager] Session outdated, reconnecting...');
           this.disconnect();

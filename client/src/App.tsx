@@ -679,37 +679,22 @@ function App() {
     setShow((e.currentTarget as HTMLInputElement).checked);
   }
   function onBlocklyChange(result: WorkspaceToLeanResult) {
-    const { leanCode, sourceInfo } = result;
+    const { leanCode } = result;
     const fullCode = prelude + leanCode;
 
     // Update Monaco editor (for debugging/viewing)
     editor?.getModel()?.setValue(fullCode);
 
-    // Check proof status by fetching goals at the end of the theorem
+    // Check proof status by fetching goals for the entire file
     if (rpcManagerRef.current) {
       setProofComplete(null); // Set to "checking" state
 
-      // Find the end position of the theorem by looking at source info
-      // Use the maximum end position among all blocks (end of last tactic)
-      const preludeLines = prelude.split('\n').length - 1;
-      let goalLine = preludeLines;
-      let goalCol = 0;
-
-      for (const info of sourceInfo) {
-        const [endLine, endCol] = info.endLineCol;
-        const adjustedLine = endLine + preludeLines;
-        if (adjustedLine > goalLine || (adjustedLine === goalLine && endCol > goalCol)) {
-          goalLine = adjustedLine;
-          goalCol = endCol;
-        }
-      }
-
-      console.log('[onBlocklyChange] Fetching goals at end of theorem:', goalLine, goalCol);
+      console.log('[onBlocklyChange] Fetching goals for file');
 
       (async () => {
         try {
-          const goals = await rpcManagerRef.current!.getGoals(fullCode, goalLine, goalCol);
-          console.log('[onBlocklyChange] Goals at end of theorem:', goals);
+          const goals = await rpcManagerRef.current!.getGoals(fullCode);
+          console.log('[onBlocklyChange] Goals:', goals);
 
           // Store goals for later reference (diagnostics callback can update status)
           latestGoalsRef.current = goals;
@@ -737,51 +722,27 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   async function onRequestGoals(
     blockId: string,
     leanCode: string,
-    sourceInfo: SourceInfo[],
-    blockSourceInfo: SourceInfo | undefined
+    _sourceInfo: SourceInfo[],
+    _blockSourceInfo: SourceInfo | undefined
   ) {
     console.log('[onRequestGoals] ========================================');
     console.log('[onRequestGoals] Block ID:', blockId);
-    console.log('[onRequestGoals] Block source info:', blockSourceInfo);
-
-    if (!blockSourceInfo) {
-      console.log('[onRequestGoals] No source info for block, cannot fetch goals');
-      return;
-    }
 
     if (!rpcManagerRef.current) {
       console.log('[onRequestGoals] RPC manager not initialized');
       return;
     }
 
-    // Use the start position of the block to query for goals
-    const [line, col] = blockSourceInfo.startLineCol;
-
-    // Account for the prelude offset
-    const preludeLines = prelude.split('\n').length - 1; // -1 because split gives one more
-    const adjustedLine = line + preludeLines;
-
     const fullCode = prelude + leanCode;
-
-    console.log('[onRequestGoals] Prelude lines:', preludeLines);
-    console.log('[onRequestGoals] Original position: line', line, 'col', col);
-    console.log('[onRequestGoals] Adjusted position: line', adjustedLine, 'col', col);
     console.log('[onRequestGoals] Full code being sent:');
     console.log('---BEGIN CODE---');
     console.log(fullCode);
     console.log('---END CODE---');
 
-    // Show the specific line we're querying
-    const codeLines = fullCode.split('\n');
-    if (adjustedLine < codeLines.length) {
-      console.log('[onRequestGoals] Line at query position:', JSON.stringify(codeLines[adjustedLine]));
-      console.log('[onRequestGoals] Character at position:', JSON.stringify(codeLines[adjustedLine]?.[col]));
-    }
-
     setGoalsLoading(true);
     try {
       console.log('[onRequestGoals] Fetching goals via RpcSessionManager...');
-      const goals = await rpcManagerRef.current.getGoals(fullCode, adjustedLine, col);
+      const goals = await rpcManagerRef.current.getGoals(fullCode);
       console.log('[onRequestGoals] Goals received:', goals);
 
       if (goals) {
