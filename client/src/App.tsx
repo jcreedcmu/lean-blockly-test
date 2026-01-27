@@ -26,11 +26,13 @@ import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { RpcSessionManager } from './RpcSessionManager';
 import { example as example1 } from './examples/example-1.ts';
 import { example as example2 } from './examples/example-2.ts';
+import { example as example3 } from './examples/example-3.ts';
 import { example as example4 } from './examples/example-4.ts';
 
 type LevelDefinition = {
   name: string;
   initial: BlocklyState;
+  allowedBlocks?: string[];  // If undefined, all blocks are available
 };
 
 const levelDefinitions: LevelDefinition[] = [
@@ -43,42 +45,8 @@ const levelDefinitions: LevelDefinition[] = [
     initial: example2,
   },
   {
-    name: "Field 𝕜",
-    initial: {
-      "blocks": {
-        "languageVersion": 0,
-        "blocks": [
-          {
-            "type": "lemma",
-            "id": "test-lemma",
-            "x": 23,
-            "y": 38,
-            "fields": {
-              "THEOREM_NAME": "test",
-              "THEOREM_DECLARATION": "(x y: ℝ) (Bob : x = 2) : x + y = 2 + y"
-            }
-          },
-          {
-            "type": "prop",
-            "id": ".y:*JxJHD@%(Q8JJRL4?",
-            "x": 159,
-            "y": 224,
-            "fields": {
-              "PROP_NAME": "Bob"
-            }
-          },
-          {
-            "type": "tactic_rw",
-            "id": "z_*{MfAzbYpX8ZTwoCPY",
-            "x": 338,
-            "y": 308,
-            "fields": {
-              "DIRECTION_TYPE": "RIGHT"
-            }
-          }
-        ]
-      }
-    }
+    name: "Rewrite",
+    initial: example3,
   },
   {
     name: "Limit Example",
