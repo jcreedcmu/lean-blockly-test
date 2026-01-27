@@ -256,82 +256,64 @@ export class RpcSessionManager {
     }
   }
 
+  private async callRpc(sessionId: string, line: number, character: number): Promise<InteractiveGoals> {
+    return await this.client!.sendRequest('$/lean/rpc/call', {
+      textDocument: { uri: this.uri },
+      position: { line, character },
+      sessionId,
+      method: 'Lean.Widget.getInteractiveGoals',
+      params: {
+        textDocument: { uri: this.uri },
+        position: { line, character },
+      },
+    }) as InteractiveGoals;
+  }
+
   /**
    * Get interactive goals at a position.
    * Handles document updates, processing wait, and session management.
    */
-  async getGoals(code: string, line: number, character: number, isRetry = false): Promise<InteractiveGoals | null> {
-    console.log('[RpcSessionManager] getGoals called, line:', line, 'char:', character, 'isRetry:', isRetry);
+  async getGoals(code: string, line: number, character: number): Promise<InteractiveGoals | null> {
+    console.log('[RpcSessionManager] getGoals called, line:', line, 'char:', character);
 
-    // Update document if needed
-    const { success, changed } = await this.updateDocument(code);
-    if (!success) {
-      console.warn('[RpcSessionManager] Failed to update document');
-      return null;
-    }
-
-    // Wait for processing if document changed
-    if (changed) {
-      console.log('[RpcSessionManager] Waiting for processing...');
-      await this.waitForProcessingComplete();
-      console.log('[RpcSessionManager] Processing complete');
-    }
-
-    // Ensure we have a session
-    const sessionId = await this.connect();
-    if (!sessionId) {
-      console.warn('[RpcSessionManager] Failed to connect');
-      // If this wasn't already a retry, try again (connect() may have reset document state)
-      if (!isRetry && !this.documentOpen) {
-        console.log('[RpcSessionManager] Retrying after document state reset...');
-        return this.getGoals(code, line, character, true);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { success, changed } = await this.updateDocument(code);
+      if (!success) {
+        console.warn('[RpcSessionManager] Failed to update document');
+        return null;
       }
-      return null;
-    }
 
-    // Fetch goals
-    try {
-      const result = await this.client!.sendRequest('$/lean/rpc/call', {
-        textDocument: { uri: this.uri },
-        position: { line, character },
-        sessionId,
-        method: 'Lean.Widget.getInteractiveGoals',
-        params: {
-          textDocument: { uri: this.uri },
-          position: { line, character },
-        },
-      });
-      console.log('[RpcSessionManager] Goals received:', result);
-      return result as InteractiveGoals;
-    } catch (err: any) {
-      console.error('[RpcSessionManager] Failed to get goals:', err);
+      if (changed) {
+        console.log('[RpcSessionManager] Waiting for processing...');
+        await this.waitForProcessingComplete();
+        console.log('[RpcSessionManager] Processing complete');
+      }
 
-      // If session is outdated, disconnect and retry once
-      if (err?.message?.includes('Outdated RPC session')) {
-        console.log('[RpcSessionManager] Session outdated, reconnecting...');
-        this.disconnect();
-        const newSessionId = await this.connect();
-        if (newSessionId) {
-          try {
-            const result = await this.client!.sendRequest('$/lean/rpc/call', {
-              textDocument: { uri: this.uri },
-              position: { line, character },
-              sessionId: newSessionId,
-              method: 'Lean.Widget.getInteractiveGoals',
-              params: {
-                textDocument: { uri: this.uri },
-                position: { line, character },
-              },
-            });
-            return result as InteractiveGoals;
-          } catch (retryErr) {
-            console.error('[RpcSessionManager] Retry failed:', retryErr);
-          }
+      const sessionId = await this.connect();
+      if (!sessionId) {
+        console.warn('[RpcSessionManager] Failed to connect');
+        if (attempt === 0 && !this.documentOpen) {
+          console.log('[RpcSessionManager] Retrying after document state reset...');
+          continue;
         }
+        return null;
       }
 
-      return null;
+      try {
+        const result = await this.callRpc(sessionId, line, character);
+        console.log('[RpcSessionManager] Goals received:', result);
+        return result;
+      } catch (err: any) {
+        console.error('[RpcSessionManager] Failed to get goals:', err);
+        if (err?.message?.includes('Outdated RPC session') && attempt === 0) {
+          console.log('[RpcSessionManager] Session outdated, reconnecting...');
+          this.disconnect();
+          continue;
+        }
+        return null;
+      }
     }
+    return null;
   }
 
   /**
