@@ -58,6 +58,8 @@ function useBlockly(
       scrollbars: false,
       renderer: 'zelos',
       theme: blockly.Themes.Zelos,
+      grid: { spacing: 64, colour: '#ccc', length: 5 },
+      move: { drag: true, scrollbars: true, wheel: true }
     });
     wsRef.current = ws;
     if (initialData) {
