@@ -308,7 +308,7 @@ function defineTactics() {
         },
       ],
       "output": "proposition",
-      "colour": 60
+      "style": "text_blocks",
     },
     {
       "type": "tactic_have",

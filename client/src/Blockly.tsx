@@ -56,6 +56,8 @@ function useBlockly(
     const ws = blockly.inject(ref.current, {
       toolbox: toolbox,
       scrollbars: false,
+      renderer: 'zelos',
+      theme: blockly.Themes.Zelos,
     });
     wsRef.current = ws;
     if (initialData) {
