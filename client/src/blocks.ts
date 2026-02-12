@@ -1,5 +1,6 @@
 import * as blockly from 'blockly';
 import { FieldLabelSerializable, FieldTextInput, FieldConfig } from 'blockly';
+import './FieldProofStatus';
 
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
@@ -96,7 +97,7 @@ function defineLemma() {
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'lemma',
-      'message0': 'theorem %1 %2   %3 %4 because %5',
+      'message0': 'theorem %1 %2   %3 %4 because %5 %6 %7',
       'args0': [
         {
           'type': 'field_label_serializable',
@@ -118,6 +119,13 @@ function defineLemma() {
           'type': 'input_statement',
           'name': 'LEMMA_PROOF',
           'check': 'tactic',
+        },
+        {
+          'type': 'field_proof_status',
+          'name': 'PROOF_STATUS',
+        },
+        {
+          'type': 'input_dummy',
         },
       ],
       'inputsInline': false,
@@ -277,15 +285,29 @@ function defineTactics() {
       "type": "tactic_constructor",
       "tooltip": "",
       "helpUrl": "",
-      "message0": "pair %1 %2",
+      "message0": "pair %1 %2 %3 %4 %5 %6",
       "args0": [
         {
           "type": "input_statement",
           "name": "BODY1"
         },
         {
+          "type": "field_proof_status",
+          "name": "STATUS_1"
+        },
+        {
+          "type": "input_dummy"
+        },
+        {
           "type": "input_statement",
           "name": "BODY2"
+        },
+        {
+          "type": "field_proof_status",
+          "name": "STATUS_2"
+        },
+        {
+          "type": "input_dummy"
         }
       ],
       'previousStatement': 'tactic',
@@ -296,7 +318,7 @@ function defineTactics() {
       "type": "tactic_show",
       "tooltip": "tactic_show",
       "helpUrl": "tactic_show",
-      "message0": "show %1 by %2",
+      "message0": "show %1 by %2 %3 %4",
       "args0": [
         {
           "type": "input_value",
@@ -306,6 +328,13 @@ function defineTactics() {
           "type": "input_statement",
           "name": "PROOF"
         },
+        {
+          "type": "field_proof_status",
+          "name": "PROOF_STATUS"
+        },
+        {
+          "type": "input_dummy"
+        },
       ],
       "output": "proposition",
       "style": "text_blocks",
@@ -314,7 +343,7 @@ function defineTactics() {
       "type": "tactic_have",
       "tooltip": "Introduce a local lemma",
       "helpUrl": "have",
-      "message0": "have %1 : %2 %3 by %4",
+      "message0": "have %1 : %2 %3 by %4 %5 %6",
       "args0": [
         {
           "type": "field_monospace_input",
@@ -333,6 +362,13 @@ function defineTactics() {
           "type": "input_statement",
           "name": "PROOF",
           "check": "tactic"
+        },
+        {
+          "type": "field_proof_status",
+          "name": "PROOF_STATUS"
+        },
+        {
+          "type": "input_dummy"
         }
       ],
       "previousStatement": "tactic",
