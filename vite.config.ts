@@ -1,20 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import importMetaUrlPlugin from '@codingame/esbuild-import-meta-url-plugin'
-import { viteStaticCopy } from 'vite-plugin-static-copy'
-import { normalizePath } from 'vite'
-import path from 'node:path'
 import svgr from "vite-plugin-svgr"
 
 
 // https://vitejs.dev/config/
 export default defineConfig({
   optimizeDeps: {
-    esbuildOptions: {
-      // @ts-ignore           // TODO
-      plugins: [importMetaUrlPlugin]
-    },
     exclude: ['Projects']
   },
   build: {
@@ -29,28 +20,6 @@ export default defineConfig({
       svgrOptions: { exportType: "default", ref: true, svgo: false, titleProp: true },
        include: "**/*.svg",
       }),
-    nodePolyfills({
-      overrides: {
-        fs: 'memfs',
-      },
-    }),
-    viteStaticCopy({
-      targets: [
-        {
-          src: [
-            normalizePath(path.resolve(__dirname, './node_modules/@leanprover/infoview/dist/*')),
-            normalizePath(path.resolve(__dirname, './node_modules/lean4monaco/dist/webview/webview.js')),
-          ],
-          dest: 'infoview'
-        },
-        {
-          src: [
-            normalizePath(path.resolve(__dirname, './node_modules/@leanprover/infoview/dist/codicon.ttf'))
-          ],
-          dest: 'assets'
-        }
-      ]
-    })
   ],
   publicDir: "client/public/",
   base: "/", // setting this to `/leanweb/` means the server is now accessible at `localhost:3000/leanweb`
@@ -65,10 +34,5 @@ export default defineConfig({
         target: 'http://localhost:8080',
       },
     }
-  },
-  resolve: {
-    alias: {
-      path: "path-browserify",
-    },
   },
 })
