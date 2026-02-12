@@ -157,6 +157,42 @@
   background-color: #d4edda;
 }
 
+/* Diagnostics */
+.diagnostics {
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+  border-top: 1px solid #ddd;
+}
+
+.diagnostic {
+  font-family: 'Droid Sans Mono', 'monospace', monospace;
+  font-size: 13px;
+  padding: 0.4em 0.5em;
+  margin-bottom: 0.25em;
+  border-radius: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diagnostic.severity-1 {
+  background-color: #fde8e8;
+  color: #b91c1c;
+  border-left: 3px solid #b91c1c;
+}
+
+.diagnostic.severity-2 {
+  background-color: #fef3cd;
+  color: #856404;
+  border-left: 3px solid #d69e2e;
+}
+
+.diagnostic.severity-3,
+.diagnostic.severity-4 {
+  background-color: #e8f4fd;
+  color: #1e5f8a;
+  border-left: 3px solid #3b82f6;
+}
+
 /* Loading spinner */
 .goals-loading {
   display: flex;

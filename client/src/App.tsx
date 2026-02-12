@@ -51,7 +51,8 @@ const BLOCKLY_DOC_URI = 'file:///blockly/Blockly.lean';
 function App() {
   const [goals, setGoals] = useState<InteractiveGoals | null>(null);
   const [goalsLoading, setGoalsLoading] = useState(false);
-  const [proofComplete, setProofComplete] = useState<boolean | null>(null); // null = checking, true = complete, false = incomplete
+  const [proofComplete, setProofComplete] = useState<boolean | null>(false); // null = checking, true = complete, false = incomplete
+  const [diagnostics, setDiagnostics] = useState<Array<{ severity?: number; message: string }>>([]);
   const blocklyRef = useRef<BlocklyHandle>(null);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [levelStates, setLevelStates] = useState<BlocklyState[]>(
@@ -62,27 +63,17 @@ function App() {
   const rpcSessionRef = useRef<LeanRpcSession | null>(null);
   const [rpcManagerReady, setRpcManagerReady] = useState(false);
 
-  // Track latest goals for proof status updates
+  // Track latest goals so diagnostics callback can reference them
   const latestGoalsRef = useRef<InteractiveGoals | null>(null);
 
-  // Function to update proof status based on current goals and diagnostics
-  const updateProofStatus = useCallback(() => {
+  // Called from the diagnostics callback — can only *demote* proof status
+  // (complete → incomplete) when new errors arrive, never promote to complete.
+  // Promotion to complete only happens in onBlocklyChange after a full getGoals round-trip.
+  const onDiagnosticsUpdate = useCallback(() => {
     if (!rpcSessionRef.current) return;
-
-    const hasErrors = rpcSessionRef.current.hasErrors();
-    const diagnostics = rpcSessionRef.current.getDiagnostics();
-    const currentGoals = latestGoalsRef.current;
-
-    console.log('[updateProofStatus] Has errors:', hasErrors, 'Goals:', currentGoals?.goals?.length ?? 'null');
-    console.log('[updateProofStatus] Diagnostics:', diagnostics);
-
-    // Don't update status if we don't have goals data yet (still checking)
-    if (currentGoals === null) return;
-
-    // Proof is complete only if there are no goals AND no errors
-    const noGoals = currentGoals.goals.length === 0;
-    const isComplete = noGoals && !hasErrors;
-    setProofComplete(isComplete);
+    if (rpcSessionRef.current.hasErrors()) {
+      setProofComplete(false);
+    }
   }, []);
 
   // Initialize standalone LSP connection + RPC session
@@ -98,9 +89,10 @@ function App() {
       const session = new LeanRpcSession(conn, BLOCKLY_DOC_URI);
       rpcSessionRef.current = session;
 
-      session.setDiagnosticsCallback((diagnostics) => {
-        console.log('[App] Diagnostics changed:', diagnostics.length, 'items');
-        updateProofStatus();
+      session.setDiagnosticsCallback((diags) => {
+        console.log('[App] Diagnostics changed:', diags.length, 'items');
+        setDiagnostics(diags);
+        onDiagnosticsUpdate();
       });
 
       setRpcManagerReady(true);
@@ -115,7 +107,7 @@ function App() {
       rpcSessionRef.current = null;
       setRpcManagerReady(false);
     };
-  }, [updateProofStatus]);
+  }, [onDiagnosticsUpdate]);
 
   function switchToLevel(newIndex: number) {
     if (newIndex === currentLevelIndex) return;
@@ -147,33 +139,36 @@ function App() {
 
   function onBlocklyChange(result: WorkspaceToLeanResult) {
     const { leanCode } = result;
+
+    // Skip proof checking when Blockly hasn't produced any tactic code yet
+    // (e.g. during initial render before blocks are loaded)
+    if (!leanCode.trim() || !rpcSessionRef.current) return;
+
     const fullCode = prelude + leanCode;
+    setProofComplete(null); // Set to "checking" state
 
-    // Check proof status by fetching goals for the entire file
-    if (rpcSessionRef.current) {
-      setProofComplete(null); // Set to "checking" state
+    console.log('[onBlocklyChange] Fetching goals for file');
 
-      console.log('[onBlocklyChange] Fetching goals for file');
+    (async () => {
+      try {
+        const goals = await rpcSessionRef.current!.getGoals(fullCode);
+        console.log('[onBlocklyChange] Goals:', goals);
 
-      (async () => {
-        try {
-          const goals = await rpcSessionRef.current!.getGoals(fullCode);
-          console.log('[onBlocklyChange] Goals:', goals);
+        latestGoalsRef.current = goals;
+        setGoals(goals);
 
-          // Store goals for later reference (diagnostics callback can update status)
-          latestGoalsRef.current = goals;
-
-          // Also update displayed goals
-          setGoals(goals);
-
-          // Update proof status based on current goals and diagnostics
-          updateProofStatus();
-        } catch (err) {
-          console.error('[onBlocklyChange] Error checking proof status:', err);
-          setProofComplete(false);
+        // Determine proof status: complete only if no goals AND no errors
+        const session = rpcSessionRef.current;
+        if (goals && session) {
+          const noGoals = goals.goals.length === 0;
+          const isComplete = noGoals && !session.hasErrors();
+          setProofComplete(isComplete);
         }
-      })();
-    }
+      } catch (err) {
+        console.error('[onBlocklyChange] Error checking proof status:', err);
+        setProofComplete(false);
+      }
+    })();
   }
 
   const prelude = `import Mathlib
@@ -283,6 +278,15 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
           </div>
         ) : (
           <Goals goals={goals} />
+        )}
+        {diagnostics.length > 0 && (
+          <div className="diagnostics">
+            {diagnostics.map((d, i) => (
+              <div key={i} className={`diagnostic severity-${d.severity ?? 1}`}>
+                {d.message}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
