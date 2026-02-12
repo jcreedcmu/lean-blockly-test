@@ -23,7 +23,8 @@ import type { WorkspaceToLeanResult, SourceInfo } from './workspaceToLean';
 import { Goals } from './infoview';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
-import { RpcSessionManager } from './RpcSessionManager';
+import { connect as lspConnect } from './LeanLspClient';
+import { LeanRpcSession } from './LeanRpcSession';
 import { example as example1 } from './examples/example-1.ts';
 import { example as example2 } from './examples/example-2.ts';
 import { example as example3 } from './examples/example-3.ts';
@@ -512,7 +513,7 @@ function Wrapp(props: {
 
 }
 
-// Virtual document URI for Blockly code (must match what RpcSessionManager uses)
+// Virtual document URI for Blockly code
 const BLOCKLY_DOC_URI = 'file:///blockly/Blockly.lean';
 
 function App() {
@@ -527,8 +528,8 @@ function App() {
     () => levelDefinitions.map(ex => ex.initial)
   );
 
-  // RPC session manager for Blockly code
-  const rpcManagerRef = useRef<RpcSessionManager | null>(null);
+  // RPC session for Blockly code
+  const rpcSessionRef = useRef<LeanRpcSession | null>(null);
   const [rpcManagerReady, setRpcManagerReady] = useState(false);
 
   // Track latest goals for proof status updates
@@ -536,10 +537,10 @@ function App() {
 
   // Function to update proof status based on current goals and diagnostics
   const updateProofStatus = useCallback(() => {
-    if (!rpcManagerRef.current) return;
+    if (!rpcSessionRef.current) return;
 
-    const hasErrors = rpcManagerRef.current.hasErrors();
-    const diagnostics = rpcManagerRef.current.getDiagnostics();
+    const hasErrors = rpcSessionRef.current.hasErrors();
+    const diagnostics = rpcSessionRef.current.getDiagnostics();
     const currentGoals = latestGoalsRef.current;
 
     console.log('[updateProofStatus] Has errors:', hasErrors, 'Goals:', currentGoals?.goals?.length ?? 'null');
@@ -554,43 +555,37 @@ function App() {
     setProofComplete(isComplete);
   }, []);
 
-  // Initialize RPC session manager when editor is ready (Lean client available)
+  // Initialize standalone LSP connection + RPC session
   useEffect(() => {
-    if (!editor) return;
+    let disposed = false;
 
-    // Create manager if not exists
-    if (!rpcManagerRef.current) {
-      rpcManagerRef.current = new RpcSessionManager(BLOCKLY_DOC_URI);
-    }
+    const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProto}//${window.location.host}/websocket/MathlibDemo`;
 
-    // Try to initialize (may need to retry if Lean client not ready yet)
-    const initManager = async () => {
-      const success = await rpcManagerRef.current!.initialize();
-      if (success) {
-        console.log('[App] RpcSessionManager initialized');
+    lspConnect(wsUrl).then((conn) => {
+      if (disposed) { conn.dispose(); return; }
 
-        // Set up diagnostics change callback to update proof status
-        rpcManagerRef.current!.setDiagnosticsCallback((diagnostics) => {
-          console.log('[App] Diagnostics changed:', diagnostics.length, 'items');
-          updateProofStatus();
-        });
+      const session = new LeanRpcSession(conn, BLOCKLY_DOC_URI);
+      rpcSessionRef.current = session;
 
-        setRpcManagerReady(true);
-      } else {
-        // Retry after a delay - Lean client may not be ready yet
-        console.log('[App] RpcSessionManager init failed, retrying in 1s...');
-        setTimeout(initManager, 1000);
-      }
-    };
+      session.setDiagnosticsCallback((diagnostics) => {
+        console.log('[App] Diagnostics changed:', diagnostics.length, 'items');
+        updateProofStatus();
+      });
 
-    initManager();
+      setRpcManagerReady(true);
+      console.log('[App] LeanRpcSession ready');
+    }).catch((err) => {
+      console.error('[App] LSP connection failed:', err);
+    });
 
     return () => {
-      rpcManagerRef.current?.dispose();
-      rpcManagerRef.current = null;
+      disposed = true;
+      rpcSessionRef.current?.dispose();
+      rpcSessionRef.current = null;
       setRpcManagerReady(false);
     };
-  }, [editor, updateProofStatus]);
+  }, [updateProofStatus]);
 
   function switchToLevel(newIndex: number) {
     if (newIndex === currentLevelIndex) return;
@@ -657,14 +652,14 @@ function App() {
     editor?.getModel()?.setValue(fullCode);
 
     // Check proof status by fetching goals for the entire file
-    if (rpcManagerRef.current) {
+    if (rpcSessionRef.current) {
       setProofComplete(null); // Set to "checking" state
 
       console.log('[onBlocklyChange] Fetching goals for file');
 
       (async () => {
         try {
-          const goals = await rpcManagerRef.current!.getGoals(fullCode);
+          const goals = await rpcSessionRef.current!.getGoals(fullCode);
           console.log('[onBlocklyChange] Goals:', goals);
 
           // Store goals for later reference (diagnostics callback can update status)
@@ -699,8 +694,8 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     console.log('[onRequestGoals] ========================================');
     console.log('[onRequestGoals] Block ID:', blockId);
 
-    if (!rpcManagerRef.current) {
-      console.log('[onRequestGoals] RPC manager not initialized');
+    if (!rpcSessionRef.current) {
+      console.log('[onRequestGoals] RPC session not initialized');
       return;
     }
 
@@ -712,8 +707,8 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
 
     setGoalsLoading(true);
     try {
-      console.log('[onRequestGoals] Fetching goals via RpcSessionManager...');
-      const goals = await rpcManagerRef.current.getGoals(fullCode);
+      console.log('[onRequestGoals] Fetching goals via LeanRpcSession...');
+      const goals = await rpcSessionRef.current.getGoals(fullCode);
       console.log('[onRequestGoals] Goals received:', goals);
 
       if (goals) {
