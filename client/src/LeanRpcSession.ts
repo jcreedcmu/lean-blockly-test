@@ -50,7 +50,7 @@ function extractGoalsFromDiagnostics(diagnostics: InteractiveDiagnostic[]): Inte
 
 // ── Diagnostic type (minimal, from LSP) ─────────────────────────────
 
-interface LspDiagnostic {
+export interface LspDiagnostic {
   range: { start: { line: number; character: number }; end: { line: number; character: number } };
   severity?: number;
   message: string;

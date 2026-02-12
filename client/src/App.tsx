@@ -8,7 +8,8 @@ import { Goals } from './infoview';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { connect as lspConnect } from './LeanLspClient';
-import { LeanRpcSession } from './LeanRpcSession';
+import { LeanRpcSession, LspDiagnostic } from './LeanRpcSession';
+import type { ProofStatus } from './FieldProofStatus';
 import { gameData, getWorldRows, parseHash, navToHash } from './gameData';
 import type { NavigationState } from './gameData';
 
@@ -40,14 +41,46 @@ function App() {
   // Track latest goals so diagnostics callback can reference them
   const latestGoalsRef = useRef<InteractiveGoals | null>(null);
 
-  // Called from the diagnostics callback — can only *demote* proof status
-  // (complete → incomplete) when new errors arrive, never promote to complete.
-  // Promotion to complete only happens in onBlocklyChange after a full getGoals round-trip.
-  const onDiagnosticsUpdate = useCallback(() => {
+  // Track latest source info for matching diagnostics to blocks
+  const latestSourceInfoRef = useRef<SourceInfo[]>([]);
+
+  const prelude = `import Mathlib
+
+def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
+  ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
+
+`;
+
+  // Called from the diagnostics callback — computes per-block proof statuses
+  // from diagnostics + source info, and also demotes overall proof status on errors.
+  const onDiagnosticsUpdate = useCallback((diags: LspDiagnostic[]) => {
     if (!rpcSessionRef.current) return;
     if (rpcSessionRef.current.hasErrors()) {
       setProofComplete(false);
     }
+
+    // Compute per-block proof statuses
+    const sourceInfo = latestSourceInfoRef.current;
+    if (sourceInfo.length === 0 || !blocklyRef.current) return;
+
+    const preludeLines = prelude.split('\n').length - 1;
+    const errorDiags = diags.filter(d => d.severity === 1);
+
+    const statuses = new Map<string, ProofStatus>();
+    for (const si of sourceInfo) {
+      const blockStartLine = si.startLineCol[0] + preludeLines;
+      const blockEndLine = si.endLineCol[0] + preludeLines;
+
+      const hasError = errorDiags.some(d => {
+        const diagStartLine = d.range.start.line;
+        const diagEndLine = d.range.end.line;
+        return diagStartLine <= blockEndLine && diagEndLine >= blockStartLine;
+      });
+
+      statuses.set(si.id, hasError ? 'incomplete' : 'complete');
+    }
+
+    blocklyRef.current.updateProofStatuses(statuses);
   }, []);
 
   // Initialize standalone LSP connection + RPC session
@@ -66,7 +99,7 @@ function App() {
       session.setDiagnosticsCallback((diags) => {
         console.log('[App] Diagnostics changed:', diags.length, 'items');
         setDiagnostics(diags);
-        onDiagnosticsUpdate();
+        onDiagnosticsUpdate(diags);
       });
 
       setRpcManagerReady(true);
@@ -149,11 +182,17 @@ function App() {
   }
 
   function onBlocklyChange(result: WorkspaceToLeanResult) {
-    const { leanCode } = result;
+    const { leanCode, sourceInfo } = result;
+
+    // Store source info for diagnostics matching
+    latestSourceInfoRef.current = sourceInfo;
 
     // Skip proof checking when Blockly hasn't produced any tactic code yet
     // (e.g. during initial render before blocks are loaded)
     if (!leanCode.trim() || !rpcSessionRef.current) return;
+
+    // Clear per-block statuses while Lean re-checks
+    blocklyRef.current?.clearProofStatuses();
 
     const fullCode = prelude + leanCode;
     setProofComplete(null); // Set to "checking" state
@@ -181,13 +220,6 @@ function App() {
       }
     })();
   }
-
-  const prelude = `import Mathlib
-
-def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
-  ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
-
-`;
 
   async function onRequestGoals(
     blockId: string,

@@ -5,6 +5,7 @@ import type { ContextMenuRegistry, BlockSvg } from 'blockly'
 import * as blocks from './blocks'
 import { toolbox as defaultToolbox, filterToolbox } from './toolbox'
 import { workspaceToLean, WorkspaceToLeanResult, SourceInfo } from './workspaceToLean'
+import { FieldProofStatus, ProofStatus } from './FieldProofStatus'
 
 export type BlocklyState = object;
 
@@ -19,6 +20,8 @@ export type GoalRequestHandler = (
 export type BlocklyHandle = {
   loadWorkspace: (data: BlocklyState) => void;
   saveWorkspace: () => BlocklyState | null;
+  updateProofStatuses: (statuses: Map<string, ProofStatus>) => void;
+  clearProofStatuses: () => void;
 };
 
 function useBlockly(
@@ -166,7 +169,33 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         return blockly.serialization.workspaces.save(wsRef.current);
       }
       return null;
-    }
+    },
+    updateProofStatuses: (statuses: Map<string, ProofStatus>) => {
+      if (!wsRef.current) return;
+      for (const [blockId, status] of statuses) {
+        const block = wsRef.current.getBlockById(blockId);
+        if (!block) continue;
+        for (const input of block.inputList) {
+          for (const field of input.fieldRow) {
+            if (field instanceof FieldProofStatus) {
+              field.setStatus(status);
+            }
+          }
+        }
+      }
+    },
+    clearProofStatuses: () => {
+      if (!wsRef.current) return;
+      for (const block of wsRef.current.getAllBlocks(false)) {
+        for (const input of block.inputList) {
+          for (const field of input.fieldRow) {
+            if (field instanceof FieldProofStatus) {
+              field.setStatus('unknown');
+            }
+          }
+        }
+      }
+    },
   }), []);
 
   useBlockly(blocklyRef, wsRef, props.initialData, props.onBlocklyChange, props.onRequestGoals, props.allowedBlocks);

@@ -3,8 +3,6 @@ import { Field, FieldConfig } from 'blockly';
 
 export type ProofStatus = 'unknown' | 'complete' | 'incomplete';
 
-const STATUSES: ProofStatus[] = ['unknown', 'complete', 'incomplete'];
-
 /**
  * Custom field showing a proof status indicator (checkmark, X, or question mark).
  */
@@ -85,11 +83,6 @@ export class FieldProofStatus extends Field<string> {
     return this.status_;
   }
 
-  private cycleStatus(): void {
-    const i = STATUSES.indexOf(this.status_);
-    this.setStatus(STATUSES[(i + 1) % STATUSES.length]);
-  }
-
   isClickable(): boolean {
     return true;
   }
@@ -100,7 +93,7 @@ export class FieldProofStatus extends Field<string> {
       const blockId = block ? block.id : '';
       this.onClickHandler_(blockId, this.name ?? '');
     } else {
-      this.cycleStatus();
+      console.log('[FieldProofStatus] clicked, no handler set');
     }
   }
 
