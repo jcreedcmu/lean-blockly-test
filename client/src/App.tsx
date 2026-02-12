@@ -54,7 +54,7 @@ function App() {
   const [proofComplete, setProofComplete] = useState<boolean | null>(false); // null = checking, true = complete, false = incomplete
   const [diagnostics, setDiagnostics] = useState<Array<{ severity?: number; message: string }>>([]);
   const blocklyRef = useRef<BlocklyHandle>(null);
-  const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
+  const [currentStage, setCurrentStage] = useState<number | 'index'>('index');
   const [levelStates, setLevelStates] = useState<BlocklyState[]>(
     () => levelDefinitions.map(ex => ex.initial)
   );
@@ -109,30 +109,41 @@ function App() {
     };
   }, [onDiagnosticsUpdate]);
 
-  function switchToLevel(newIndex: number) {
-    if (newIndex === currentLevelIndex) return;
-
-    // Save current workspace state
+  function saveCurrentWorkspace() {
+    if (typeof currentStage !== 'number') return;
     const currentState = blocklyRef.current?.saveWorkspace();
     if (currentState) {
       setLevelStates(prev => {
         const updated = [...prev];
-        updated[currentLevelIndex] = currentState;
+        updated[currentStage] = currentState;
         return updated;
       });
     }
+  }
+
+  function switchToLevel(newIndex: number) {
+    if (newIndex === currentStage) return;
+
+    // Save current workspace state
+    saveCurrentWorkspace();
 
     // Load the new level
     blocklyRef.current?.loadWorkspace(levelStates[newIndex]);
-    setCurrentLevelIndex(newIndex);
+    setCurrentStage(newIndex);
+  }
+
+  function goBack() {
+    saveCurrentWorkspace();
+    setCurrentStage('index');
   }
 
   function resetCurrentLevel() {
-    const initialState = levelDefinitions[currentLevelIndex].initial;
+    if (typeof currentStage !== 'number') return;
+    const initialState = levelDefinitions[currentStage].initial;
     blocklyRef.current?.loadWorkspace(initialState);
     setLevelStates(prev => {
       const updated = [...prev];
-      updated[currentLevelIndex] = initialState;
+      updated[currentStage] = initialState;
       return updated;
     });
   }
@@ -232,18 +243,26 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     flexGrow: 1,
   };
 
+  if (currentStage === 'index') {
+    return <div style={myStyle}>
+      <div className="level-select">
+        <h1>Select a Level</h1>
+        <div className="level-cards">
+          {levelDefinitions.map((level, i) => (
+            <div key={i} className="level-card" onClick={() => switchToLevel(i)}>
+              <div className="level-card-number">{i + 1}</div>
+              <div className="level-card-name">{level.name}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>;
+  }
+
   return <div style={myStyle}>
     <div style={kid1}>
       <div className="buttons">
-        {levelDefinitions.map((ex, i) => (
-          <button
-            key={i}
-            onClick={() => switchToLevel(i)}
-            style={{ fontWeight: i === currentLevelIndex ? 'bold' : 'normal' }}
-          >
-            {i + 1}
-          </button>
-        ))}
+        <button onClick={goBack}>Back</button>
         <button onClick={resetCurrentLevel}>Reset</button>
         <button onClick={() => {
           const state = blocklyRef.current?.saveWorkspace();
@@ -258,8 +277,8 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
         style={blocklyContainer}
         onBlocklyChange={onBlocklyChange}
         onRequestGoals={onRequestGoals}
-        initialData={levelDefinitions[0].initial}
-        allowedBlocks={levelDefinitions[currentLevelIndex].allowedBlocks}
+        initialData={levelStates[currentStage]}
+        allowedBlocks={levelDefinitions[currentStage].allowedBlocks}
       />
       <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
         <div className="proof-status">
