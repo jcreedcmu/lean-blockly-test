@@ -37,16 +37,76 @@
   display: none !important;
 }
 
-.buttons {
+/* Full-page root */
+.app-root {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
   flex-direction: column;
-  padding: 8px;
+  overflow: hidden;
+}
+
+/* Top navbar */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  height: 44px;
+  border-bottom: 1px solid #ccc;
+  flex-shrink: 0;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navbar-level {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.buttons button {
-  font-size: 3em;
-  padding: 0.25em;
+.navbar-level-label {
+  font-weight: 600;
+  font-size: 0.95em;
+  user-select: none;
+}
+
+.navbar-btn {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 1em;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.navbar-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+}
+
+.navbar-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Game area below navbar */
+.game-area {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+}
+
+.goals-panel {
+  width: 300px;
+  padding: 0.5em;
+  border-left: 1px solid #ccc;
+  overflow: auto;
 }
 
 /* Blockly monospace fields (theorem statements and editable inputs) */
@@ -150,34 +210,3 @@
   font-size: 0.85em;
 }
 
-/* Level navigation within a world */
-.level-nav {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #ccc;
-}
-
-.level-nav-title {
-  font-weight: bold;
-  font-size: 0.9em;
-}
-
-.level-nav-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.level-nav-buttons button {
-  font-size: 1.5em;
-  padding: 0.1em 0.3em;
-}
-
-.level-nav-name {
-  font-size: 0.85em;
-  color: #555;
-}

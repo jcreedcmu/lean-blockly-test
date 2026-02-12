@@ -131,7 +131,7 @@ function App() {
   }
 
   function goBack() {
-    history.back();
+    location.hash = navToHash({ kind: 'worldOverview' });
   }
 
   function resetCurrentLevel() {
@@ -228,24 +228,9 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     }
   }
 
-  const myStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    overflow: 'hidden',
-  };
-  const kid1: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'row',
-    overflow: 'hidden',
-    height: '100%',
-  };
-  const blocklyContainer: React.CSSProperties = {
-    flexGrow: 1,
-  };
-
   if (nav.kind === 'worldOverview') {
     const rows = getWorldRows(gameData.worlds);
-    return <div style={myStyle}>
+    return <div className="app-root">
       <div className="world-overview">
         <h1>Select a World</h1>
         {rows.map((row, ri) => (
@@ -266,48 +251,43 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   const currentWorld = gameData.worlds.find(w => w.id === nav.worldId)!;
   const currentLevel = currentWorld.levels[nav.levelIndex];
 
-  return <div style={myStyle}>
-    <div style={kid1}>
-      <div className="buttons">
-        <button onClick={goBack}>Back</button>
-        <button onClick={resetCurrentLevel}>Reset</button>
-        <button onClick={() => {
-          const state = blocklyRef.current?.saveWorkspace();
-          if (state) {
-            navigator.clipboard.writeText(JSON.stringify(state, null, 2));
-            console.log('Workspace copied to clipboard');
-          }
-        }}>Copy</button>
-        <div className="level-nav">
-          <div className="level-nav-title">{currentWorld.name}</div>
-          <div className="level-nav-buttons">
-            <button
-              disabled={nav.levelIndex === 0}
-              onClick={() => enterLevel(nav.worldId, nav.levelIndex - 1)}
-            >←</button>
-            <span>{nav.levelIndex + 1}/{currentWorld.levels.length}</span>
-            <button
-              disabled={nav.levelIndex === currentWorld.levels.length - 1}
-              onClick={() => enterLevel(nav.worldId, nav.levelIndex + 1)}
-            >→</button>
-          </div>
-          <div className="level-nav-name">{currentLevel.name}</div>
-        </div>
+  return <div className="app-root">
+    <div className="navbar">
+      <div className="navbar-left">
+        <button className="navbar-btn" onClick={goBack} title="Back to worlds">&#x25C0;</button>
+        <button className="navbar-btn" onClick={resetCurrentLevel} title="Reset level">&#x21BB;</button>
       </div>
+      <div className="navbar-level">
+        <button
+          className="navbar-btn"
+          disabled={nav.levelIndex === 0}
+          onClick={() => enterLevel(nav.worldId, nav.levelIndex - 1)}
+        >&#x2190;</button>
+        <span className="navbar-level-label">
+          {currentWorld.name} &mdash; {currentLevel.name} ({nav.levelIndex + 1}/{currentWorld.levels.length})
+        </span>
+        <button
+          className="navbar-btn"
+          disabled={nav.levelIndex === currentWorld.levels.length - 1}
+          onClick={() => enterLevel(nav.worldId, nav.levelIndex + 1)}
+        >&#x2192;</button>
+      </div>
+    </div>
+    <div className="game-area">
       <Blockly
         ref={blocklyRef}
-        style={blocklyContainer}
+        style={{ flexGrow: 1 }}
         onBlocklyChange={onBlocklyChange}
         onRequestGoals={onRequestGoals}
         initialData={levelStates[nav.worldId][nav.levelIndex]}
         allowedBlocks={currentLevel.allowedBlocks}
       />
-      <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
+      <div className="goals-panel">
         <div className="proof-status">
           {proofComplete === null ? (
             <span className="proof-checking">Checking...</span>
           ) : proofComplete ? (
-            <span className="proof-complete">✓ Proof complete!</span>
+            <span className="proof-complete">Proof complete!</span>
           ) : (
             <span className="proof-incomplete">Proof incomplete</span>
           )}
