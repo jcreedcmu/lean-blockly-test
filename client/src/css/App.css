@@ -93,8 +93,8 @@
   border-radius: 4px;
 }
 
-/* Level select landing page */
-.level-select {
+/* World overview landing page */
+.world-overview {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -103,41 +103,81 @@
   overflow: auto;
 }
 
-.level-select h1 {
+.world-overview h1 {
   margin-bottom: 1em;
 }
 
-.level-cards {
+.world-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1em;
+  gap: 1.5em;
   justify-content: center;
+  margin-bottom: 1.5em;
 }
 
-.level-card {
+.world-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 160px;
-  height: 120px;
+  width: 200px;
+  padding: 1.25em 1em;
   border: 2px solid #ccc;
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.level-card:hover {
+.world-card:hover {
   border-color: #4a90d9;
   box-shadow: 0 2px 8px rgba(74, 144, 217, 0.3);
 }
 
-.level-card-number {
-  font-size: 2em;
+.world-card-name {
+  font-size: 1.25em;
   font-weight: bold;
 }
 
-.level-card-name {
-  margin-top: 0.25em;
+.world-card-desc {
+  margin-top: 0.5em;
+  color: #555;
+  text-align: center;
+  font-size: 0.9em;
+}
+
+.world-card-levels {
+  margin-top: 0.5em;
+  color: #888;
+  font-size: 0.85em;
+}
+
+/* Level navigation within a world */
+.level-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #ccc;
+}
+
+.level-nav-title {
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.level-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.level-nav-buttons button {
+  font-size: 1.5em;
+  padding: 0.1em 0.3em;
+}
+
+.level-nav-name {
+  font-size: 0.85em;
   color: #555;
 }

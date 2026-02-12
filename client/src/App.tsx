@@ -9,38 +9,8 @@ import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { connect as lspConnect } from './LeanLspClient';
 import { LeanRpcSession } from './LeanRpcSession';
-import { example as example1 } from './examples/example-1.ts';
-import { example as example2 } from './examples/example-2.ts';
-import { example as example3 } from './examples/example-3.ts';
-import { example as example4 } from './examples/example-4.ts';
-
-type LevelDefinition = {
-  name: string;
-  initial: BlocklyState;
-  allowedBlocks?: string[];  // If undefined, all blocks are available
-};
-
-const levelDefinitions: LevelDefinition[] = [
-  {
-    name: "Use Hypothesis",
-    initial: example1,
-    allowedBlocks: ['tactic_apply', 'prop'],
-  },
-  {
-    name: "Reflexivity",
-    initial: example2,
-    allowedBlocks: ['tactic_refl'],
-  },
-  {
-    name: "Rewrite",
-    initial: example3,
-    allowedBlocks: ['tactic_rw', 'prop'],
-  },
-  {
-    name: "Limit Example",
-    initial: example4,
-  },
-];
+import { gameData, getWorldRows } from './gameData';
+import type { NavigationState } from './gameData';
 
 // CSS
 import './css/App.css'
@@ -54,9 +24,13 @@ function App() {
   const [proofComplete, setProofComplete] = useState<boolean | null>(false); // null = checking, true = complete, false = incomplete
   const [diagnostics, setDiagnostics] = useState<Array<{ severity?: number; message: string }>>([]);
   const blocklyRef = useRef<BlocklyHandle>(null);
-  const [currentStage, setCurrentStage] = useState<number | 'index'>('index');
-  const [levelStates, setLevelStates] = useState<BlocklyState[]>(
-    () => levelDefinitions.map(ex => ex.initial)
+  const [nav, setNav] = useState<NavigationState>({ kind: 'worldOverview' });
+  const navRef = useRef(nav);
+  navRef.current = nav;
+  const [levelStates, setLevelStates] = useState<Record<string, BlocklyState[]>>(
+    () => Object.fromEntries(
+      gameData.worlds.map(w => [w.id, w.levels.map(l => l.initial)])
+    )
   );
 
   // RPC session for Blockly code
@@ -110,41 +84,45 @@ function App() {
   }, [onDiagnosticsUpdate]);
 
   function saveCurrentWorkspace() {
-    if (typeof currentStage !== 'number') return;
+    if (nav.kind !== 'playing') return;
     const currentState = blocklyRef.current?.saveWorkspace();
     if (currentState) {
+      const { worldId, levelIndex } = nav;
       setLevelStates(prev => {
-        const updated = [...prev];
-        updated[currentStage] = currentState;
-        return updated;
+        const worldStates = [...prev[worldId]];
+        worldStates[levelIndex] = currentState;
+        return { ...prev, [worldId]: worldStates };
       });
     }
   }
 
-  function switchToLevel(newIndex: number) {
-    if (newIndex === currentStage) return;
+  function enterLevel(worldId: string, levelIndex: number) {
+    if (nav.kind === 'playing' && nav.worldId === worldId && nav.levelIndex === levelIndex) return;
 
     // Save current workspace state
     saveCurrentWorkspace();
 
     // Load the new level
-    blocklyRef.current?.loadWorkspace(levelStates[newIndex]);
-    setCurrentStage(newIndex);
+    blocklyRef.current?.loadWorkspace(levelStates[worldId][levelIndex]);
+    setNav({ kind: 'playing', worldId, levelIndex });
   }
 
   function goBack() {
     saveCurrentWorkspace();
-    setCurrentStage('index');
+    setNav({ kind: 'worldOverview' });
   }
 
   function resetCurrentLevel() {
-    if (typeof currentStage !== 'number') return;
-    const initialState = levelDefinitions[currentStage].initial;
+    if (nav.kind !== 'playing') return;
+    const { worldId, levelIndex } = nav;
+    const world = gameData.worlds.find(w => w.id === worldId);
+    if (!world) return;
+    const initialState = world.levels[levelIndex].initial;
     blocklyRef.current?.loadWorkspace(initialState);
     setLevelStates(prev => {
-      const updated = [...prev];
-      updated[currentStage] = initialState;
-      return updated;
+      const worldStates = [...prev[worldId]];
+      worldStates[levelIndex] = initialState;
+      return { ...prev, [worldId]: worldStates };
     });
   }
 
@@ -243,21 +221,28 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     flexGrow: 1,
   };
 
-  if (currentStage === 'index') {
+  if (nav.kind === 'worldOverview') {
+    const rows = getWorldRows(gameData.worlds);
     return <div style={myStyle}>
-      <div className="level-select">
-        <h1>Select a Level</h1>
-        <div className="level-cards">
-          {levelDefinitions.map((level, i) => (
-            <div key={i} className="level-card" onClick={() => switchToLevel(i)}>
-              <div className="level-card-number">{i + 1}</div>
-              <div className="level-card-name">{level.name}</div>
-            </div>
-          ))}
-        </div>
+      <div className="world-overview">
+        <h1>Select a World</h1>
+        {rows.map((row, ri) => (
+          <div key={ri} className="world-row">
+            {row.map(world => (
+              <div key={world.id} className="world-card" onClick={() => enterLevel(world.id, 0)}>
+                <div className="world-card-name">{world.name}</div>
+                {world.description && <div className="world-card-desc">{world.description}</div>}
+                <div className="world-card-levels">{world.levels.length} {world.levels.length === 1 ? 'level' : 'levels'}</div>
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
     </div>;
   }
+
+  const currentWorld = gameData.worlds.find(w => w.id === nav.worldId)!;
+  const currentLevel = currentWorld.levels[nav.levelIndex];
 
   return <div style={myStyle}>
     <div style={kid1}>
@@ -271,14 +256,29 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
             console.log('Workspace copied to clipboard');
           }
         }}>Copy</button>
+        <div className="level-nav">
+          <div className="level-nav-title">{currentWorld.name}</div>
+          <div className="level-nav-buttons">
+            <button
+              disabled={nav.levelIndex === 0}
+              onClick={() => enterLevel(nav.worldId, nav.levelIndex - 1)}
+            >←</button>
+            <span>{nav.levelIndex + 1}/{currentWorld.levels.length}</span>
+            <button
+              disabled={nav.levelIndex === currentWorld.levels.length - 1}
+              onClick={() => enterLevel(nav.worldId, nav.levelIndex + 1)}
+            >→</button>
+          </div>
+          <div className="level-nav-name">{currentLevel.name}</div>
+        </div>
       </div>
       <Blockly
         ref={blocklyRef}
         style={blocklyContainer}
         onBlocklyChange={onBlocklyChange}
         onRequestGoals={onRequestGoals}
-        initialData={levelStates[currentStage]}
-        allowedBlocks={levelDefinitions[currentStage].allowedBlocks}
+        initialData={levelStates[nav.worldId][nav.levelIndex]}
+        allowedBlocks={currentLevel.allowedBlocks}
       />
       <div style={{ width: '300px', padding: '0.5em', borderLeft: '1px solid #ccc', overflow: 'auto' }}>
         <div className="proof-status">
