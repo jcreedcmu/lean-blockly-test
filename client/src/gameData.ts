@@ -59,6 +59,24 @@ export const gameData: GameData = {
   ],
 };
 
+export function parseHash(hash: string): NavigationState {
+  const match = hash.match(/^#([^/]+)\/(\d+)$/);
+  if (match) {
+    const worldId = match[1];
+    const levelIndex = parseInt(match[2], 10);
+    const world = gameData.worlds.find(w => w.id === worldId);
+    if (world && levelIndex >= 0 && levelIndex < world.levels.length) {
+      return { kind: 'playing', worldId, levelIndex };
+    }
+  }
+  return { kind: 'worldOverview' };
+}
+
+export function navToHash(nav: NavigationState): string {
+  if (nav.kind === 'playing') return `#${nav.worldId}/${nav.levelIndex}`;
+  return '#';
+}
+
 /** Topological sort of worlds into rows for DAG layout. */
 export function getWorldRows(worlds: World[]): World[][] {
   const worldMap = new Map(worlds.map(w => [w.id, w]));

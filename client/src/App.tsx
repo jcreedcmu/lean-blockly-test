@@ -9,7 +9,7 @@ import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { connect as lspConnect } from './LeanLspClient';
 import { LeanRpcSession } from './LeanRpcSession';
-import { gameData, getWorldRows } from './gameData';
+import { gameData, getWorldRows, parseHash, navToHash } from './gameData';
 import type { NavigationState } from './gameData';
 
 // CSS
@@ -24,7 +24,7 @@ function App() {
   const [proofComplete, setProofComplete] = useState<boolean | null>(false); // null = checking, true = complete, false = incomplete
   const [diagnostics, setDiagnostics] = useState<Array<{ severity?: number; message: string }>>([]);
   const blocklyRef = useRef<BlocklyHandle>(null);
-  const [nav, setNav] = useState<NavigationState>({ kind: 'worldOverview' });
+  const [nav, setNav] = useState<NavigationState>(() => parseHash(location.hash));
   const navRef = useRef(nav);
   navRef.current = nav;
   const [levelStates, setLevelStates] = useState<Record<string, BlocklyState[]>>(
@@ -83,33 +83,55 @@ function App() {
     };
   }, [onDiagnosticsUpdate]);
 
-  function saveCurrentWorkspace() {
-    if (nav.kind !== 'playing') return;
-    const currentState = blocklyRef.current?.saveWorkspace();
-    if (currentState) {
-      const { worldId, levelIndex } = nav;
-      setLevelStates(prev => {
-        const worldStates = [...prev[worldId]];
-        worldStates[levelIndex] = currentState;
-        return { ...prev, [worldId]: worldStates };
-      });
+  const levelStatesRef = useRef(levelStates);
+  levelStatesRef.current = levelStates;
+
+  // Handle hash changes (browser back/forward, link navigation, programmatic)
+  useEffect(() => {
+    function onHashChange() {
+      const newNav = parseHash(location.hash);
+      const oldNav = navRef.current;
+
+      // No-op if unchanged
+      if (oldNav.kind === newNav.kind
+        && (newNav.kind === 'worldOverview'
+          || (oldNav.kind === 'playing' && newNav.kind === 'playing'
+            && oldNav.worldId === newNav.worldId
+            && oldNav.levelIndex === newNav.levelIndex))) return;
+
+      // Save workspace if leaving a playing state
+      if (oldNav.kind === 'playing') {
+        const ws = blocklyRef.current?.saveWorkspace();
+        if (ws) {
+          const { worldId, levelIndex } = oldNav;
+          setLevelStates(prev => {
+            const states = [...prev[worldId]];
+            states[levelIndex] = ws;
+            return { ...prev, [worldId]: states };
+          });
+        }
+      }
+
+      // Load workspace if Blockly is already mounted (playing → playing)
+      if (newNav.kind === 'playing' && oldNav.kind === 'playing') {
+        blocklyRef.current?.loadWorkspace(
+          levelStatesRef.current[newNav.worldId][newNav.levelIndex]
+        );
+      }
+
+      setNav(newNav);
     }
-  }
+
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   function enterLevel(worldId: string, levelIndex: number) {
-    if (nav.kind === 'playing' && nav.worldId === worldId && nav.levelIndex === levelIndex) return;
-
-    // Save current workspace state
-    saveCurrentWorkspace();
-
-    // Load the new level
-    blocklyRef.current?.loadWorkspace(levelStates[worldId][levelIndex]);
-    setNav({ kind: 'playing', worldId, levelIndex });
+    location.hash = navToHash({ kind: 'playing', worldId, levelIndex });
   }
 
   function goBack() {
-    saveCurrentWorkspace();
-    setNav({ kind: 'worldOverview' });
+    history.back();
   }
 
   function resetCurrentLevel() {
