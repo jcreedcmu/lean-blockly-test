@@ -10,8 +10,9 @@ import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { connect as lspConnect } from './LeanLspClient';
 import { LeanRpcSession, LspDiagnostic } from './LeanRpcSession';
 import type { ProofStatus } from './FieldProofStatus';
-import { gameData, getWorldRows, parseHash, navToHash } from './gameData';
+import { gameData, parseHash, navToHash } from './gameData';
 import type { NavigationState } from './gameData';
+import { WorldOverview3D } from './WorldOverview3D';
 
 // CSS
 import './css/App.css'
@@ -261,22 +262,8 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   }
 
   if (nav.kind === 'worldOverview') {
-    const rows = getWorldRows(gameData.worlds);
     return <div className="app-root">
-      <div className="world-overview">
-        <h1>Select a World</h1>
-        {rows.map((row, ri) => (
-          <div key={ri} className="world-row">
-            {row.map(world => (
-              <div key={world.id} className="world-card" onClick={() => enterLevel(world.id, 0)}>
-                <div className="world-card-name">{world.name}</div>
-                {world.description && <div className="world-card-desc">{world.description}</div>}
-                <div className="world-card-levels">{world.levels.length} {world.levels.length === 1 ? 'level' : 'levels'}</div>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+      <WorldOverview3D worlds={gameData.worlds} onSelectWorld={enterLevel} />
     </div>;
   }
 

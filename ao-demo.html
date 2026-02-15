@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head><style>body { margin: 0; overflow: hidden; }</style></head>
+<body>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { SAOPass } from 'three/addons/postprocessing/SAOPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
+
+import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+import GUI from 'https://unpkg.com/lil-gui@0.19.2/dist/lil-gui.esm.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(5, 5, 5);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+const crossMats = [
+  new THREE.MeshStandardMaterial({ color: 0xdd3333 }), // X arm - red
+  new THREE.MeshStandardMaterial({ color: 0x33bb33 }), // Y arm - green
+  new THREE.MeshStandardMaterial({ color: 0x3333dd }), // Z arm - blue
+];
+const cross = new THREE.Group();
+[[2,.8,.8],[.8,2,.8],[.8,.8,2]].forEach(([w, h, d], i) => {
+  cross.add(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), crossMats[i]));
+});
+cross.userData.mats = crossMats;
+cross.userData.originalColors = crossMats.map(m => m.color.clone());
+scene.add(cross);
+
+const miniColor = 0xaaffff;
+function makeMiniCross() {
+  const m = new THREE.MeshStandardMaterial({ color: miniColor });
+  const g = new THREE.Group();
+  for (const [w, h, d] of [[.2,.08,.08],[.08,.2,.08],[.08,.08,.2]]) {
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m));
+  }
+  g.userData.mats = [m];
+  g.userData.originalColors = [m.color.clone()];
+  return g;
+}
+
+const orbiters = [];
+for (let i = 0; i < 10; i++) {
+  const angle = (i / 10) * Math.PI * 2;
+  const pivot = new THREE.Group();
+  const mini = makeMiniCross();
+  mini.position.set(Math.cos(angle) * 2.5, 0, Math.sin(angle) * 2.5);
+  pivot.add(mini);
+  scene.add(pivot);
+  orbiters.push({ pivot, mini });
+}
+
+scene.add(camera);
+
+scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+const dir = new THREE.DirectionalLight(0xffffff, 2.0);
+dir.position.set(-5, 8, 1);
+camera.add(dir);
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let hoveredGroup = null;
+
+const meshToGroup = new Map();
+for (const mesh of cross.children) meshToGroup.set(mesh, cross);
+for (const o of orbiters) {
+  for (const mesh of o.mini.children) meshToGroup.set(mesh, o.mini);
+}
+
+// Mask render target — render hovered object as white on black
+const maskTarget = new THREE.WebGLRenderTarget(
+  innerWidth * devicePixelRatio, innerHeight * devicePixelRatio
+);
+const maskMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const maskBg = new THREE.Color(0x000000);
+
+function renderMask() {
+  const bg = scene.background;
+  scene.background = maskBg;
+  scene.overrideMaterial = maskMat;
+
+  // Save visibility, hide everything
+  const vis = [];
+  scene.traverse(obj => vis.push(obj.visible));
+  scene.traverse(obj => { obj.visible = false; });
+
+  // Show hovered group + ancestors
+  if (hoveredGroup) {
+    hoveredGroup.traverse(obj => { obj.visible = true; });
+    let p = hoveredGroup.parent;
+    while (p) { p.visible = true; p = p.parent; }
+  }
+
+  renderer.setRenderTarget(maskTarget);
+  renderer.clear();
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+
+  // Restore
+  let i = 0;
+  scene.traverse(obj => { obj.visible = vis[i++]; });
+  scene.overrideMaterial = null;
+  scene.background = bg;
+}
+
+// Custom outline shader: dilate mask, subtract original, draw difference
+const OutlineShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    tMask: { value: maskTarget.texture },
+    outlineColor: { value: new THREE.Color(0xffff00) },
+    resolution: { value: new THREE.Vector2(
+      innerWidth * devicePixelRatio, innerHeight * devicePixelRatio
+    ) },
+    innerRadius: { value: 4.0 },
+    outerRadius: { value: 8.0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform sampler2D tMask;
+    uniform vec3 outlineColor;
+    uniform vec2 resolution;
+    uniform float innerRadius;
+    uniform float outerRadius;
+    varying vec2 vUv;
+
+    void main() {
+      vec4 sceneCol = texture2D(tDiffuse, vUv);
+
+      float dInner = 0.0;
+      float dOuter = 0.0;
+      for (float a = 0.0; a < 6.2832; a += 0.3927) {
+        vec2 dir = vec2(cos(a), sin(a));
+        for (float r = 1.0; r <= 30.0; r += 1.0) {
+          float s = texture2D(tMask, vUv + dir * r / resolution).r;
+          dInner = max(dInner, s * step(r, innerRadius));
+          dOuter = max(dOuter, s * step(r, outerRadius));
+        }
+      }
+
+      float outline = dOuter * (1.0 - dInner);
+      gl_FragColor = vec4(mix(sceneCol.rgb, outlineColor, outline), 1.0);
+    }
+  `,
+};
+
+addEventListener('mousemove', (e) => {
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+});
+
+function updateHover() {
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(scene.children, true);
+  const hit = hits.length > 0 ? meshToGroup.get(hits[0].object) ?? null : null;
+  if (hit !== hoveredGroup) hoveredGroup = hit;
+}
+
+const bounces = []; // { group, startTime, baseScale }
+
+addEventListener('click', () => {
+  if (hoveredGroup) {
+    bounces.push({
+      group: hoveredGroup,
+      startTime: performance.now(),
+      baseScale: hoveredGroup.scale.x,
+    });
+  }
+});
+
+function updateBounces(t) {
+  for (let i = bounces.length - 1; i >= 0; i--) {
+    const b = bounces[i];
+    const elapsed = (t - b.startTime) / 1000;
+    const duration = 0.5;
+    if (elapsed >= duration) {
+      b.group.scale.setScalar(b.baseScale);
+      bounces.splice(i, 1);
+    } else {
+      const p = elapsed / duration;
+      // Quick rise then damped bounce back
+      const bump = Math.sin(p * Math.PI) * Math.exp(-p * 3);
+      b.group.scale.setScalar(b.baseScale * (1 + bump * 0.8));
+    }
+  }
+}
+
+const controls = new TrackballControls(camera, renderer.domElement);
+controls.rotateSpeed = 5.0;
+controls.mouseButtons.LEFT = 2;  // rotate on right-click
+controls.mouseButtons.RIGHT = -1; // disable pan
+controls.mouseButtons.MIDDLE = 1; // zoom on middle
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const sao = new SAOPass(scene, camera);
+sao.params.saoIntensity = 0.02;
+sao.params.saoScale = 3;
+sao.params.saoKernelRadius = 40;
+sao.params.saoBias = 0.5;
+composer.addPass(sao);
+const outlinePass = new ShaderPass(OutlineShader);
+outlinePass.uniforms.tMask.value = maskTarget.texture;
+composer.addPass(outlinePass);
+const fxaa = new ShaderPass(FXAAShader);
+fxaa.uniforms['resolution'].value.set(1 / (innerWidth * devicePixelRatio), 1 / (innerHeight * devicePixelRatio));
+composer.addPass(fxaa);
+
+const gui = new GUI();
+gui.add(sao.params, 'saoIntensity', 0, 0.2).name('Intensity');
+gui.add(sao.params, 'saoScale', 0, 20).name('Scale');
+gui.add(sao.params, 'saoKernelRadius', 1, 100).name('Kernel Radius');
+gui.add(sao.params, 'saoBias', 0, 2).name('Bias');
+
+function animate(t) {
+  const s = t * 0.001;
+  for (const o of orbiters) {
+    o.pivot.rotation.y = s * 0.5;
+    o.mini.rotation.x = s * 1.5;
+    o.mini.rotation.y = s * 2.0;
+  }
+  updateHover();
+  updateBounces(t);
+  renderMask();
+  controls.update();
+  composer.render();
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+  maskTarget.setSize(innerWidth * devicePixelRatio, innerHeight * devicePixelRatio);
+  outlinePass.uniforms.resolution.value.set(innerWidth * devicePixelRatio, innerHeight * devicePixelRatio);
+  fxaa.uniforms['resolution'].value.set(1 / (innerWidth * devicePixelRatio), 1 / (innerHeight * devicePixelRatio));
+});
+</script>
+</body>
+</html>
