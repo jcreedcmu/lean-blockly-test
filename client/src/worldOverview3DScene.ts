@@ -165,7 +165,7 @@ export function init(
   // Left-drag: orbit (rotate camera around a pivot point along the view direction)
   // Middle-drag: pan (translate camera sideways/up)
   // Scroll: zoom (move camera forward/backward along view direction)
-  const ZOOM_SPEED = 1.5;
+  const ZOOM_FACTOR = 1.15; // each scroll tick multiplies/divides height by this
   const halfFovTan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
 
   camera.position.set(0, 20, 0);
@@ -219,9 +219,17 @@ export function init(
 
   function onWheel(e: WheelEvent) {
     e.preventDefault();
-    camera.getWorldDirection(_forward);
-    const delta = e.deltaY > 0 ? -ZOOM_SPEED : ZOOM_SPEED;
-    camera.position.addScaledVector(_forward, delta);
+    const rect = container.getBoundingClientRect();
+    const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    const scale = e.deltaY > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+    const h = camera.position.y;
+    const drift = h * (1 - scale);
+
+    camera.position.x += ndcX * halfFovTan * camera.aspect * drift;
+    camera.position.z -= ndcY * halfFovTan * drift;
+    camera.position.y *= scale;
   }
 
   function onContextMenu(e: Event) { e.preventDefault(); }
