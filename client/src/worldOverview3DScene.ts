@@ -3,6 +3,11 @@ import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRe
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import type { World } from './gameData';
 import { getWorldRows } from './gameData';
 
@@ -62,6 +67,7 @@ export function init(
   const smallGeo = new THREE.BoxGeometry(SMALL_CUBE_SIZE, SMALL_CUBE_SIZE, SMALL_CUBE_SIZE);
   const annulusMat = new THREE.MeshBasicMaterial({ color: 0xbbbbbb, side: THREE.DoubleSide });
   const worldToGroup = new Map<string, THREE.Group>();
+  const groupToBigCube = new Map<THREE.Group, THREE.Mesh>();
   const spinners: { mesh: THREE.Mesh; axis: THREE.Vector3; speed: number }[] = [];
   const orbiters: { group: THREE.Group; speed: number }[] = [];
 
@@ -88,6 +94,7 @@ export function init(
       // Big center cube
       const bigMesh = new THREE.Mesh(bigGeo, mat);
       group.add(bigMesh);
+      groupToBigCube.set(group, bigMesh);
       {
         const axis = new THREE.Vector3(
           Math.random() - 0.5,
@@ -145,6 +152,14 @@ export function init(
     });
   });
 
+  // --- Mesh → world group map (for hover raycasting) ---
+  const meshToGroup = new Map<THREE.Object3D, THREE.Group>();
+  for (const [, group] of worldToGroup) {
+    group.traverse(obj => {
+      if (obj instanceof THREE.Mesh) meshToGroup.set(obj, group);
+    });
+  }
+
   // --- Dependency edges ---
   const lineMat = new LineMaterial({ color: 0x999999, linewidth: 2 });
   lineMat.resolution.set(width * window.devicePixelRatio, height * window.devicePixelRatio);
@@ -161,26 +176,132 @@ export function init(
     }
   }
 
+  // --- Hover outline ---
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  let hoveredGroup: THREE.Group | null = null;
+
+  const pixW = width * window.devicePixelRatio;
+  const pixH = height * window.devicePixelRatio;
+  const maskTarget = new THREE.WebGLRenderTarget(pixW, pixH);
+  const maskMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const maskBg = new THREE.Color(0x000000);
+
+  function renderMask() {
+    const bg = scene.background;
+    scene.background = maskBg;
+    scene.overrideMaterial = maskMat;
+
+    const vis: boolean[] = [];
+    scene.traverse(obj => vis.push(obj.visible));
+    scene.traverse(obj => { obj.visible = false; });
+
+    if (hoveredGroup) {
+      const bigCube = groupToBigCube.get(hoveredGroup);
+      if (bigCube) {
+        bigCube.visible = true;
+        let p: THREE.Object3D | null = bigCube.parent;
+        while (p) { p.visible = true; p = p.parent; }
+      }
+    }
+
+    renderer.setRenderTarget(maskTarget);
+    renderer.clear();
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+
+    let i = 0;
+    scene.traverse(obj => { obj.visible = vis[i++]; });
+    scene.overrideMaterial = null;
+    scene.background = bg;
+  }
+
+  const OutlineShader = {
+    uniforms: {
+      tDiffuse: { value: null as THREE.Texture | null },
+      tMask: { value: maskTarget.texture },
+      outlineColor: { value: new THREE.Color(0x7777ff) },
+      resolution: { value: new THREE.Vector2(pixW, pixH) },
+      innerRadius: { value: 4.0 },
+      outerRadius: { value: 8.0 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform sampler2D tMask;
+      uniform vec3 outlineColor;
+      uniform vec2 resolution;
+      uniform float innerRadius;
+      uniform float outerRadius;
+      varying vec2 vUv;
+
+      void main() {
+        vec4 sceneCol = texture2D(tDiffuse, vUv);
+
+        float dInner = 0.0;
+        float dOuter = 0.0;
+        for (float a = 0.0; a < 6.2832; a += 0.3927) {
+          vec2 dir = vec2(cos(a), sin(a));
+          for (float r = 1.0; r <= 30.0; r += 1.0) {
+            float s = texture2D(tMask, vUv + dir * r / resolution).r;
+            dInner = max(dInner, s * step(r, innerRadius));
+            dOuter = max(dOuter, s * step(r, outerRadius));
+          }
+        }
+
+        float outline = dOuter * (1.0 - dInner);
+        gl_FragColor = vec4(mix(sceneCol.rgb, outlineColor, outline), 1.0);
+      }
+    `,
+  };
+
+  const composer = new EffectComposer(renderer);
+  composer.renderTarget1.samples = 4;
+  composer.renderTarget2.samples = 4;
+  composer.addPass(new RenderPass(scene, camera));
+  const outlinePass = new ShaderPass(OutlineShader);
+  outlinePass.uniforms.tMask.value = maskTarget.texture;
+  composer.addPass(outlinePass);
+  const fxaaPass = new ShaderPass(FXAAShader);
+  const pr = window.devicePixelRatio;
+  fxaaPass.uniforms['resolution'].value.set(1 / (width * pr), 1 / (height * pr));
+  composer.addPass(fxaaPass);
+  composer.addPass(new OutputPass());
+
+  function onMouseMove(e: MouseEvent) {
+    const rect = container.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+  renderer.domElement.addEventListener('mousemove', onMouseMove);
+
+  function updateHover() {
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(scene.children, true);
+    const hit = hits.length > 0 ? meshToGroup.get(hits[0].object) ?? null : null;
+    if (hit !== hoveredGroup) hoveredGroup = hit;
+  }
+
   // --- Camera controls ---
-  // Left-drag: orbit (rotate camera around a pivot point along the view direction)
-  // Middle-drag: pan (translate camera sideways/up)
-  // Scroll: zoom (move camera forward/backward along view direction)
-  const ZOOM_FACTOR = 1.15; // each scroll tick multiplies/divides height by this
+  const ZOOM_FACTOR = 1.15;
   const halfFovTan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
 
   camera.position.set(0, 20, 0);
   camera.up.set(0, 0, -1);
   camera.lookAt(0, 0, 0);
-  const PIVOT_DISTANCE = 55.9;
 
   let isDragging = false;
   let dragButton = -1;
   let lastX = 0;
   let lastY = 0;
 
-  // Reusable vectors
   const _right = new THREE.Vector3();
-  const _forward = new THREE.Vector3();
 
   function onPointerDown(e: PointerEvent) {
     isDragging = true;
@@ -198,9 +319,8 @@ export function init(
     lastY = e.clientY;
 
     if (dragButton === 0 || dragButton === 1) {
-      // Left or middle drag: pan — 1:1 pixel-to-world mapping
       const viewHeight = container.clientHeight;
-      const dist = camera.position.y; // distance to y=0 ground plane
+      const dist = camera.position.y;
       const unitsPerPixel = (2 * dist * halfFovTan) / viewHeight;
 
       _right.setFromMatrixColumn(camera.matrixWorld, 0).normalize();
@@ -257,7 +377,9 @@ export function init(
         o.group.rotation.y += o.speed * dt;
       }
     }
-    renderer.render(scene, camera);
+    updateHover();
+    renderMask();
+    composer.render();
     labelRenderer.render(scene, camera);
   }
   animFrameId = requestAnimationFrame(animate);
@@ -270,8 +392,14 @@ export function init(
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
+    composer.setSize(w, h);
     labelRenderer.setSize(w, h);
     lineMat.resolution.set(w * window.devicePixelRatio, h * window.devicePixelRatio);
+    const pw = w * window.devicePixelRatio;
+    const ph = h * window.devicePixelRatio;
+    maskTarget.setSize(pw, ph);
+    outlinePass.uniforms.resolution.value.set(pw, ph);
+    fxaaPass.uniforms['resolution'].value.set(1 / pw, 1 / ph);
   });
   resizeObserver.observe(container);
 
@@ -279,11 +407,15 @@ export function init(
     dispose() {
       cancelAnimationFrame(animFrameId);
       resizeObserver.disconnect();
+      renderer.domElement.removeEventListener('mousemove', onMouseMove);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       renderer.domElement.removeEventListener('pointermove', onPointerMove);
       renderer.domElement.removeEventListener('pointerup', onPointerUp);
       renderer.domElement.removeEventListener('wheel', onWheel);
       renderer.domElement.removeEventListener('contextmenu', onContextMenu);
+      composer.dispose();
+      maskTarget.dispose();
+      maskMat.dispose();
       renderer.dispose();
       bigGeo.dispose();
       smallGeo.dispose();
