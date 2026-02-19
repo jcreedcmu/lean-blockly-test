@@ -12,8 +12,8 @@ const PALETTE = [
   0xdd6633, 0x66dd33, 0x3366dd,
 ];
 
-const SPACING_X = 2.5;
-const SPACING_Z = 2.5;
+const SPACING_X = 5;
+const SPACING_Z = 5;
 
 export type SceneCallbacks = {
   onHover: (world: World | null, screenX: number, screenY: number) => void;
@@ -53,11 +53,17 @@ export function init(
   dirLight.position.set(5, 8, 3);
   scene.add(dirLight);
 
-  // --- Build world cubes ---
+  // --- Build world cube rings ---
   const rows = getWorldRows(worlds);
-  const geo = new THREE.BoxGeometry(1, 1, 1);
-  const worldToMesh = new Map<string, THREE.Mesh>();
+  const BIG_CUBE_SIZE = 1;
+  const SMALL_CUBE_SIZE = 0.2;
+  const RING_SPACING = 0.8; // distance from big cube center to ring of small cubes
+  const bigGeo = new THREE.BoxGeometry(BIG_CUBE_SIZE, BIG_CUBE_SIZE, BIG_CUBE_SIZE);
+  const smallGeo = new THREE.BoxGeometry(SMALL_CUBE_SIZE, SMALL_CUBE_SIZE, SMALL_CUBE_SIZE);
+  const annulusMat = new THREE.MeshBasicMaterial({ color: 0xbbbbbb, side: THREE.DoubleSide });
+  const worldToGroup = new Map<string, THREE.Group>();
   const spinners: { mesh: THREE.Mesh; axis: THREE.Vector3; speed: number }[] = [];
+  const orbiters: { group: THREE.Group; speed: number }[] = [];
 
   const totalRows = rows.length;
   const centerX = 0;
@@ -66,25 +72,68 @@ export function init(
   rows.forEach((row, ri) => {
     const rowWidth = (row.length - 1) * SPACING_X;
     row.forEach((world, ci) => {
-      const colorIndex = worlds.indexOf(world) % PALETTE.length;
-      const mat = new THREE.MeshStandardMaterial({ color: PALETTE[colorIndex] });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(
+      const group = new THREE.Group();
+      group.position.set(
         ci * SPACING_X - rowWidth / 2,
         0,
         ri * SPACING_Z,
       );
-      scene.add(mesh);
-      worldToMesh.set(world.id, mesh);
+      scene.add(group);
+      worldToGroup.set(world.id, group);
 
-      // Random rotation axis and speed
-      const axis = new THREE.Vector3(
-        Math.random() - 0.5,
-        Math.random() - 0.5,
-        Math.random() - 0.5,
-      ).normalize();
-      const speed = (0.3 + Math.random() * 0.5) / 4;
-      spinners.push({ mesh, axis, speed });
+      const n = world.levels.length;
+      const colorIndex = worlds.indexOf(world) % PALETTE.length;
+      const mat = new THREE.MeshStandardMaterial({ color: PALETTE[colorIndex] });
+
+      // Big center cube
+      const bigMesh = new THREE.Mesh(bigGeo, mat);
+      group.add(bigMesh);
+      {
+        const axis = new THREE.Vector3(
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+        ).normalize();
+        const speed = (0.3 + Math.random() * 0.5) / 4;
+        spinners.push({ mesh: bigMesh, axis, speed });
+      }
+
+      // Small level cubes in a revolving ring
+      const minRadius = (BIG_CUBE_SIZE + SMALL_CUBE_SIZE) / 2 + 0.3;
+      const arcRadius = (n * RING_SPACING) / (2 * Math.PI);
+      const radius = Math.max(minRadius, arcRadius);
+
+      // Annulus (flat ring) passing through the small cubes
+      if (n > 0) {
+        const annulusGeo = new THREE.RingGeometry(radius - 0.04, radius + 0.04, 48);
+        const annulus = new THREE.Mesh(annulusGeo, annulusMat);
+        annulus.rotation.x = -Math.PI / 2;
+        group.add(annulus);
+      }
+
+      // Sub-group that revolves around Y
+      const ringGroup = new THREE.Group();
+      group.add(ringGroup);
+      orbiters.push({ group: ringGroup, speed: 0.15 + Math.random() * 0.1 });
+
+      for (let i = 0; i < n; i++) {
+        const angle = (2 * Math.PI * i) / n;
+        const mesh = new THREE.Mesh(smallGeo, mat);
+        mesh.position.set(
+          Math.cos(angle) * radius,
+          0,
+          Math.sin(angle) * radius,
+        );
+        ringGroup.add(mesh);
+
+        const axis = new THREE.Vector3(
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+        ).normalize();
+        const speed = (0.3 + Math.random() * 0.5) / 4;
+        spinners.push({ mesh, axis, speed });
+      }
 
       // --- Label ---
       const div = document.createElement('div');
@@ -92,7 +141,7 @@ export function init(
       div.style.cssText = 'color:black;font:11px sans-serif;text-align:center;white-space:nowrap;background:rgba(255,255,255,0.75);border:1px solid black;border-radius:6px;padding:2px 6px;';
       const label = new CSS2DObject(div);
       label.position.set(0, 0, 0);
-      mesh.add(label);
+      group.add(label);
     });
   });
 
@@ -100,12 +149,12 @@ export function init(
   const lineMat = new LineMaterial({ color: 0x999999, linewidth: 2 });
   lineMat.resolution.set(width * window.devicePixelRatio, height * window.devicePixelRatio);
   for (const world of worlds) {
-    const toMesh = worldToMesh.get(world.id);
-    if (!toMesh) continue;
+    const toGroup = worldToGroup.get(world.id);
+    if (!toGroup) continue;
     for (const depId of world.dependsOn) {
-      const fromMesh = worldToMesh.get(depId);
-      if (!fromMesh) continue;
-      const fp = fromMesh.position, tp = toMesh.position;
+      const fromGroup = worldToGroup.get(depId);
+      if (!fromGroup) continue;
+      const fp = fromGroup.position, tp = toGroup.position;
       const edgeGeo = new LineGeometry();
       edgeGeo.setPositions([fp.x, fp.y, fp.z, tp.x, tp.y, tp.z]);
       scene.add(new Line2(edgeGeo, lineMat));
@@ -193,6 +242,9 @@ export function init(
         _spinQuat.setFromAxisAngle(s.axis, s.speed * dt);
         s.mesh.quaternion.premultiply(_spinQuat);
       }
+      for (const o of orbiters) {
+        o.group.rotation.y += o.speed * dt;
+      }
     }
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
@@ -222,7 +274,9 @@ export function init(
       renderer.domElement.removeEventListener('wheel', onWheel);
       renderer.domElement.removeEventListener('contextmenu', onContextMenu);
       renderer.dispose();
-      geo.dispose();
+      bigGeo.dispose();
+      smallGeo.dispose();
+      annulusMat.dispose();
       lineMat.dispose();
       scene.traverse(obj => {
         if (obj instanceof THREE.Mesh) {
