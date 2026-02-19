@@ -275,16 +275,16 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
       <div className="navbar-left">
         <button className="navbar-btn" onClick={goBack} title="Back to worlds">&#x25C0;</button>
         <button className="navbar-btn" onClick={resetCurrentLevel} title="Reset level">&#x21BB;</button>
+        <span className="navbar-level-label">
+          {currentWorld.name} &mdash; {currentLevel.name} ({nav.levelIndex + 1}/{currentWorld.levels.length})
+        </span>
       </div>
-      <div className="navbar-level">
+      <div className="navbar-right">
         <button
           className="navbar-btn"
           disabled={nav.levelIndex === 0}
           onClick={() => enterLevel(nav.worldId, nav.levelIndex - 1)}
         >&#x2190;</button>
-        <span className="navbar-level-label">
-          {currentWorld.name} &mdash; {currentLevel.name} ({nav.levelIndex + 1}/{currentWorld.levels.length})
-        </span>
         <button
           className="navbar-btn"
           disabled={nav.levelIndex === currentWorld.levels.length - 1}
