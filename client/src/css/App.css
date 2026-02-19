@@ -60,13 +60,13 @@
 .navbar-left {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
-.navbar-level {
+.navbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .navbar-level-label {
