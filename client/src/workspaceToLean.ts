@@ -112,6 +112,11 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_ring_nf': {
+      chunks = [...indentChunk, chunk(`ring_nf\n`, blockId)];
+      break;
+    }
+
     case 'tactic_other': {
       const name = fields['PROP_NAME'] ?? '';
       chunks = [...indentChunk, chunk(`${name}\n`, blockId)];
@@ -123,6 +128,8 @@ function blockToChunks(
     case 'tactic_apply':
     case 'tactic_use':
     case 'tactic_unfold':
+    case 'tactic_specialize':
+    case 'tactic_choose':
     case 'tactic_cases':
     case 'tactic_induction':
     case 'tactic_obtain': {

@@ -65,7 +65,9 @@ export const singleArgTactics: TacticProps[] = [
   { name: 'apply', msg: 'apply' },
   { name: 'exact', msg: 'exactly' },
   { name: 'intro', msg: 'intro' },
-  { name: 'use', msg: 'use' }
+  { name: 'use', msg: 'use' },
+  { name: 'specialize', msg: 'specialize' },
+  { name: 'choose', msg: 'choose' },
 ];
 
 function defineMisc() {
@@ -201,6 +203,15 @@ function defineTactics() {
       'nextStatement': 'tactic',
       'tooltip': 'refl proves goals of the form X = X.',
       'helpUrl': 'refl',
+      'style': 'logic_blocks',
+    },
+    {
+      'type': 'tactic_ring_nf',
+      'message0': 'ring_nf',
+      'previousStatement': 'tactic',
+      'nextStatement': 'tactic',
+      'tooltip': 'ring_nf simplifies algebraic expressions.',
+      'helpUrl': 'ring_nf',
       'style': 'logic_blocks',
     },
     {

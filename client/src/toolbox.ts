@@ -21,6 +21,10 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
+      type: 'tactic_ring_nf',
+    },
+    {
+      kind: 'block',
       type: 'tactic_rw',
     },
     {
