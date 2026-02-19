@@ -67,6 +67,7 @@ export function init(
   const smallGeo = new THREE.BoxGeometry(SMALL_CUBE_SIZE, SMALL_CUBE_SIZE, SMALL_CUBE_SIZE);
   const annulusMat = new THREE.MeshBasicMaterial({ color: 0xbbbbbb, side: THREE.DoubleSide });
   const worldToGroup = new Map<string, THREE.Group>();
+  const groupToWorldId = new Map<THREE.Group, string>();
   const groupToBigCube = new Map<THREE.Group, THREE.Mesh>();
   const labelObjects: CSS2DObject[] = [];
   const spinners: { mesh: THREE.Mesh; axis: THREE.Vector3; speed: number }[] = [];
@@ -87,6 +88,7 @@ export function init(
       );
       scene.add(group);
       worldToGroup.set(world.id, group);
+      groupToWorldId.set(group, world.id);
 
       const n = world.levels.length;
       const colorIndex = worlds.indexOf(world) % PALETTE.length;
@@ -154,12 +156,10 @@ export function init(
     });
   });
 
-  // --- Mesh → world group map (for hover raycasting) ---
+  // --- Big cube → world group map (for hover raycasting) ---
   const meshToGroup = new Map<THREE.Object3D, THREE.Group>();
-  for (const [, group] of worldToGroup) {
-    group.traverse(obj => {
-      if (obj instanceof THREE.Mesh) meshToGroup.set(obj, group);
-    });
+  for (const [group, bigCube] of groupToBigCube) {
+    meshToGroup.set(bigCube, group);
   }
 
   // --- Dependency edges ---
@@ -287,7 +287,10 @@ export function init(
     raycaster.setFromCamera(mouse, camera);
     const hits = raycaster.intersectObjects(scene.children, true);
     const hit = hits.length > 0 ? meshToGroup.get(hits[0].object) ?? null : null;
-    if (hit !== hoveredGroup) hoveredGroup = hit;
+    if (hit !== hoveredGroup) {
+      hoveredGroup = hit;
+      renderer.domElement.style.cursor = hit ? 'pointer' : '';
+    }
   }
 
   // --- Camera controls ---
@@ -302,10 +305,14 @@ export function init(
   let dragButton = -1;
   let lastX = 0;
   let lastY = 0;
-
   const _right = new THREE.Vector3();
 
   function onPointerDown(e: PointerEvent) {
+    if (hoveredGroup) {
+      const worldId = groupToWorldId.get(hoveredGroup);
+      if (worldId) _callbacks.onSelect(worldId);
+      return;
+    }
     isDragging = true;
     dragButton = e.button;
     lastX = e.clientX;
