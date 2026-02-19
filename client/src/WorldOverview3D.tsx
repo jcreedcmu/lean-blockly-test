@@ -16,6 +16,8 @@ type HoverInfo = {
 
 export function WorldOverview3D({ worlds, onSelectWorld }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const callbacksRef = useRef({ onSelectWorld });
+  callbacksRef.current.onSelectWorld = onSelectWorld;
   const [hover, setHover] = useState<HoverInfo>(null);
 
   useEffect(() => {
@@ -31,12 +33,12 @@ export function WorldOverview3D({ worlds, onSelectWorld }: Props) {
         }
       },
       onSelect(worldId) {
-        onSelectWorld(worldId, 0);
+        callbacksRef.current.onSelectWorld(worldId, 0);
       },
     });
 
     return dispose;
-  }, [worlds, onSelectWorld]);
+  }, [worlds]);
 
   return (
     <div className="world-3d-container" ref={containerRef}>

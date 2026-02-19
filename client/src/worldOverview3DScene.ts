@@ -1,19 +1,19 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { SAOPass } from 'three/examples/jsm/postprocessing/SAOPass.js';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
-import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import type { World } from './gameData';
 import { getWorldRows } from './gameData';
 
-// Color palette for world cubes
 const PALETTE = [
   0xdd3333, 0x33bb33, 0x3333dd,
   0xddaa33, 0xaa33dd, 0x33dddd,
   0xdd6633, 0x66dd33, 0x3366dd,
 ];
+
+const SPACING_X = 2.5;
+const SPACING_Z = 2.5;
 
 export type SceneCallbacks = {
   onHover: (world: World | null, screenX: number, screenY: number) => void;
@@ -23,45 +23,51 @@ export type SceneCallbacks = {
 export function init(
   container: HTMLElement,
   worlds: World[],
-  callbacks: SceneCallbacks,
+  _callbacks: SceneCallbacks,
 ): { dispose: () => void } {
-  // --- Scene, camera, renderer ---
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000000);
+  scene.background = new THREE.Color(0xffffff);
 
   const width = container.clientWidth;
   const height = container.clientHeight;
 
-  const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
-  camera.position.set(5, 5, 5);
-  camera.lookAt(0, 0, 0);
+  const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 200);
+  camera.position.set(10, 15, 30);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(width, height);
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
 
-  // --- Lighting ---
-  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-  const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
-  dirLight.position.set(-5, 8, 1);
-  camera.add(dirLight);
-  scene.add(camera);
+  // --- CSS2D label renderer ---
+  const labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(width, height);
+  labelRenderer.domElement.style.position = 'absolute';
+  labelRenderer.domElement.style.top = '0';
+  labelRenderer.domElement.style.left = '0';
+  labelRenderer.domElement.style.pointerEvents = 'none';
+  container.appendChild(labelRenderer.domElement);
 
-  // --- Build world cubes + lookup ---
+  scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 4.0);
+  dirLight.position.set(5, 8, 3);
+  scene.add(dirLight);
+
+  // --- Build world cubes ---
   const rows = getWorldRows(worlds);
-  const meshToWorld = new Map<THREE.Mesh, World>();
+  const geo = new THREE.BoxGeometry(1, 1, 1);
   const worldToMesh = new Map<string, THREE.Mesh>();
+  const spinners: { mesh: THREE.Mesh; axis: THREE.Vector3; speed: number }[] = [];
 
-  const SPACING_X = 2.5;
-  const SPACING_Z = 2.5;
+  const totalRows = rows.length;
+  const centerX = 0;
+  const centerZ = ((totalRows - 1) * SPACING_Z) / 2;
 
   rows.forEach((row, ri) => {
     const rowWidth = (row.length - 1) * SPACING_X;
     row.forEach((world, ci) => {
       const colorIndex = worlds.indexOf(world) % PALETTE.length;
       const mat = new THREE.MeshStandardMaterial({ color: PALETTE[colorIndex] });
-      const geo = new THREE.BoxGeometry(1, 1, 1);
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(
         ci * SPACING_X - rowWidth / 2,
@@ -69,233 +75,127 @@ export function init(
         ri * SPACING_Z,
       );
       scene.add(mesh);
-      meshToWorld.set(mesh, world);
       worldToMesh.set(world.id, mesh);
+
+      // Random rotation axis and speed
+      const axis = new THREE.Vector3(
+        Math.random() - 0.5,
+        Math.random() - 0.5,
+        Math.random() - 0.5,
+      ).normalize();
+      const speed = (0.3 + Math.random() * 0.5) / 4;
+      spinners.push({ mesh, axis, speed });
+
+      // --- Label ---
+      const div = document.createElement('div');
+      div.textContent = world.name;
+      div.style.cssText = 'color:black;font:11px sans-serif;text-align:center;white-space:nowrap;background:rgba(255,255,255,0.75);border:1px solid black;border-radius:6px;padding:2px 6px;';
+      const label = new CSS2DObject(div);
+      label.position.set(0, 0, 0);
+      mesh.add(label);
     });
   });
 
   // --- Dependency edges ---
-  const lineMat = new THREE.LineBasicMaterial({ color: 0x555555 });
+  const lineMat = new LineMaterial({ color: 0x999999, linewidth: 2 });
+  lineMat.resolution.set(width * window.devicePixelRatio, height * window.devicePixelRatio);
   for (const world of worlds) {
     const toMesh = worldToMesh.get(world.id);
     if (!toMesh) continue;
     for (const depId of world.dependsOn) {
       const fromMesh = worldToMesh.get(depId);
       if (!fromMesh) continue;
-      const points = [fromMesh.position.clone(), toMesh.position.clone()];
-      const geo = new THREE.BufferGeometry().setFromPoints(points);
-      scene.add(new THREE.Line(geo, lineMat));
+      const fp = fromMesh.position, tp = toMesh.position;
+      const edgeGeo = new LineGeometry();
+      edgeGeo.setPositions([fp.x, fp.y, fp.z, tp.x, tp.y, tp.z]);
+      scene.add(new Line2(edgeGeo, lineMat));
     }
   }
 
-  // --- Mask render target (for outline shader) ---
-  const pixelW = width * window.devicePixelRatio;
-  const pixelH = height * window.devicePixelRatio;
-  const maskTarget = new THREE.WebGLRenderTarget(pixelW, pixelH);
-  const maskMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const maskBg = new THREE.Color(0x000000);
+  // --- Camera controls ---
+  // Left-drag: orbit (rotate camera around a pivot point along the view direction)
+  // Middle-drag: pan (translate camera sideways/up)
+  // Scroll: zoom (move camera forward/backward along view direction)
+  const ORBIT_SPEED = 0.005;
+  const PAN_SPEED = 0.02;
+  const ZOOM_SPEED = 1.5;
 
-  // --- Outline shader ---
-  const OutlineShader = {
-    uniforms: {
-      tDiffuse: { value: null as THREE.Texture | null },
-      tMask: { value: maskTarget.texture },
-      outlineColor: { value: new THREE.Color(0xffff00) },
-      resolution: { value: new THREE.Vector2(pixelW, pixelH) },
-      innerRadius: { value: 4.0 },
-      outerRadius: { value: 8.0 },
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform sampler2D tDiffuse;
-      uniform sampler2D tMask;
-      uniform vec3 outlineColor;
-      uniform vec2 resolution;
-      uniform float innerRadius;
-      uniform float outerRadius;
-      varying vec2 vUv;
+  camera.position.set(0, 20, 0);
+  camera.up.set(0, 0, -1);
+  camera.lookAt(0, 0, 0);
+  const PIVOT_DISTANCE = 55.9;
 
-      void main() {
-        vec4 sceneCol = texture2D(tDiffuse, vUv);
-        float dInner = 0.0;
-        float dOuter = 0.0;
-        for (float a = 0.0; a < 6.2832; a += 0.3927) {
-          vec2 dir = vec2(cos(a), sin(a));
-          for (float r = 1.0; r <= 30.0; r += 1.0) {
-            float s = texture2D(tMask, vUv + dir * r / resolution).r;
-            dInner = max(dInner, s * step(r, innerRadius));
-            dOuter = max(dOuter, s * step(r, outerRadius));
-          }
-        }
-        float outline = dOuter * (1.0 - dInner);
-        gl_FragColor = vec4(mix(sceneCol.rgb, outlineColor, outline), 1.0);
-      }
-    `,
-  };
+  let isDragging = false;
+  let dragButton = -1;
+  let lastX = 0;
+  let lastY = 0;
 
-  // --- Post-processing ---
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
+  // Reusable vectors
+  const _right = new THREE.Vector3();
+  const _forward = new THREE.Vector3();
 
-  const sao = new SAOPass(scene, camera);
-  sao.params.saoIntensity = 0.02;
-  sao.params.saoScale = 3;
-  sao.params.saoKernelRadius = 40;
-  sao.params.saoBias = 0.5;
-  composer.addPass(sao);
+  function onPointerDown(e: PointerEvent) {
+    isDragging = true;
+    dragButton = e.button;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    renderer.domElement.setPointerCapture(e.pointerId);
+  }
 
-  const outlinePass = new ShaderPass(OutlineShader);
-  outlinePass.uniforms.tMask.value = maskTarget.texture;
-  composer.addPass(outlinePass);
+  function onPointerMove(e: PointerEvent) {
+    if (!isDragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
 
-  const fxaa = new ShaderPass(FXAAShader);
-  fxaa.uniforms['resolution'].value.set(
-    1 / pixelW,
-    1 / pixelH,
-  );
-  composer.addPass(fxaa);
+    if (dragButton === 0 || dragButton === 1) {
+      // Left or middle drag: pan (translate camera without changing orientation)
+      _right.setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+      const _camUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).normalize();
 
-  // --- Controls ---
-  const controls = new TrackballControls(camera, renderer.domElement);
-  controls.rotateSpeed = 5.0;
-  controls.noRotate = false;
-  controls.noPan = true;
-  controls.mouseButtons.LEFT = THREE.MOUSE.RIGHT as unknown as number; // rotate on right-click
-  controls.mouseButtons.RIGHT = null as unknown as number;
-  controls.mouseButtons.MIDDLE = THREE.MOUSE.MIDDLE as unknown as number;
-
-  // --- Raycaster / hover state ---
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-  let hoveredMesh: THREE.Mesh | null = null;
-  const allMeshes = Array.from(meshToWorld.keys());
-
-  function onMouseMove(e: MouseEvent) {
-    const rect = container.getBoundingClientRect();
-    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-    updateHover();
-
-    if (hoveredMesh) {
-      callbacks.onHover(meshToWorld.get(hoveredMesh)!, e.clientX, e.clientY);
-    } else {
-      callbacks.onHover(null, 0, 0);
+      camera.position.addScaledVector(_right, -dx * PAN_SPEED);
+      camera.position.addScaledVector(_camUp, dy * PAN_SPEED);
     }
   }
 
-  function updateHover() {
-    raycaster.setFromCamera(mouse, camera);
-    const hits = raycaster.intersectObjects(allMeshes, false);
-    const hit = hits.length > 0 ? (hits[0].object as THREE.Mesh) : null;
-    if (hit !== hoveredMesh) {
-      hoveredMesh = hit;
-    }
+  function onPointerUp(e: PointerEvent) {
+    isDragging = false;
+    dragButton = -1;
+    renderer.domElement.releasePointerCapture(e.pointerId);
   }
 
-  container.addEventListener('mousemove', onMouseMove);
-
-  // --- Click with drag guard ---
-  let mouseDownPos = { x: 0, y: 0 };
-
-  function onMouseDown(e: MouseEvent) {
-    mouseDownPos = { x: e.clientX, y: e.clientY };
+  function onWheel(e: WheelEvent) {
+    e.preventDefault();
+    camera.getWorldDirection(_forward);
+    const delta = e.deltaY > 0 ? -ZOOM_SPEED : ZOOM_SPEED;
+    camera.position.addScaledVector(_forward, delta);
   }
 
-  function onClick(e: MouseEvent) {
-    const dx = e.clientX - mouseDownPos.x;
-    const dy = e.clientY - mouseDownPos.y;
-    if (Math.sqrt(dx * dx + dy * dy) > 5) return; // was a drag
-
-    if (hoveredMesh) {
-      const world = meshToWorld.get(hoveredMesh);
-      if (world) {
-        bounces.push({
-          mesh: hoveredMesh,
-          startTime: performance.now(),
-          baseScale: hoveredMesh.scale.x,
-        });
-        callbacks.onSelect(world.id);
-      }
-    }
-  }
-
-  container.addEventListener('mousedown', onMouseDown);
-  container.addEventListener('click', onClick);
-
-  // --- Bounce animation ---
-  type Bounce = { mesh: THREE.Mesh; startTime: number; baseScale: number };
-  const bounces: Bounce[] = [];
-
-  function updateBounces(t: number) {
-    for (let i = bounces.length - 1; i >= 0; i--) {
-      const b = bounces[i];
-      const elapsed = (t - b.startTime) / 1000;
-      const duration = 0.5;
-      if (elapsed >= duration) {
-        b.mesh.scale.setScalar(b.baseScale);
-        bounces.splice(i, 1);
-      } else {
-        const p = elapsed / duration;
-        const bump = Math.sin(p * Math.PI) * Math.exp(-p * 3);
-        b.mesh.scale.setScalar(b.baseScale * (1 + bump * 0.8));
-      }
-    }
-  }
-
-  // --- Mask render ---
-  function renderMask() {
-    const bg = scene.background;
-    scene.background = maskBg;
-    scene.overrideMaterial = maskMat;
-
-    const vis: boolean[] = [];
-    scene.traverse(obj => vis.push(obj.visible));
-    scene.traverse(obj => { obj.visible = false; });
-
-    if (hoveredMesh) {
-      hoveredMesh.visible = true;
-      let p: THREE.Object3D | null = hoveredMesh.parent;
-      while (p) { p.visible = true; p = p.parent; }
-    }
-
-    renderer.setRenderTarget(maskTarget);
-    renderer.clear();
-    renderer.render(scene, camera);
-    renderer.setRenderTarget(null);
-
-    let i = 0;
-    scene.traverse(obj => { obj.visible = vis[i++]; });
-    scene.overrideMaterial = null;
-    scene.background = bg;
-  }
-
-  // --- Context menu suppress ---
   function onContextMenu(e: Event) { e.preventDefault(); }
+
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  renderer.domElement.addEventListener('pointermove', onPointerMove);
+  renderer.domElement.addEventListener('pointerup', onPointerUp);
+  renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
   renderer.domElement.addEventListener('contextmenu', onContextMenu);
 
   // --- Animation loop ---
+  const _spinQuat = new THREE.Quaternion();
   let animFrameId = 0;
-
+  let lastTime = 0;
   function animate(t: number) {
     animFrameId = requestAnimationFrame(animate);
-    const s = t * 0.001;
-
-    // Gentle Y rotation on cubes
-    for (const mesh of allMeshes) {
-      mesh.rotation.y = s * 0.3;
+    const dt = (t - lastTime) / 1000;
+    lastTime = t;
+    if (dt > 0 && dt < 0.5) {
+      for (const s of spinners) {
+        _spinQuat.setFromAxisAngle(s.axis, s.speed * dt);
+        s.mesh.quaternion.premultiply(_spinQuat);
+      }
     }
-
-    updateBounces(t);
-    renderMask();
-    controls.update();
-    composer.render();
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
   }
   animFrameId = requestAnimationFrame(animate);
 
@@ -304,52 +204,39 @@ export function init(
     const w = container.clientWidth;
     const h = container.clientHeight;
     if (w === 0 || h === 0) return;
-
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
-    composer.setSize(w, h);
-
-    const pw = w * window.devicePixelRatio;
-    const ph = h * window.devicePixelRatio;
-    maskTarget.setSize(pw, ph);
-    outlinePass.uniforms.resolution.value.set(pw, ph);
-    fxaa.uniforms['resolution'].value.set(1 / pw, 1 / ph);
+    labelRenderer.setSize(w, h);
+    lineMat.resolution.set(w * window.devicePixelRatio, h * window.devicePixelRatio);
   });
   resizeObserver.observe(container);
 
-  // --- Dispose ---
   return {
     dispose() {
       cancelAnimationFrame(animFrameId);
       resizeObserver.disconnect();
-      container.removeEventListener('mousemove', onMouseMove);
-      container.removeEventListener('mousedown', onMouseDown);
-      container.removeEventListener('click', onClick);
+      renderer.domElement.removeEventListener('pointerdown', onPointerDown);
+      renderer.domElement.removeEventListener('pointermove', onPointerMove);
+      renderer.domElement.removeEventListener('pointerup', onPointerUp);
+      renderer.domElement.removeEventListener('wheel', onWheel);
       renderer.domElement.removeEventListener('contextmenu', onContextMenu);
-      controls.dispose();
-      composer.dispose();
       renderer.dispose();
-      maskTarget.dispose();
-      maskMat.dispose();
+      geo.dispose();
       lineMat.dispose();
-
       scene.traverse(obj => {
         if (obj instanceof THREE.Mesh) {
-          obj.geometry.dispose();
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach(m => m.dispose());
-          } else {
-            obj.material.dispose();
-          }
+          if (obj.material instanceof THREE.Material) obj.material.dispose();
         }
-        if (obj instanceof THREE.Line) {
+        if (obj instanceof Line2) {
           obj.geometry.dispose();
         }
       });
-
       if (renderer.domElement.parentElement) {
         renderer.domElement.parentElement.removeChild(renderer.domElement);
+      }
+      if (labelRenderer.domElement.parentElement) {
+        labelRenderer.domElement.parentElement.removeChild(labelRenderer.domElement);
       }
     },
   };
