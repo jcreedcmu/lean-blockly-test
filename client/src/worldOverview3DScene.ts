@@ -165,9 +165,8 @@ export function init(
   // Left-drag: orbit (rotate camera around a pivot point along the view direction)
   // Middle-drag: pan (translate camera sideways/up)
   // Scroll: zoom (move camera forward/backward along view direction)
-  const ORBIT_SPEED = 0.005;
-  const PAN_SPEED = 0.02;
   const ZOOM_SPEED = 1.5;
+  const halfFovTan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
 
   camera.position.set(0, 20, 0);
   camera.up.set(0, 0, -1);
@@ -199,12 +198,16 @@ export function init(
     lastY = e.clientY;
 
     if (dragButton === 0 || dragButton === 1) {
-      // Left or middle drag: pan (translate camera without changing orientation)
+      // Left or middle drag: pan — 1:1 pixel-to-world mapping
+      const viewHeight = container.clientHeight;
+      const dist = camera.position.y; // distance to y=0 ground plane
+      const unitsPerPixel = (2 * dist * halfFovTan) / viewHeight;
+
       _right.setFromMatrixColumn(camera.matrixWorld, 0).normalize();
       const _camUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).normalize();
 
-      camera.position.addScaledVector(_right, -dx * PAN_SPEED);
-      camera.position.addScaledVector(_camUp, dy * PAN_SPEED);
+      camera.position.addScaledVector(_right, -dx * unitsPerPixel);
+      camera.position.addScaledVector(_camUp, dy * unitsPerPixel);
     }
   }
 
