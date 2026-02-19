@@ -317,7 +317,10 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
             <span>Loading goals...</span>
           </div>
         ) : (
-          <Goals goals={goals} />
+          <Goals
+            goals={goals}
+            onHypDragStart={(name, e) => blocklyRef.current?.startHypDrag(name, e)}
+          />
         )}
         {diagnostics.length > 0 && (
           <div className="diagnostics">

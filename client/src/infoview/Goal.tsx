@@ -28,6 +28,7 @@ export interface GoalProps {
   goal: InteractiveGoal;
   filter?: GoalFilterState;
   onHypNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
+  onHypDragStart?: (name: string, e: React.MouseEvent) => void;
   onSubexprClick?: (info: SubexprInfo) => void;
 }
 
@@ -65,6 +66,7 @@ export function Goal({
   goal,
   filter = defaultGoalFilter,
   onHypNameClick,
+  onHypDragStart,
   onSubexprClick,
 }: GoalProps): React.ReactElement {
   if (!goal) {
@@ -90,6 +92,7 @@ export function Goal({
               key={i}
               hyp={h}
               onNameClick={onHypNameClick}
+              onHypDragStart={onHypDragStart}
               onSubexprClick={onSubexprClick}
             />
           ))}

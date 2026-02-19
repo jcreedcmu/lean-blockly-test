@@ -6,6 +6,7 @@ import { InteractiveCode } from './InteractiveCode';
 export interface HypProps {
   hyp: InteractiveHypothesisBundle;
   onNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
+  onHypDragStart?: (name: string, e: React.MouseEvent) => void;
   onSubexprClick?: (info: SubexprInfo) => void;
 }
 
@@ -18,7 +19,7 @@ function isInaccessibleName(name: string): boolean {
  * Renders a single hypothesis bundle.
  * A bundle can have multiple names sharing the same type (e.g., "x y z : Nat").
  */
-export function Hyp({ hyp, onNameClick, onSubexprClick }: HypProps): React.ReactElement {
+export function Hyp({ hyp, onNameClick, onHypDragStart, onSubexprClick }: HypProps): React.ReactElement {
   const names = InteractiveHypothesisBundle_nonAnonymousNames(hyp);
 
   const nameElements = names.map((name, i) => {
@@ -34,7 +35,8 @@ export function Hyp({ hyp, onNameClick, onSubexprClick }: HypProps): React.React
         key={i}
         className={className}
         onClick={onNameClick ? () => onNameClick(name, hyp) : undefined}
-        style={onNameClick ? { cursor: 'pointer' } : undefined}
+        onMouseDown={onHypDragStart ? (e) => onHypDragStart(name, e) : undefined}
+        style={{ cursor: onHypDragStart ? 'grab' : onNameClick ? 'pointer' : undefined }}
       >
         {name}
         {i < names.length - 1 ? ' ' : ''}
