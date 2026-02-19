@@ -68,6 +68,7 @@ export function init(
   const annulusMat = new THREE.MeshBasicMaterial({ color: 0xbbbbbb, side: THREE.DoubleSide });
   const worldToGroup = new Map<string, THREE.Group>();
   const groupToBigCube = new Map<THREE.Group, THREE.Mesh>();
+  const labelObjects: CSS2DObject[] = [];
   const spinners: { mesh: THREE.Mesh; axis: THREE.Vector3; speed: number }[] = [];
   const orbiters: { group: THREE.Group; speed: number }[] = [];
 
@@ -149,6 +150,7 @@ export function init(
       const label = new CSS2DObject(div);
       label.position.set(0, 0, 0);
       group.add(label);
+      labelObjects.push(label);
     });
   });
 
@@ -347,9 +349,13 @@ export function init(
     const h = camera.position.y;
     const drift = h * (1 - scale);
 
-    camera.position.x += ndcX * halfFovTan * camera.aspect * drift;
-    camera.position.z -= ndcY * halfFovTan * drift;
-    camera.position.y *= scale;
+    const MAX_HEIGHT = 80;
+    const newY = Math.min(h * scale, MAX_HEIGHT);
+    const actualDrift = h - newY;
+
+    camera.position.x += ndcX * halfFovTan * camera.aspect * actualDrift;
+    camera.position.z -= ndcY * halfFovTan * actualDrift;
+    camera.position.y = newY;
   }
 
   function onContextMenu(e: Event) { e.preventDefault(); }
@@ -376,6 +382,10 @@ export function init(
       for (const o of orbiters) {
         o.group.rotation.y += o.speed * dt;
       }
+    }
+    const labelsVisible = camera.position.y < 40;
+    for (const lbl of labelObjects) {
+      lbl.visible = labelsVisible;
     }
     updateHover();
     renderMask();
