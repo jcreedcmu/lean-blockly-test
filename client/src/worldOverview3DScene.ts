@@ -297,9 +297,25 @@ export function init(
   const ZOOM_FACTOR = 1.15;
   const halfFovTan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
 
-  camera.position.set(0, 20, 0);
+  const CAMERA_STORAGE_KEY = 'worldOverview3D.camera';
+  try {
+    const saved = localStorage.getItem(CAMERA_STORAGE_KEY);
+    if (saved) {
+      const { x, y, z } = JSON.parse(saved);
+      camera.position.set(x, y, z);
+    } else {
+      camera.position.set(0, 20, 0);
+    }
+  } catch {
+    camera.position.set(0, 20, 0);
+  }
   camera.up.set(0, 0, -1);
-  camera.lookAt(0, 0, 0);
+  camera.lookAt(camera.position.x, 0, camera.position.z);
+
+  function saveCamera() {
+    const { x, y, z } = camera.position;
+    localStorage.setItem(CAMERA_STORAGE_KEY, JSON.stringify({ x, y, z }));
+  }
 
   let isDragging = false;
   let dragButton = -1;
@@ -344,6 +360,7 @@ export function init(
     isDragging = false;
     dragButton = -1;
     renderer.domElement.releasePointerCapture(e.pointerId);
+    saveCamera();
   }
 
   function onWheel(e: WheelEvent) {
@@ -363,6 +380,7 @@ export function init(
     camera.position.x += ndcX * halfFovTan * camera.aspect * actualDrift;
     camera.position.z -= ndcY * halfFovTan * actualDrift;
     camera.position.y = newY;
+    saveCamera();
   }
 
   function onContextMenu(e: Event) { e.preventDefault(); }
