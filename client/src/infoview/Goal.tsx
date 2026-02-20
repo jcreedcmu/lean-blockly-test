@@ -74,7 +74,11 @@ export function Goal({
   }
 
   const filteredHyps = filterHypotheses(goal.hyps, filter);
-  const hyps = filter.reverse ? [...filteredHyps].reverse() : filteredHyps;
+  // Split multi-name bundles so each hypothesis gets its own row
+  const splitHyps = filteredHyps.flatMap((h) =>
+    h.names.map((name) => ({ ...h, names: [name] }))
+  );
+  const hyps = filter.reverse ? [...splitHyps].reverse() : splitHyps;
 
   return (
     <div className="goal">
