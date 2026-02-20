@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useLayoutEffect } from 'react'
 import * as React from 'react'
 
 // Local imports
@@ -26,6 +26,8 @@ function App() {
   const [proofComplete, setProofComplete] = useState<boolean | null>(false); // null = checking, true = complete, false = incomplete
   const [diagnostics, setDiagnostics] = useState<Array<{ severity?: number; message: string }>>([]);
   const blocklyRef = useRef<BlocklyHandle>(null);
+  const [goalsPanelWidth, setGoalsPanelWidth] = useState(300);
+  const gameAreaRef = useRef<HTMLDivElement>(null);
   const [nav, setNav] = useState<NavigationState>(() => parseHash(location.hash));
   const navRef = useRef(nav);
   navRef.current = nav;
@@ -261,6 +263,26 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     }
   }
 
+  function onDividerMouseDown(e: React.MouseEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = goalsPanelWidth;
+
+    function onMouseMove(ev: MouseEvent) {
+      const delta = startX - ev.clientX;
+      const newWidth = Math.max(150, Math.min(800, startWidth + delta));
+      setGoalsPanelWidth(newWidth);
+    }
+
+    function onMouseUp() {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
   if (nav.kind === 'worldOverview') {
     return <div className="app-root">
       <WorldOverview3D worlds={gameData.worlds} onSelectWorld={enterLevel} />
@@ -301,7 +323,8 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
         initialData={levelStates[nav.worldId][nav.levelIndex]}
         allowedBlocks={currentLevel.allowedBlocks}
       />
-      <div className="goals-panel">
+      <div className="panel-divider" onMouseDown={onDividerMouseDown} />
+      <div className="goals-panel" style={{ width: goalsPanelWidth }}>
         <div className="proof-status">
           {proofComplete === null ? (
             <span className="proof-checking">Checking...</span>

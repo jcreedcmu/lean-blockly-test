@@ -49,8 +49,8 @@ export function Hyp({ hyp, onNameClick, onHypDragStart, onSubexprClick }: HypPro
   return (
     <div className="hyp">
       <span className="hyp-cell hyp-names">{nameElements}</span>
+      <span className="hyp-cell hyp-colon">:</span>
       <span className="hyp-cell hyp-type-cell">
-        <span className="hyp-colon">: </span>
         <span className="hyp-type">
           <InteractiveCode fmt={hyp.type} onSubexprClick={onSubexprClick} />
         </span>

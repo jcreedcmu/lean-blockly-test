@@ -97,7 +97,7 @@
 
 .hyp-cell {
   display: table-cell;
-  vertical-align: middle;
+  vertical-align: top;
   white-space: nowrap;
 }
 
@@ -108,6 +108,7 @@
 .hyp-names {
   font-weight: bold;
   color: #001080;
+  text-align: right;
 }
 
 .hyp-name {

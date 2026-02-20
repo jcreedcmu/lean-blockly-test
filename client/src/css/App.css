@@ -102,8 +102,21 @@
   overflow: hidden;
 }
 
+.panel-divider {
+  width: 6px;
+  cursor: col-resize;
+  background: #e0e0e0;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.panel-divider:hover,
+.panel-divider:active {
+  background: #bbb;
+}
+
 .goals-panel {
-  width: 300px;
+  flex-shrink: 0;
   padding: 0.5em;
   border-left: 1px solid #ccc;
   overflow: auto;
@@ -115,9 +128,9 @@
   font-family: 'Droid Sans Mono', 'Consolas', 'Monaco', monospace !important;
 }
 
-/* Move Blockly trashcan to top right */
+/* Position Blockly trashcan at bottom left */
 .blocklyTrash {
-  translate: 0 calc(-100% + 100px);
+  translate: calc(-100% + 200px) 0;
 }
 
 /* Proof status indicator */
