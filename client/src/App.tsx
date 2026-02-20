@@ -319,7 +319,7 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
         ) : (
           <Goals
             goals={goals}
-            onHypDragStart={(name, e) => blocklyRef.current?.startHypDrag(name, e)}
+            onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}
           />
         )}
         {diagnostics.length > 0 && (

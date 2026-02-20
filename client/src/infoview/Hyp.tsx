@@ -6,7 +6,7 @@ import { InteractiveCode } from './InteractiveCode';
 export interface HypProps {
   hyp: InteractiveHypothesisBundle;
   onNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
-  onHypDragStart?: (name: string, e: React.MouseEvent) => void;
+  onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
   onSubexprClick?: (info: SubexprInfo) => void;
 }
 
@@ -59,6 +59,14 @@ export function Hyp({ hyp, onNameClick, onHypDragStart, onSubexprClick }: HypPro
           </span>
         </>
       )}
+      {onHypDragStart && names.map((name, i) => (
+        <span key={`actions-${i}`} className="hyp-actions">
+          <span className="hyp-action hyp-action-apply"
+            onMouseDown={(e) => onHypDragStart(name, e, 'apply')}>apply</span>
+          <span className="hyp-action hyp-action-rewrite"
+            onMouseDown={(e) => onHypDragStart(name, e, 'rewrite')}>rewrite</span>
+        </span>
+      ))}
     </div>
   );
 }

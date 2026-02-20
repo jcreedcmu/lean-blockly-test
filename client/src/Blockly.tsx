@@ -22,7 +22,7 @@ export type BlocklyHandle = {
   saveWorkspace: () => BlocklyState | null;
   updateProofStatuses: (statuses: Map<string, ProofStatus>) => void;
   clearProofStatuses: () => void;
-  startHypDrag: (name: string, e: React.MouseEvent) => void;
+  startHypDrag: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
 };
 
 function useBlockly(
@@ -197,7 +197,7 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         }
       }
     },
-    startHypDrag: (name: string, e: React.MouseEvent) => {
+    startHypDrag: (name: string, e: React.MouseEvent, mode: 'prop' | 'apply' | 'rewrite' = 'prop') => {
       const ws = wsRef.current;
       if (!ws) return;
 
@@ -226,15 +226,49 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
       const screenCoord = new blockly.utils.Coordinate(e.clientX, e.clientY);
       const wsCoord = blockly.utils.svgMath.screenToWsCoordinates(ws, screenCoord);
 
-      // Create a prop block with the hypothesis name
-      const block = ws.newBlock('prop') as BlockSvg;
-      block.setFieldValue(name, 'PROP_NAME');
-      block.initSvg();
-      block.render();
-      block.moveTo(wsCoord);
+      let dragBlock: BlockSvg;
+
+      if (mode === 'apply') {
+        // Create a tactic_apply block with prop child on ARG input
+        const outerBlock = ws.newBlock('tactic_apply') as BlockSvg;
+        const innerBlock = ws.newBlock('prop') as BlockSvg;
+        innerBlock.setFieldValue(name, 'PROP_NAME');
+        innerBlock.initSvg();
+        innerBlock.render();
+        const input = outerBlock.getInput('ARG');
+        input!.connection!.connect(innerBlock.outputConnection!);
+        outerBlock.initSvg();
+        outerBlock.render();
+        dragBlock = outerBlock;
+      } else if (mode === 'rewrite') {
+        // Create a tactic_rw block with prop child on REWRITE_SOURCE input
+        const outerBlock = ws.newBlock('tactic_rw') as BlockSvg;
+        const innerBlock = ws.newBlock('prop') as BlockSvg;
+        innerBlock.setFieldValue(name, 'PROP_NAME');
+        innerBlock.initSvg();
+        innerBlock.render();
+        const input = outerBlock.getInput('REWRITE_SOURCE');
+        input!.connection!.connect(innerBlock.outputConnection!);
+        outerBlock.initSvg();
+        outerBlock.render();
+        dragBlock = outerBlock;
+      } else {
+        // Create a prop block with the hypothesis name
+        const block = ws.newBlock('prop') as BlockSvg;
+        block.setFieldValue(name, 'PROP_NAME');
+        block.initSvg();
+        block.render();
+        dragBlock = block;
+      }
+
+      const size = dragBlock.getHeightWidth();
+      dragBlock.moveTo(new blockly.utils.Coordinate(
+        wsCoord.x - size.width / 2,
+        wsCoord.y - size.height / 2,
+      ));
 
       // Create a Blockly Dragger and start the drag
-      const dragger = new blockly.dragging.Dragger(block, ws);
+      const dragger = new blockly.dragging.Dragger(dragBlock, ws);
       const nativeEvent = e.nativeEvent as PointerEvent;
       dragger.onDragStart(nativeEvent);
 

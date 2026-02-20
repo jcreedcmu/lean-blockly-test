@@ -7,7 +7,7 @@ export interface GoalsProps {
   goals: InteractiveGoals;
   filter?: GoalFilterState;
   onHypNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
-  onHypDragStart?: (name: string, e: React.MouseEvent) => void;
+  onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
   onSubexprClick?: (info: SubexprInfo) => void;
 }
 

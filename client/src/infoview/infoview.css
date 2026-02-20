@@ -90,6 +90,9 @@
 
 /* Hypothesis */
 .hyp {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
   margin: 0.2em 0;
 }
 
@@ -99,8 +102,49 @@
 }
 
 .hyp-name {
+  background: white;
+  border-radius: 8px;
+  padding: 4px 10px;
+  display: inline-block;
   margin-right: 0.25em;
   cursor: grab;
+}
+
+.hyp-actions {
+  display: inline-flex;
+  gap: 0.25em;
+}
+
+.hyp-action {
+  background: white;
+  border-radius: 8px;
+  padding: 2px 8px;
+  font-size: 0.85em;
+  cursor: grab;
+  user-select: none;
+  border: 1px solid #ccc;
+}
+
+.hyp-action:hover {
+  background: #e8e8e8;
+}
+
+.hyp-action-apply {
+  color: #2e7d32;
+  border-color: #a5d6a7;
+}
+
+.hyp-action-apply:hover {
+  background: #e8f5e9;
+}
+
+.hyp-action-rewrite {
+  color: #1565c0;
+  border-color: #90caf9;
+}
+
+.hyp-action-rewrite:hover {
+  background: #e3f2fd;
 }
 
 .hyp-name.inserted {
