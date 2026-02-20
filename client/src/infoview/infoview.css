@@ -71,6 +71,8 @@
 }
 
 .goal-hyps {
+  display: table;
+  border-spacing: 0.4em 0.2em;
   margin-bottom: 0.5em;
   padding-bottom: 0.5em;
   border-bottom: 1px solid #ddd;
@@ -90,10 +92,17 @@
 
 /* Hypothesis */
 .hyp {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  margin: 0.2em 0;
+  display: table-row;
+}
+
+.hyp-cell {
+  display: table-cell;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.hyp-type-cell {
+  white-space: normal;
 }
 
 .hyp-names {
@@ -108,11 +117,6 @@
   display: inline-block;
   margin-right: 0.25em;
   cursor: grab;
-}
-
-.hyp-actions {
-  display: inline-flex;
-  gap: 0.25em;
 }
 
 .hyp-action {

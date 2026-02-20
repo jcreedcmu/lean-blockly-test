@@ -44,29 +44,33 @@ export function Hyp({ hyp, onNameClick, onHypDragStart, onSubexprClick }: HypPro
     );
   });
 
+  const name = names[0];
+
   return (
     <div className="hyp">
-      <span className="hyp-names">{nameElements}</span>
-      <span className="hyp-colon"> : </span>
-      <span className="hyp-type">
-        <InteractiveCode fmt={hyp.type} onSubexprClick={onSubexprClick} />
+      <span className="hyp-cell hyp-names">{nameElements}</span>
+      <span className="hyp-cell hyp-type-cell">
+        <span className="hyp-colon">: </span>
+        <span className="hyp-type">
+          <InteractiveCode fmt={hyp.type} onSubexprClick={onSubexprClick} />
+        </span>
+        {hyp.val && (
+          <>
+            <span className="hyp-assign"> := </span>
+            <span className="hyp-val">
+              <InteractiveCode fmt={hyp.val} onSubexprClick={onSubexprClick} />
+            </span>
+          </>
+        )}
       </span>
-      {hyp.val && (
+      {onHypDragStart && (
         <>
-          <span className="hyp-assign"> := </span>
-          <span className="hyp-val">
-            <InteractiveCode fmt={hyp.val} onSubexprClick={onSubexprClick} />
-          </span>
+          <span className="hyp-cell hyp-action hyp-action-apply"
+            onMouseDown={(e) => onHypDragStart(name, e, 'apply')}>apply</span>
+          <span className="hyp-cell hyp-action hyp-action-rewrite"
+            onMouseDown={(e) => onHypDragStart(name, e, 'rewrite')}>rewrite</span>
         </>
       )}
-      {onHypDragStart && names.map((name, i) => (
-        <span key={`actions-${i}`} className="hyp-actions">
-          <span className="hyp-action hyp-action-apply"
-            onMouseDown={(e) => onHypDragStart(name, e, 'apply')}>apply</span>
-          <span className="hyp-action hyp-action-rewrite"
-            onMouseDown={(e) => onHypDragStart(name, e, 'rewrite')}>rewrite</span>
-        </span>
-      ))}
     </div>
   );
 }
