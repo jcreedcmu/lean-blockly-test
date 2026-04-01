@@ -6,6 +6,7 @@
  * for callers to use directly.
  */
 import { listen } from 'vscode-ws-jsonrpc';
+import { log, logError } from './log';
 
 // Derive MessageConnection from listen()'s own type so we always agree
 // with the (possibly nested) vscode-jsonrpc that vscode-ws-jsonrpc ships.
@@ -30,7 +31,8 @@ export function connect(wsUrl: string): Promise<MessageConnection> {
         connection.listen();
 
         try {
-          await connection.sendRequest('initialize', {
+          log('LSP', 'Sending initialize...');
+          const initResult = await connection.sendRequest('initialize', {
             processId: null,
             capabilities: {},
             rootUri: 'file:///',
@@ -39,9 +41,12 @@ export function connect(wsUrl: string): Promise<MessageConnection> {
               hasWidgets: true,
             },
           });
+          log('LSP', 'Initialize result:', initResult);
           await connection.sendNotification('initialized', {});
+          log('LSP', 'Connection established');
           resolve(connection);
         } catch (err) {
+          logError('LSP', 'Initialize failed:', err);
           reject(err);
         }
       },

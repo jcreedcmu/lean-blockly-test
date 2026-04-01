@@ -13,8 +13,10 @@ import type {
   TaggedText,
   MsgEmbed,
 } from '@leanprover/infoview-api';
+import { log, logError } from './log';
 
 const KEEPALIVE_PERIOD_MS = 10_000;
+const TAG = 'LeanRpc';
 
 // ── helpers ──────────────────────────────────────────────────────────
 
@@ -89,7 +91,12 @@ export class LeanRpcSession {
     // listen for file-progress notifications
     this.disposables.push(
       connection.onNotification('$/lean/fileProgress', (params: any) => {
-        if (params.textDocument?.uri === this.uri && params.processing?.length === 0) {
+        if (params.textDocument?.uri !== this.uri) return;
+        const processing = params.processing ?? [];
+        if (processing.length > 0) {
+          log(TAG, `fileProgress: ${processing.length} range(s) still processing`);
+        } else {
+          log(TAG, 'fileProgress: processing complete');
           const resolvers = this.processingResolvers;
           this.processingResolvers = [];
           resolvers.forEach((r) => r());
@@ -102,6 +109,8 @@ export class LeanRpcSession {
       connection.onNotification('textDocument/publishDiagnostics', (params: any) => {
         if (params.uri === this.uri) {
           this.currentDiagnostics = params.diagnostics ?? [];
+          log(TAG, `diagnostics: ${this.currentDiagnostics.length} item(s)`,
+            this.currentDiagnostics.map(d => `[sev=${d.severity}] ${d.message.slice(0, 80)}`));
           this.onDiagnosticsChange?.(this.currentDiagnostics);
         }
       }),
@@ -121,6 +130,7 @@ export class LeanRpcSession {
 
     try {
       if (!this.documentOpen) {
+        log(TAG, `didOpen (v${this.documentVersion + 1}, ${code.length} chars)`);
         await this.connection.sendNotification('textDocument/didOpen', {
           textDocument: {
             uri: this.uri,
@@ -131,6 +141,7 @@ export class LeanRpcSession {
         });
         this.documentOpen = true;
       } else {
+        log(TAG, `didChange (v${this.documentVersion + 1}, ${code.length} chars)`);
         await this.connection.sendNotification('textDocument/didChange', {
           textDocument: {
             uri: this.uri,
@@ -143,7 +154,7 @@ export class LeanRpcSession {
       this.lastDocumentContent = code;
       return { success: true, changed: true };
     } catch (err) {
-      console.error('[LeanRpcSession] Failed to update document:', err);
+      logError(TAG, 'Failed to update document:', err);
       return { success: false, changed: false };
     }
   }
@@ -167,14 +178,16 @@ export class LeanRpcSession {
     if (this.sessionId) return this.sessionId;
 
     try {
+      log(TAG, 'Connecting RPC session...');
       const result: any = await this.connection.sendRequest('$/lean/rpc/connect', {
         uri: this.uri,
       });
       this.sessionId = result.sessionId;
+      log(TAG, 'RPC session connected, sessionId:', this.sessionId);
       this.startKeepalive();
       return this.sessionId;
     } catch (err: any) {
-      console.error('[LeanRpcSession] connect failed:', err);
+      logError(TAG, 'connect failed:', err);
       if (err?.message?.includes('closed file')) {
         this.documentOpen = false;
         this.lastDocumentContent = null;
@@ -236,13 +249,16 @@ export class LeanRpcSession {
   async getInteractiveDiagnostics(): Promise<InteractiveDiagnostic[]> {
     if (!this.sessionId) throw new Error('No active RPC session');
 
-    return await this.connection.sendRequest('$/lean/rpc/call', {
+    log(TAG, 'Calling getInteractiveDiagnostics...');
+    const result = await this.connection.sendRequest('$/lean/rpc/call', {
       textDocument: { uri: this.uri },
       position: { line: 0, character: 0 },
       sessionId: this.sessionId,
       method: 'Lean.Widget.getInteractiveDiagnostics',
       params: { textDocument: { uri: this.uri } },
     });
+    log(TAG, 'getInteractiveDiagnostics raw result:', result);
+    return result as InteractiveDiagnostic[];
   }
 
   /**
@@ -264,9 +280,17 @@ export class LeanRpcSession {
 
       try {
         const diagnostics = await this.getInteractiveDiagnostics();
-        return extractGoalsFromDiagnostics(diagnostics);
+        const goals = extractGoalsFromDiagnostics(diagnostics);
+        log(TAG, 'Extracted goals:', goals.goals.length);
+        for (const g of goals.goals) {
+          log(TAG, '  Goal hyps:', g.hyps.map(h => ({
+            names: h.names, fvarIds: h.fvarIds,
+            isType: h.isType, isInstance: h.isInstance,
+          })));
+        }
+        return goals;
       } catch (err: any) {
-        console.error('[LeanRpcSession] getGoals failed:', err);
+        logError(TAG, 'getGoals failed:', err);
         if (err?.message?.includes('Outdated RPC session') && attempt === 0) {
           this.disconnect();
           continue;
