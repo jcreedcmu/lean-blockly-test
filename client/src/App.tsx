@@ -8,7 +8,7 @@ import { Goals } from './infoview';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { connect as lspConnect } from './LeanLspClient';
-import { LeanRpcSession, LspDiagnostic } from './LeanRpcSession';
+import { LeanRpcSession, LspDiagnostic, type HypKindMap } from './LeanRpcSession';
 import type { ProofStatus } from './FieldProofStatus';
 import { gameData, parseHash, navToHash } from './gameData';
 import type { NavigationState } from './gameData';
@@ -22,6 +22,7 @@ const BLOCKLY_DOC_URI = 'file:///blockly/Blockly.lean';
 
 function App() {
   const [goals, setGoals] = useState<InteractiveGoals | null>(null);
+  const [hypKindMap, setHypKindMap] = useState<HypKindMap>(new Map());
   const [goalsLoading, setGoalsLoading] = useState(false);
   const [proofComplete, setProofComplete] = useState<boolean | null>(false); // null = checking, true = complete, false = incomplete
   const [diagnostics, setDiagnostics] = useState<Array<{ severity?: number; message: string }>>([]);
@@ -51,6 +52,59 @@ function App() {
 
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
+
+open Lean Server Widget Elab in
+structure HypIsAssumption where
+  fvarId : String
+  isAssumption : Bool
+  deriving FromJson, ToJson
+
+open Lean Server Widget Elab in
+structure GoalHypKinds where
+  mvarId : String
+  hyps : Array HypIsAssumption
+  deriving FromJson, ToJson
+
+open Lean Server Widget Elab in
+structure HypKindResult where
+  goals : Array GoalHypKinds
+  deriving FromJson, ToJson
+
+open Lean Server Widget Elab in
+structure HypKindParams where
+  ctx : WithRpcRef ContextInfo
+  mvarId : String
+  deriving RpcEncodable
+
+open Lean Server Widget Elab Meta in
+def parseLeanName (s : String) : Name :=
+  s.splitOn "." |>.foldl (fun acc part =>
+    match part.toNat? with
+    | some n => Name.mkNum acc n
+    | none => Name.mkStr acc part
+  ) Name.anonymous
+
+open Lean Server Widget Elab Meta in
+@[server_rpc_method]
+def getHypKinds (p : HypKindParams) :
+    RequestM (RequestTask HypKindResult) :=
+  RequestM.pureTask do
+    let ci := p.ctx.val
+    ci.runMetaM {} do
+      let mvarId := MVarId.mk (parseLeanName p.mvarId)
+      let mctx ← getMCtx
+      let some mvarDecl := mctx.findDecl? mvarId
+        | return { goals := #[] }
+      withLCtx mvarDecl.lctx mvarDecl.localInstances do
+        let mut hyps : Array HypIsAssumption := #[]
+        for decl in ← getLCtx do
+          if decl.isAuxDecl then continue
+          let typeOfType ← inferType decl.type
+          hyps := hyps.push {
+            fvarId := toString decl.fvarId.name
+            isAssumption := typeOfType.isProp
+          }
+        return { goals := #[{ mvarId := p.mvarId, hyps }] }
 
 `;
 
@@ -202,20 +256,25 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
 
     console.log('[onBlocklyChange] Fetching goals for file');
 
+    const preludeLineCount = prelude.split('\n').length - 1;
+
     (async () => {
       try {
-        const goals = await rpcSessionRef.current!.getGoals(fullCode);
-        console.log('[onBlocklyChange] Goals:', goals);
+        const result = await rpcSessionRef.current!.getGoals(fullCode, preludeLineCount);
+        console.log('[onBlocklyChange] Goals:', result);
 
-        latestGoalsRef.current = goals;
-        setGoals(goals);
+        if (result) {
+          latestGoalsRef.current = result.goals;
+          setGoals(result.goals);
+          setHypKindMap(result.hypKindMap);
 
-        // Determine proof status: complete only if no goals AND no errors
-        const session = rpcSessionRef.current;
-        if (goals && session) {
-          const noGoals = goals.goals.length === 0;
-          const isComplete = noGoals && !session.hasErrors();
-          setProofComplete(isComplete);
+          // Determine proof status: complete only if no goals AND no errors
+          const session = rpcSessionRef.current;
+          if (session) {
+            const noGoals = result.goals.goals.length === 0;
+            const isComplete = noGoals && !session.hasErrors();
+            setProofComplete(isComplete);
+          }
         }
       } catch (err) {
         console.error('[onBlocklyChange] Error checking proof status:', err);
@@ -239,6 +298,7 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     }
 
     const fullCode = prelude + leanCode;
+    const preludeLineCount = prelude.split('\n').length - 1;
     console.log('[onRequestGoals] Full code being sent:');
     console.log('---BEGIN CODE---');
     console.log(fullCode);
@@ -247,12 +307,13 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
     setGoalsLoading(true);
     try {
       console.log('[onRequestGoals] Fetching goals via LeanRpcSession...');
-      const goals = await rpcSessionRef.current.getGoals(fullCode);
-      console.log('[onRequestGoals] Goals received:', goals);
+      const result = await rpcSessionRef.current.getGoals(fullCode, preludeLineCount);
+      console.log('[onRequestGoals] Goals received:', result);
 
-      if (goals) {
+      if (result) {
         console.log('[onRequestGoals] Setting goals');
-        setGoals(goals);
+        setGoals(result.goals);
+        setHypKindMap(result.hypKindMap);
       } else {
         console.log('[onRequestGoals] No goals returned');
       }
@@ -342,6 +403,7 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
         ) : (
           <Goals
             goals={goals}
+            hypKindMap={hypKindMap}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}
           />
         )}

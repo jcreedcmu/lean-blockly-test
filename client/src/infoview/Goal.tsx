@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { InteractiveGoal, InteractiveHypothesisBundle, SubexprInfo } from '@leanprover/infoview-api';
 import { Hyp } from './Hyp';
 import { InteractiveCode } from './InteractiveCode';
+import type { HypKindMap } from '../LeanRpcSession';
 
 export interface GoalFilterState {
   /** If true, reverse the order of hypotheses. */
@@ -26,6 +27,7 @@ export const defaultGoalFilter: GoalFilterState = {
 
 export interface GoalProps {
   goal: InteractiveGoal;
+  hypKindMap?: HypKindMap;
   filter?: GoalFilterState;
   onHypNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
   onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
@@ -59,11 +61,43 @@ function filterHypotheses(
   }, []);
 }
 
+/** Check if a hypothesis bundle is an assumption (Prop-typed) using the hypKindMap. */
+function isAssumption(h: InteractiveHypothesisBundle, hypKindMap?: HypKindMap): boolean | undefined {
+  if (!hypKindMap || !h.fvarIds || h.fvarIds.length === 0) return undefined;
+  // A bundle may have multiple fvarIds (e.g. "x y z : Nat"), check the first
+  return hypKindMap.get(h.fvarIds[0]);
+}
+
+function renderHypGroup(
+  title: string,
+  hyps: InteractiveHypothesisBundle[],
+  props: Pick<GoalProps, 'onHypNameClick' | 'onHypDragStart' | 'onSubexprClick'>,
+): React.ReactElement | null {
+  if (hyps.length === 0) return null;
+  return (
+    <div className="hyp-group">
+      <div className="hyp-group-title">{title}</div>
+      <div className="goal-hyps">
+        {hyps.map((h, i) => (
+          <Hyp
+            key={i}
+            hyp={h}
+            onNameClick={props.onHypNameClick}
+            onHypDragStart={props.onHypDragStart}
+            onSubexprClick={props.onSubexprClick}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Renders a single goal with its hypotheses and target type.
  */
 export function Goal({
   goal,
+  hypKindMap,
   filter = defaultGoalFilter,
   onHypNameClick,
   onHypDragStart,
@@ -76,9 +110,21 @@ export function Goal({
   const filteredHyps = filterHypotheses(goal.hyps, filter);
   // Split multi-name bundles so each hypothesis gets its own row
   const splitHyps = filteredHyps.flatMap((h) =>
-    h.names.map((name) => ({ ...h, names: [name] }))
+    h.names.map((name, nameIdx) => ({
+      ...h,
+      names: [name],
+      // Preserve the correct fvarId for this specific name
+      fvarIds: h.fvarIds ? [h.fvarIds[nameIdx]] : undefined,
+    }))
   );
   const hyps = filter.reverse ? [...splitHyps].reverse() : splitHyps;
+
+  // Split into objects vs assumptions if we have hypKindMap data
+  const hasKindData = hypKindMap && hypKindMap.size > 0;
+  const objectHyps = hasKindData ? hyps.filter(h => isAssumption(h, hypKindMap) !== true) : hyps;
+  const assumptionHyps = hasKindData ? hyps.filter(h => isAssumption(h, hypKindMap) === true) : [];
+
+  const handlerProps = { onHypNameClick, onHypDragStart, onSubexprClick };
 
   return (
     <div className="goal">
@@ -89,18 +135,25 @@ export function Goal({
         </div>
       )}
 
-      {hyps.length > 0 && (
-        <div className="goal-hyps">
-          {hyps.map((h, i) => (
-            <Hyp
-              key={i}
-              hyp={h}
-              onNameClick={onHypNameClick}
-              onHypDragStart={onHypDragStart}
-              onSubexprClick={onSubexprClick}
-            />
-          ))}
-        </div>
+      {hasKindData ? (
+        <>
+          {renderHypGroup('Objects', objectHyps, handlerProps)}
+          {renderHypGroup('Assumptions', assumptionHyps, handlerProps)}
+        </>
+      ) : (
+        hyps.length > 0 && (
+          <div className="goal-hyps">
+            {hyps.map((h, i) => (
+              <Hyp
+                key={i}
+                hyp={h}
+                onNameClick={onHypNameClick}
+                onHypDragStart={onHypDragStart}
+                onSubexprClick={onSubexprClick}
+              />
+            ))}
+          </div>
+        )
       )}
 
       <div className="goal-target">

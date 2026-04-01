@@ -2,9 +2,11 @@ import * as React from 'react';
 import { useState } from 'react';
 import type { InteractiveGoal, InteractiveGoals, InteractiveHypothesisBundle, SubexprInfo } from '@leanprover/infoview-api';
 import { Goal, GoalFilterState, defaultGoalFilter } from './Goal';
+import type { HypKindMap } from '../LeanRpcSession';
 
 export interface GoalsProps {
   goals: InteractiveGoals;
+  hypKindMap?: HypKindMap;
   filter?: GoalFilterState;
   onHypNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
   onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
@@ -16,6 +18,7 @@ export interface GoalsProps {
  */
 export function Goals({
   goals,
+  hypKindMap,
   filter = defaultGoalFilter,
   onHypNameClick,
   onHypDragStart,
@@ -53,6 +56,7 @@ export function Goals({
       <div className="goals-content">
         <Goal
           goal={currentGoal}
+          hypKindMap={hypKindMap}
           filter={filter}
           onHypNameClick={onHypNameClick}
           onHypDragStart={onHypDragStart}

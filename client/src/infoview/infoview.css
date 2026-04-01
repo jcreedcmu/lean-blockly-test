@@ -70,12 +70,25 @@
   color: #007acc;
 }
 
-.goal-hyps {
-  display: table;
-  border-spacing: 0.4em 0.2em;
+/* Hypothesis groups (Objects / Assumptions) */
+.hyp-group {
   margin-bottom: 0.5em;
   padding-bottom: 0.5em;
   border-bottom: 1px solid #ddd;
+}
+
+.hyp-group-title {
+  font-size: 0.85em;
+  font-weight: bold;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25em;
+}
+
+.goal-hyps {
+  display: table;
+  border-spacing: 0.4em 0.2em;
 }
 
 .goal-target {

@@ -59,6 +59,30 @@ export interface LspDiagnostic {
   [key: string]: unknown;
 }
 
+// ── HypKinds types (from our custom RPC method) ─────────────────────
+
+export interface HypIsAssumption {
+  fvarId: string;
+  isAssumption: boolean;
+}
+
+export interface GoalHypKinds {
+  mvarId: string;
+  hyps: HypIsAssumption[];
+}
+
+export interface HypKindResult {
+  goals: GoalHypKinds[];
+}
+
+/** Map from fvarId to isAssumption, flattened across all goals. */
+export type HypKindMap = Map<string, boolean>;
+
+export interface GoalsWithHypKinds {
+  goals: InteractiveGoals;
+  hypKindMap: HypKindMap;
+}
+
 // ── LeanRpcSession ──────────────────────────────────────────────────
 
 export class LeanRpcSession {
@@ -262,10 +286,35 @@ export class LeanRpcSession {
   }
 
   /**
-   * High-level: update document → wait for processing → connect RPC →
-   * fetch interactive diagnostics → extract goals.
+   * Call our custom getHypKinds RPC method for a goal.
+   * Requires the ctx (opaque RPC ref) and mvarId from an InteractiveGoal.
+   * The RPC call position must be after the preamble where @[server_rpc_method] is defined.
    */
-  async getGoals(code: string): Promise<InteractiveGoals | null> {
+  async getHypKinds(ctx: unknown, mvarId: string, callLine: number): Promise<HypKindResult | null> {
+    if (!this.sessionId) return null;
+
+    try {
+      log(TAG, `Calling getHypKinds for mvarId=${mvarId}...`);
+      const result = await this.connection.sendRequest('$/lean/rpc/call', {
+        textDocument: { uri: this.uri },
+        position: { line: callLine, character: 0 },
+        sessionId: this.sessionId,
+        method: 'getHypKinds',
+        params: { ctx, mvarId },
+      });
+      log(TAG, 'getHypKinds result:', result);
+      return result as HypKindResult;
+    } catch (err) {
+      logError(TAG, 'getHypKinds failed:', err);
+      return null;
+    }
+  }
+
+  /**
+   * High-level: update document → wait for processing → connect RPC →
+   * fetch interactive diagnostics → extract goals → fetch hyp kinds.
+   */
+  async getGoals(code: string, preludeLineCount: number): Promise<GoalsWithHypKinds | null> {
     for (let attempt = 0; attempt < 2; attempt++) {
       const { success, changed } = await this.updateDocument(code);
       if (!success) return null;
@@ -288,7 +337,26 @@ export class LeanRpcSession {
             isType: h.isType, isInstance: h.isInstance,
           })));
         }
-        return goals;
+
+        // Call our custom RPC method to get isProp classification for each goal.
+        // The RPC call position must be after the preamble where the method is defined.
+        const hypKindMap: HypKindMap = new Map();
+        const callLine = preludeLineCount;  // first line after preamble
+        for (const goal of goals.goals) {
+          if (goal.ctx && goal.mvarId) {
+            const hypKindResult = await this.getHypKinds(goal.ctx, goal.mvarId, callLine);
+            if (hypKindResult) {
+              for (const g of hypKindResult.goals) {
+                for (const h of g.hyps) {
+                  hypKindMap.set(h.fvarId, h.isAssumption);
+                }
+              }
+            }
+          }
+        }
+        log(TAG, 'HypKindMap:', Object.fromEntries(hypKindMap));
+
+        return { goals, hypKindMap };
       } catch (err: any) {
         logError(TAG, 'getGoals failed:', err);
         if (err?.message?.includes('Outdated RPC session') && attempt === 0) {
