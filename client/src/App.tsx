@@ -4,11 +4,13 @@ import * as React from 'react'
 // Local imports
 import { Blockly, BlocklyHandle, BlocklyState } from './Blockly.tsx';
 import type { WorkspaceToLeanResult, SourceInfo } from './workspaceToLean';
+import { workspaceToLean } from './workspaceToLean';
 import { Goals } from './infoview';
+import { log } from './log';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
-import { connect as lspConnect } from './LeanLspClient';
-import { LeanRpcSession, LspDiagnostic, type HypKindMap } from './LeanRpcSession';
+import { LspDiagnostic, type HypKindMap } from './LeanRpcSession';
+import { leanSession } from './LeanSession';
 import type { ProofStatus } from './FieldProofStatus';
 import { gameData, parseHash, navToHash } from './gameData';
 import type { NavigationState } from './gameData';
@@ -17,8 +19,6 @@ import { WorldOverview3D } from './WorldOverview3D';
 // CSS
 import './css/App.css'
 
-// Virtual document URI for Blockly code
-const BLOCKLY_DOC_URI = 'file:///blockly/Blockly.lean';
 
 function App() {
   const [goals, setGoals] = useState<InteractiveGoals | null>(null);
@@ -38,9 +38,8 @@ function App() {
     )
   );
 
-  // RPC session for Blockly code
-  const rpcSessionRef = useRef<LeanRpcSession | null>(null);
-  const [rpcManagerReady, setRpcManagerReady] = useState(false);
+  // True once the initial Lean round-trip has completed for the current level
+  const [leanReady, setLeanReady] = useState(false);
 
   // Track latest goals so diagnostics callback can reference them
   const latestGoalsRef = useRef<InteractiveGoals | null>(null);
@@ -111,8 +110,8 @@ def getHypKinds (p : HypKindParams) :
   // Called from the diagnostics callback — computes per-block proof statuses
   // from diagnostics + source info, and also demotes overall proof status on errors.
   const onDiagnosticsUpdate = useCallback((diags: LspDiagnostic[]) => {
-    if (!rpcSessionRef.current) return;
-    if (rpcSessionRef.current.hasErrors()) {
+    if (!leanSession.getSession()) return;
+    if (leanSession.getSession().hasErrors()) {
       setProofComplete(false);
     }
 
@@ -140,36 +139,58 @@ def getHypKinds (p : HypKindParams) :
     blocklyRef.current.updateProofStatuses(statuses);
   }, []);
 
-  // Initialize standalone LSP connection + RPC session
+  // Send the initial code for a level and wait for the full round-trip.
+  async function sendInitialCode(session: import('./LeanRpcSession').LeanRpcSession, worldId: string, levelIndex: number) {
+    const initialState = levelStatesRef.current[worldId][levelIndex];
+    const { leanCode, sourceInfo } = workspaceToLean(initialState);
+    latestSourceInfoRef.current = sourceInfo;
+    const preludeLineCount = prelude.split('\n').length - 1;
+    const fullCode = prelude + leanCode;
+
+    try {
+      const result = await session.getGoals(fullCode, preludeLineCount);
+      if (result) {
+        latestGoalsRef.current = result.goals;
+        setGoals(result.goals);
+        setHypKindMap(result.hypKindMap);
+        const noGoals = result.goals.goals.length === 0;
+        setProofComplete(noGoals && !session.hasErrors());
+      }
+      log('App', 'Initial Lean round-trip complete');
+    } catch (err) {
+      console.error('[App] Initial goals check failed:', err);
+    }
+    setLeanReady(true);
+  }
+
+  // Hook into the global Lean session (created before React mounts)
   useEffect(() => {
-    let disposed = false;
+    // Wire up diagnostics callback
+    leanSession.setDiagnosticsCallback((diags) => {
+      console.log('[App] Diagnostics changed:', diags.length, 'items');
+      setDiagnostics(diags);
+      onDiagnosticsUpdate(diags);
+    });
 
-    const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProto}//${window.location.host}/websocket/MathlibDemo`;
-
-    lspConnect(wsUrl).then((conn) => {
-      if (disposed) { conn.dispose(); return; }
-
-      const session = new LeanRpcSession(conn, BLOCKLY_DOC_URI);
-      rpcSessionRef.current = session;
-
-      session.setDiagnosticsCallback((diags) => {
-        console.log('[App] Diagnostics changed:', diags.length, 'items');
-        setDiagnostics(diags);
-        onDiagnosticsUpdate(diags);
-      });
-
-      setRpcManagerReady(true);
-      console.log('[App] LeanRpcSession ready');
-    }).catch((err) => {
-      console.error('[App] LSP connection failed:', err);
+    // As soon as the session is ready, send code to start Mathlib loading.
+    // If we're already on a level, send the full code and wait for the round-trip.
+    // If we're on the world overview, send just the preamble to warm up.
+    leanSession.whenReady().then(async (session) => {
+      const currentNav = navRef.current;
+      if (currentNav.kind === 'playing') {
+        log('App', 'Session ready, sending initial level code...');
+        await sendInitialCode(session, currentNav.worldId, currentNav.levelIndex);
+      } else {
+        // Warm up: send preamble so Mathlib starts importing
+        log('App', 'Session ready (world overview), warming up with preamble...');
+        const preludeLineCount = prelude.split('\n').length - 1;
+        await session.getGoals(prelude + '\n', preludeLineCount);
+        log('App', 'Preamble warm-up complete');
+      }
     });
 
     return () => {
-      disposed = true;
-      rpcSessionRef.current?.dispose();
-      rpcSessionRef.current = null;
-      setRpcManagerReady(false);
+      leanSession.setDiagnosticsCallback(null);
     };
   }, [onDiagnosticsUpdate]);
 
@@ -218,6 +239,13 @@ def getHypKinds (p : HypKindParams) :
 
   function enterLevel(worldId: string, levelIndex: number) {
     location.hash = navToHash({ kind: 'playing', worldId, levelIndex });
+
+    // If the session is already ready (warmed up from world overview),
+    // start checking the level's code immediately.
+    const session = leanSession.getSession();
+    if (session && !leanReady) {
+      sendInitialCode(session, worldId, levelIndex);
+    }
   }
 
   function goBack() {
@@ -244,9 +272,9 @@ def getHypKinds (p : HypKindParams) :
     // Store source info for diagnostics matching
     latestSourceInfoRef.current = sourceInfo;
 
-    // Skip proof checking when Blockly hasn't produced any tactic code yet
-    // (e.g. during initial render before blocks are loaded)
-    if (!leanCode.trim() || !rpcSessionRef.current) return;
+    // Skip proof checking when Blockly hasn't produced any tactic code yet,
+    // or when the initial Lean round-trip hasn't completed yet
+    if (!leanCode.trim() || !leanSession.getSession() || !leanReady) return;
 
     // Clear per-block statuses while Lean re-checks
     blocklyRef.current?.clearProofStatuses();
@@ -260,7 +288,7 @@ def getHypKinds (p : HypKindParams) :
 
     (async () => {
       try {
-        const result = await rpcSessionRef.current!.getGoals(fullCode, preludeLineCount);
+        const result = await leanSession.getSession()!.getGoals(fullCode, preludeLineCount);
         console.log('[onBlocklyChange] Goals:', result);
 
         if (result) {
@@ -269,7 +297,7 @@ def getHypKinds (p : HypKindParams) :
           setHypKindMap(result.hypKindMap);
 
           // Determine proof status: complete only if no goals AND no errors
-          const session = rpcSessionRef.current;
+          const session = leanSession.getSession();
           if (session) {
             const noGoals = result.goals.goals.length === 0;
             const isComplete = noGoals && !session.hasErrors();
@@ -292,7 +320,7 @@ def getHypKinds (p : HypKindParams) :
     console.log('[onRequestGoals] ========================================');
     console.log('[onRequestGoals] Block ID:', blockId);
 
-    if (!rpcSessionRef.current) {
+    if (!leanSession.getSession()) {
       console.log('[onRequestGoals] RPC session not initialized');
       return;
     }
@@ -307,7 +335,7 @@ def getHypKinds (p : HypKindParams) :
     setGoalsLoading(true);
     try {
       console.log('[onRequestGoals] Fetching goals via LeanRpcSession...');
-      const result = await rpcSessionRef.current.getGoals(fullCode, preludeLineCount);
+      const result = await leanSession.getSession().getGoals(fullCode, preludeLineCount);
       console.log('[onRequestGoals] Goals received:', result);
 
       if (result) {
@@ -352,6 +380,15 @@ def getHypKinds (p : HypKindParams) :
 
   const currentWorld = gameData.worlds.find(w => w.id === nav.worldId)!;
   const currentLevel = currentWorld.levels[nav.levelIndex];
+
+  if (!leanReady) {
+    return <div className="app-root">
+      <div className="loading-screen">
+        <div className="spinner" />
+        <span>Loading Lean and Mathlib...</span>
+      </div>
+    </div>;
+  }
 
   return <div className="app-root">
     <div className="navbar">

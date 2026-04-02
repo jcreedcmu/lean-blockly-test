@@ -30,6 +30,13 @@ export function connect(wsUrl: string): Promise<MessageConnection> {
       onConnection: async (connection) => {
         connection.listen();
 
+        // Handle server-initiated requests that we don't need but must
+        // acknowledge to prevent the Lean server from crashing.
+        connection.onRequest('client/registerCapability', () => {
+          log('LSP', 'Acknowledged client/registerCapability');
+          return null;
+        });
+
         try {
           log('LSP', 'Sending initialize...');
           const initResult = await connection.sendRequest('initialize', {

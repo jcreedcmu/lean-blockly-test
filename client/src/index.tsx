@@ -1,3 +1,7 @@
+// Start the Lean session as early as possible — before React mounts.
+// This import has a side effect: it opens the WebSocket and spawns `lake serve`.
+import './LeanSession'
+
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './css/index.css'
