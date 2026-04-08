@@ -33,66 +33,16 @@ import { log, logError } from './log';
 const TAG = 'LevelEvaluator';
 const DEFAULT_URI = 'file:///blockly/Blockly.lean';
 
-// The preamble lived in App.tsx before the refactor. It defines the
-// custom `getHypKinds` widget RPC method, which the evaluator calls
-// internally to classify each hypothesis as object vs. assumption.
-const DEFAULT_PRELUDE = `import Mathlib
+// In-memory prelude prepended to the player's contribution.
+//
+// The truly stable bits — `import Mathlib` and the `getHypKinds`
+// machinery — live in the on-disk `MathlibDemo.Preamble` module so
+// that they are compiled once into a `.olean` and never re-elaborated
+// on every keystroke. Only the level-specific definitions live here.
+const DEFAULT_PRELUDE = `import MathlibDemo.Preamble
 
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
-
-open Lean Server Widget Elab in
-structure HypIsAssumption where
-  fvarId : String
-  isAssumption : Bool
-  deriving FromJson, ToJson
-
-open Lean Server Widget Elab in
-structure GoalHypKinds where
-  mvarId : String
-  hyps : Array HypIsAssumption
-  deriving FromJson, ToJson
-
-open Lean Server Widget Elab in
-structure HypKindResult where
-  goals : Array GoalHypKinds
-  deriving FromJson, ToJson
-
-open Lean Server Widget Elab in
-structure HypKindParams where
-  ctx : WithRpcRef ContextInfo
-  mvarId : String
-  deriving RpcEncodable
-
-open Lean Server Widget Elab Meta in
-def parseLeanName (s : String) : Name :=
-  s.splitOn "." |>.foldl (fun acc part =>
-    match part.toNat? with
-    | some n => Name.mkNum acc n
-    | none => Name.mkStr acc part
-  ) Name.anonymous
-
-open Lean Server Widget Elab Meta in
-@[server_rpc_method]
-def getHypKinds (p : HypKindParams) :
-    RequestM (RequestTask HypKindResult) :=
-  RequestM.pureTask do
-    let ci := p.ctx.val
-    ci.runMetaM {} do
-      let mvarId := MVarId.mk (parseLeanName p.mvarId)
-      let mctx ← getMCtx
-      let some mvarDecl := mctx.findDecl? mvarId
-        | return { goals := #[] }
-      withLCtx mvarDecl.lctx mvarDecl.localInstances do
-        let mut hyps : Array HypIsAssumption := #[]
-        for decl in ← getLCtx do
-          if decl.isAuxDecl then continue
-          let typeOfType ← inferType decl.type
-          hyps := hyps.push {
-            fvarId := toString decl.fvarId.name
-            isAssumption := typeOfType.isProp
-          }
-        return { goals := #[{ mvarId := p.mvarId, hyps }] }
 
 `;
 
@@ -178,7 +128,14 @@ export class LevelEvaluator {
 
     try {
       await this.session.updateFile(this.uri, fullSource);
-      await this.session.waitForProcessing(this.uri);
+      // Wait for BOTH processing-complete and a fresh publishDiagnostics
+      // batch. The two notifications arrive independently and in either
+      // order; reading diagnostics after only waitForProcessing would
+      // race with stale diagnostics from the previous edit.
+      await Promise.all([
+        this.session.waitForProcessing(this.uri),
+        this.session.waitForDiagnostics(this.uri),
+      ]);
     } catch (err) {
       logError(TAG, 'updateFile/waitForProcessing failed:', err);
       return null;

@@ -132,9 +132,32 @@ proof tree (e.g. one per case after `constructor` or `rcases`).
 
 ## The Preamble
 
-The preamble is a block of Lean code prepended to the player's
-contribution before sending to the server. It lives as a constant
-inside `LevelEvaluator.ts`. It contains:
+The preamble is split into two pieces:
+
+- **`Projects/MathlibDemo/MathlibDemo/Preamble.lean`** — an on-disk
+  Lean file inside the `MathlibDemo` lake library. Contains the
+  truly stable parts: `import Mathlib` and the entire `getHypKinds`
+  machinery (custom RPC method, supporting types, the `parseLeanName`
+  helper). Because it lives on disk and is part of the lake project,
+  lake compiles it exactly once into a `.olean`. Edits to the player's
+  contribution never re-elaborate Mathlib or this file again — they
+  just `import` the precompiled artifact.
+
+- **In-memory prelude in `LevelEvaluator.ts`** — a small constant
+  prepended to every contribution before sending it via LSP. Starts
+  with `import MathlibDemo.Preamble` and contains anything that
+  varies per level or per game (e.g. domain-specific definitions like
+  `FunLimAt`). The line count of this in-memory prelude is what
+  `LevelEvaluator` uses to translate diagnostic positions back to
+  contribution coordinates.
+
+The first time you set up the project (or whenever you change
+`Preamble.lean`) you must run `lake build MathlibDemo.Preamble`
+inside `Projects/MathlibDemo/`. Subsequent edits to the player's
+contribution are fast because they only re-elaborate the small
+in-memory file.
+
+Together the two parts of the preamble contain:
 
 - `import Mathlib` — makes all of Mathlib available.
 - Domain-specific definitions (e.g. `FunLimAt`).

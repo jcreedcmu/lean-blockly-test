@@ -55,6 +55,16 @@ interface UriState {
   documentVersion: number;
   lastContent: string | null;
   diagnostics: LspDiagnostic[];
+  /**
+   * True iff a `publishDiagnostics` notification has been received for
+   * this URI since the most recent `updateFile`. Reset to false inside
+   * `updateFile` and set to true inside the publishDiagnostics handler.
+   * Used to fix a race where `fileProgress: processing=[]` arrives
+   * before the corresponding `publishDiagnostics` for the same edit,
+   * causing readers to see stale diagnostics from the previous edit.
+   */
+  diagnosticsFreshSinceUpdate: boolean;
+  diagnosticsResolvers: Array<() => void>;
   processingResolvers: Array<() => void>;
   progressListeners: Set<(processing: ProgressEntry[]) => void>;
   sessionId: string | null;
@@ -67,6 +77,8 @@ function newUriState(): UriState {
     documentVersion: 0,
     lastContent: null,
     diagnostics: [],
+    diagnosticsFreshSinceUpdate: false,
+    diagnosticsResolvers: [],
     processingResolvers: [],
     progressListeners: new Set(),
     sessionId: null,
@@ -120,8 +132,12 @@ export class LeanSessionManager {
         if (!uri) return;
         const state = this.getOrCreateState(uri);
         state.diagnostics = params.diagnostics ?? [];
+        state.diagnosticsFreshSinceUpdate = true;
         log(TAG, `diagnostics[${shortUri(uri)}]: ${state.diagnostics.length} item(s)`,
           state.diagnostics.map((d) => `[sev=${d.severity}] ${d.message.slice(0, 80)}`));
+        const resolvers = state.diagnosticsResolvers;
+        state.diagnosticsResolvers = [];
+        resolvers.forEach((r) => r());
       }),
     );
   }
@@ -152,6 +168,10 @@ export class LeanSessionManager {
     if (state.documentOpen && content === state.lastContent) {
       return;
     }
+
+    // Mark diagnostics as stale until the server publishes new ones for
+    // this edit. See `waitForDiagnostics` for the consumer.
+    state.diagnosticsFreshSinceUpdate = false;
 
     if (!state.documentOpen) {
       log(TAG, `didOpen[${shortUri(uri)}] (v${state.documentVersion + 1}, ${content.length} chars)`);
@@ -185,6 +205,21 @@ export class LeanSessionManager {
     const state = this.getOrCreateState(uri);
     return new Promise((resolve) => {
       state.processingResolvers.push(resolve);
+    });
+  }
+
+  /**
+   * Resolves once a `publishDiagnostics` notification has been received
+   * for `uri` since the most recent `updateFile`. Resolves immediately
+   * if a fresh batch has already arrived. Use this together with (or
+   * instead of) `waitForProcessing` to avoid the race where
+   * processing-complete and the new diagnostics arrive in either order.
+   */
+  waitForDiagnostics(uri: string): Promise<void> {
+    const state = this.getOrCreateState(uri);
+    if (state.diagnosticsFreshSinceUpdate) return Promise.resolve();
+    return new Promise((resolve) => {
+      state.diagnosticsResolvers.push(resolve);
     });
   }
 
