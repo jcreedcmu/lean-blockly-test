@@ -1,9 +1,13 @@
 /**
- * Lean-specific RPC session built on a vscode-jsonrpc MessageConnection.
+ * LeanRpcSession — TRANSITIONAL adapter.
  *
- * Manages the document lifecycle, file-progress tracking, diagnostics,
- * RPC session connect/keepalive, and interactive-goal extraction —
- * all without lean4monaco or Monaco.
+ * The new transport-layer module is `LeanSessionManager`, which knows
+ * nothing about preambles, hyp-kinds, or "goals." This file used to
+ * contain that logic; it now exists only to preserve the legacy
+ * `getGoals` / `hasErrors` / `setDiagnosticsCallback` API that
+ * `App.tsx` and `LeanSession.ts` still call. It will be deleted once
+ * `LevelEvaluator` lands and `App.tsx` is rewritten to use it
+ * directly. See plans/REFACTOR.md.
  */
 import type { MessageConnection } from './LeanLspClient';
 import type {
@@ -14,8 +18,10 @@ import type {
   MsgEmbed,
 } from '@leanprover/infoview-api';
 import { log, logError } from './log';
+import { LeanSessionManager, type LspDiagnostic } from './LeanSessionManager';
 
-const KEEPALIVE_PERIOD_MS = 10_000;
+export type { LspDiagnostic } from './LeanSessionManager';
+
 const TAG = 'LeanRpc';
 
 // ── helpers ──────────────────────────────────────────────────────────
@@ -50,16 +56,7 @@ function extractGoalsFromDiagnostics(diagnostics: InteractiveDiagnostic[]): Inte
   return { goals: allGoals };
 }
 
-// ── Diagnostic type (minimal, from LSP) ─────────────────────────────
-
-export interface LspDiagnostic {
-  range: { start: { line: number; character: number }; end: { line: number; character: number } };
-  severity?: number;
-  message: string;
-  [key: string]: unknown;
-}
-
-// ── HypKinds types (from our custom RPC method) ─────────────────────
+// ── HypKinds types (still used by Goals.tsx via re-export) ──────────
 
 export interface HypIsAssumption {
   fvarId: string;
@@ -75,7 +72,6 @@ export interface HypKindResult {
   goals: GoalHypKinds[];
 }
 
-/** Map from fvarId to isAssumption, flattened across all goals. */
 export type HypKindMap = Map<string, boolean>;
 
 export interface GoalsWithHypKinds {
@@ -83,298 +79,100 @@ export interface GoalsWithHypKinds {
   hypKindMap: HypKindMap;
 }
 
-// ── LeanRpcSession ──────────────────────────────────────────────────
+// ── LeanRpcSession (legacy adapter) ─────────────────────────────────
 
 export class LeanRpcSession {
-  private connection: MessageConnection;
+  private manager: LeanSessionManager;
   private uri: string;
-
-  // document state
-  private documentOpen = false;
-  private documentVersion = 0;
-  private lastDocumentContent: string | null = null;
-
-  // processing state
-  private processingResolvers: Array<() => void> = [];
-
-  // diagnostics state
-  private currentDiagnostics: LspDiagnostic[] = [];
   private onDiagnosticsChange?: (diagnostics: LspDiagnostic[]) => void;
-
-  // RPC session state
-  private sessionId: string | null = null;
-  private keepAliveInterval: ReturnType<typeof setInterval> | null = null;
-
-  // notification listener disposables
-  private disposables: Array<{ dispose(): void }> = [];
+  private diagnosticsPoll: ReturnType<typeof setInterval> | null = null;
+  private lastDiagnosticsSnapshot: LspDiagnostic[] = [];
 
   constructor(connection: MessageConnection, uri: string) {
-    this.connection = connection;
+    this.manager = new LeanSessionManager(connection);
     this.uri = uri;
 
-    // listen for file-progress notifications
-    this.disposables.push(
-      connection.onNotification('$/lean/fileProgress', (params: any) => {
-        if (params.textDocument?.uri !== this.uri) return;
-        const processing = params.processing ?? [];
-        if (processing.length > 0) {
-          log(TAG, `fileProgress: ${processing.length} range(s) still processing`);
-        } else {
-          log(TAG, 'fileProgress: processing complete');
-          const resolvers = this.processingResolvers;
-          this.processingResolvers = [];
-          resolvers.forEach((r) => r());
-        }
-      }),
-    );
-
-    // listen for publishDiagnostics
-    this.disposables.push(
-      connection.onNotification('textDocument/publishDiagnostics', (params: any) => {
-        if (params.uri === this.uri) {
-          this.currentDiagnostics = params.diagnostics ?? [];
-          log(TAG, `diagnostics: ${this.currentDiagnostics.length} item(s)`,
-            this.currentDiagnostics.map(d => `[sev=${d.severity}] ${d.message.slice(0, 80)}`));
-          this.onDiagnosticsChange?.(this.currentDiagnostics);
-        }
-      }),
-    );
-  }
-
-  // ── document management ─────────────────────────────────────────
-
-  /**
-   * Send didOpen or didChange for the given code.
-   * Returns whether the content actually changed.
-   */
-  async updateDocument(code: string): Promise<{ success: boolean; changed: boolean }> {
-    if (this.documentOpen && code === this.lastDocumentContent) {
-      return { success: true, changed: false };
-    }
-
-    try {
-      if (!this.documentOpen) {
-        log(TAG, `didOpen (v${this.documentVersion + 1}, ${code.length} chars)`);
-        await this.connection.sendNotification('textDocument/didOpen', {
-          textDocument: {
-            uri: this.uri,
-            languageId: 'lean4',
-            version: ++this.documentVersion,
-            text: code,
-          },
-        });
-        this.documentOpen = true;
-      } else {
-        log(TAG, `didChange (v${this.documentVersion + 1}, ${code.length} chars)`);
-        await this.connection.sendNotification('textDocument/didChange', {
-          textDocument: {
-            uri: this.uri,
-            version: ++this.documentVersion,
-          },
-          contentChanges: [{ text: code }],
-        });
+    // Legacy push-style diagnostics: poll the manager and fire the
+    // callback on change. The whole push API goes away in task #3.
+    this.diagnosticsPoll = setInterval(() => {
+      const diags = this.manager.getDiagnostics(this.uri);
+      if (diags !== this.lastDiagnosticsSnapshot) {
+        this.lastDiagnosticsSnapshot = diags;
+        this.onDiagnosticsChange?.(diags);
       }
-
-      this.lastDocumentContent = code;
-      return { success: true, changed: true };
-    } catch (err) {
-      logError(TAG, 'Failed to update document:', err);
-      return { success: false, changed: false };
-    }
+    }, 100);
   }
 
-  // ── processing ──────────────────────────────────────────────────
-
-  /** Resolves when `$/lean/fileProgress` reports `processing: []`. */
-  waitForProcessing(): Promise<void> {
-    return new Promise((resolve) => {
-      this.processingResolvers.push(resolve);
-    });
+  /** Expose the underlying manager so newer code (LevelEvaluator) can use it. */
+  getManager(): LeanSessionManager {
+    return this.manager;
   }
 
-  // ── RPC session ─────────────────────────────────────────────────
-
-  /**
-   * Send `$/lean/rpc/connect`, start keepalive, return sessionId.
-   * No-ops if already connected.
-   */
-  async connect(): Promise<string | null> {
-    if (this.sessionId) return this.sessionId;
-
-    try {
-      log(TAG, 'Connecting RPC session...');
-      const result: any = await this.connection.sendRequest('$/lean/rpc/connect', {
-        uri: this.uri,
-      });
-      this.sessionId = result.sessionId;
-      log(TAG, 'RPC session connected, sessionId:', this.sessionId);
-      this.startKeepalive();
-      return this.sessionId;
-    } catch (err: any) {
-      logError(TAG, 'connect failed:', err);
-      if (err?.message?.includes('closed file')) {
-        this.documentOpen = false;
-        this.lastDocumentContent = null;
-      }
-      return null;
-    }
-  }
-
-  /** Stop keepalive, clear sessionId. */
-  disconnect(): void {
-    this.stopKeepalive();
-    this.sessionId = null;
-  }
-
-  private startKeepalive(): void {
-    if (this.keepAliveInterval) return;
-
-    this.keepAliveInterval = setInterval(async () => {
-      if (!this.sessionId) {
-        this.stopKeepalive();
-        return;
-      }
-      try {
-        await this.connection.sendNotification('$/lean/rpc/keepAlive', {
-          uri: this.uri,
-          sessionId: this.sessionId,
-        });
-      } catch {
-        this.stopKeepalive();
-        this.sessionId = null;
-      }
-    }, KEEPALIVE_PERIOD_MS);
-  }
-
-  private stopKeepalive(): void {
-    if (this.keepAliveInterval) {
-      clearInterval(this.keepAliveInterval);
-      this.keepAliveInterval = null;
-    }
-  }
-
-  // ── diagnostics ─────────────────────────────────────────────────
-
-  getDiagnostics(): LspDiagnostic[] {
-    return this.currentDiagnostics;
-  }
-
-  hasErrors(): boolean {
-    // DiagnosticSeverity.Error = 1
-    return this.currentDiagnostics.some((d) => d.severity === 1);
-  }
+  // ── Diagnostics (legacy push API) ───────────────────────────────
 
   setDiagnosticsCallback(callback: (diagnostics: LspDiagnostic[]) => void): void {
     this.onDiagnosticsChange = callback;
   }
 
-  // ── interactive diagnostics / goals ─────────────────────────────
-
-  async getInteractiveDiagnostics(): Promise<InteractiveDiagnostic[]> {
-    if (!this.sessionId) throw new Error('No active RPC session');
-
-    log(TAG, 'Calling getInteractiveDiagnostics...');
-    const result = await this.connection.sendRequest('$/lean/rpc/call', {
-      textDocument: { uri: this.uri },
-      position: { line: 0, character: 0 },
-      sessionId: this.sessionId,
-      method: 'Lean.Widget.getInteractiveDiagnostics',
-      params: { textDocument: { uri: this.uri } },
-    });
-    log(TAG, 'getInteractiveDiagnostics raw result:', result);
-    return result as InteractiveDiagnostic[];
+  hasErrors(): boolean {
+    return this.manager.getDiagnostics(this.uri).some((d) => d.severity === 1);
   }
 
-  /**
-   * Call our custom getHypKinds RPC method for a goal.
-   * Requires the ctx (opaque RPC ref) and mvarId from an InteractiveGoal.
-   * The RPC call position must be after the preamble where @[server_rpc_method] is defined.
-   */
-  async getHypKinds(ctx: unknown, mvarId: string, callLine: number): Promise<HypKindResult | null> {
-    if (!this.sessionId) return null;
+  // ── Legacy getGoals orchestration ───────────────────────────────
 
+  async getGoals(code: string, preludeLineCount: number): Promise<GoalsWithHypKinds | null> {
     try {
-      log(TAG, `Calling getHypKinds for mvarId=${mvarId}...`);
-      const result = await this.connection.sendRequest('$/lean/rpc/call', {
-        textDocument: { uri: this.uri },
-        position: { line: callLine, character: 0 },
-        sessionId: this.sessionId,
-        method: 'getHypKinds',
-        params: { ctx, mvarId },
-      });
-      log(TAG, 'getHypKinds result:', result);
-      return result as HypKindResult;
+      await this.manager.updateFile(this.uri, code);
+      await this.manager.waitForProcessing(this.uri);
+
+      log(TAG, 'Calling getInteractiveDiagnostics...');
+      const diagnostics = await this.manager.widgetRpcCall<InteractiveDiagnostic[]>(
+        this.uri,
+        'Lean.Widget.getInteractiveDiagnostics',
+        { textDocument: { uri: this.uri } },
+      );
+      const goals = extractGoalsFromDiagnostics(diagnostics);
+      log(TAG, 'Extracted goals:', goals.goals.length);
+
+      // Call our custom RPC method (defined in the preamble) to get
+      // isProp classification for each goal. Position must be after
+      // the preamble.
+      const hypKindMap: HypKindMap = new Map();
+      const callPos = { line: preludeLineCount, character: 0 };
+      for (const goal of goals.goals) {
+        if (goal.ctx && goal.mvarId) {
+          try {
+            const hypKindResult = await this.manager.widgetRpcCall<HypKindResult>(
+              this.uri,
+              'getHypKinds',
+              { ctx: goal.ctx, mvarId: goal.mvarId },
+              callPos,
+            );
+            for (const g of hypKindResult.goals) {
+              for (const h of g.hyps) {
+                hypKindMap.set(h.fvarId, h.isAssumption);
+              }
+            }
+          } catch (err) {
+            logError(TAG, 'getHypKinds failed:', err);
+          }
+        }
+      }
+
+      return { goals, hypKindMap };
     } catch (err) {
-      logError(TAG, 'getHypKinds failed:', err);
+      logError(TAG, 'getGoals failed:', err);
       return null;
     }
   }
 
-  /**
-   * High-level: update document → wait for processing → connect RPC →
-   * fetch interactive diagnostics → extract goals → fetch hyp kinds.
-   */
-  async getGoals(code: string, preludeLineCount: number): Promise<GoalsWithHypKinds | null> {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const { success, changed } = await this.updateDocument(code);
-      if (!success) return null;
-
-      if (changed) await this.waitForProcessing();
-
-      const sessionId = await this.connect();
-      if (!sessionId) {
-        if (attempt === 0 && !this.documentOpen) continue;
-        return null;
-      }
-
-      try {
-        const diagnostics = await this.getInteractiveDiagnostics();
-        const goals = extractGoalsFromDiagnostics(diagnostics);
-        log(TAG, 'Extracted goals:', goals.goals.length);
-        for (const g of goals.goals) {
-          log(TAG, '  Goal hyps:', g.hyps.map(h => ({
-            names: h.names, fvarIds: h.fvarIds,
-            isType: h.isType, isInstance: h.isInstance,
-          })));
-        }
-
-        // Call our custom RPC method to get isProp classification for each goal.
-        // The RPC call position must be after the preamble where the method is defined.
-        const hypKindMap: HypKindMap = new Map();
-        const callLine = preludeLineCount;  // first line after preamble
-        for (const goal of goals.goals) {
-          if (goal.ctx && goal.mvarId) {
-            const hypKindResult = await this.getHypKinds(goal.ctx, goal.mvarId, callLine);
-            if (hypKindResult) {
-              for (const g of hypKindResult.goals) {
-                for (const h of g.hyps) {
-                  hypKindMap.set(h.fvarId, h.isAssumption);
-                }
-              }
-            }
-          }
-        }
-        log(TAG, 'HypKindMap:', Object.fromEntries(hypKindMap));
-
-        return { goals, hypKindMap };
-      } catch (err: any) {
-        logError(TAG, 'getGoals failed:', err);
-        if (err?.message?.includes('Outdated RPC session') && attempt === 0) {
-          this.disconnect();
-          continue;
-        }
-        return null;
-      }
-    }
-    return null;
-  }
-
-  // ── cleanup ─────────────────────────────────────────────────────
+  // ── Cleanup ─────────────────────────────────────────────────────
 
   dispose(): void {
-    this.disconnect();
-    this.processingResolvers = [];
-    for (const d of this.disposables) d.dispose();
-    this.disposables = [];
+    if (this.diagnosticsPoll) {
+      clearInterval(this.diagnosticsPoll);
+      this.diagnosticsPoll = null;
+    }
+    this.manager.dispose();
   }
 }
