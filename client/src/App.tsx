@@ -31,6 +31,8 @@ function App() {
   const [leanReady, setLeanReady] = useState(false);
   // Whether the introduction-commentary popup is visible.
   const [showIntro, setShowIntro] = useState(false);
+  // Whether the "Copied!" toast is visible.
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
 
   const blocklyRef = useRef<BlocklyHandle>(null);
   const [goalsPanelWidth, setGoalsPanelWidth] = useState(300);
@@ -201,6 +203,20 @@ function App() {
     });
   }
 
+  async function copyStandaloneSource() {
+    const ws = blocklyRef.current?.saveWorkspace();
+    if (!ws || !evaluatorRef.current) return;
+    const { leanCode } = workspaceToLean(ws);
+    const fullSource = evaluatorRef.current.assembleStandaloneSource(leanCode);
+    try {
+      await navigator.clipboard.writeText(fullSource);
+      setShowCopiedToast(true);
+      setTimeout(() => setShowCopiedToast(false), 1500);
+    } catch (err) {
+      console.error('[App] clipboard write failed:', err);
+    }
+  }
+
   function onBlocklyChange(result: WorkspaceToLeanResult) {
     const { leanCode, sourceInfo } = result;
     latestSourceInfoRef.current = sourceInfo;
@@ -282,6 +298,11 @@ function App() {
           disabled={!currentLevel.introduction}
           title={currentLevel.introduction ? 'Show introduction' : 'No introduction for this level'}
         >&#x2139;</button>
+        <button
+          className="navbar-btn"
+          onClick={copyStandaloneSource}
+          title="Copy standalone Lean source to clipboard"
+        >&#x1F41B;</button>
         <span className="navbar-level-label">
           {currentWorld.name} &mdash; {currentLevel.name} ({nav.levelIndex + 1}/{currentWorld.levels.length})
         </span>
@@ -342,6 +363,9 @@ function App() {
         )}
       </div>
     </div>
+    {showCopiedToast && (
+      <div className="toast">Copied!</div>
+    )}
     {showIntro && currentLevel.introduction && (
       <div className="modal-backdrop" onClick={() => setShowIntro(false)}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>

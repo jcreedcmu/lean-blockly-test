@@ -315,3 +315,27 @@
   padding: 0.3em 0.6em;
 }
 
+/* ── Toast (transient feedback like "Copied!") ────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 0.6em 1.4em;
+  border-radius: 6px;
+  font-size: 0.95em;
+  z-index: 1100;
+  pointer-events: none;
+  animation: toast-fade 1.5s ease-out;
+}
+
+@keyframes toast-fade {
+  0%   { opacity: 0; transform: translate(-50%, 8px); }
+  10%  { opacity: 1; transform: translate(-50%, 0); }
+  85%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+

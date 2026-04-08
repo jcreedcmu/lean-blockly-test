@@ -138,6 +138,20 @@ export class LevelEvaluator {
   }
 
   /**
+   * Assemble the full Lean source for `contribution`, but with the
+   * `import MathlibDemo.Preamble` line replaced by a plain `import
+   * Mathlib`. Useful for copying out of the game and pasting into a
+   * standalone Lean editor (e.g. live.lean-lang.org), where the
+   * `MathlibDemo` lake project doesn't exist but Mathlib is available.
+   */
+  assembleStandaloneSource(contribution: string): string {
+    return (this.prelude + contribution).replace(
+      /^import MathlibDemo\.Preamble$/m,
+      'import Mathlib',
+    );
+  }
+
+  /**
    * Run the player's contribution through Lean and return diagnostics +
    * leaf goals in contribution-relative coordinates. A single round
    * trip: updateFile (sends didChange), then getInteractiveDiagnostics
