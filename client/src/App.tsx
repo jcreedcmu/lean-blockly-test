@@ -12,6 +12,7 @@ import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { leanSession } from './LeanSession';
 import { LevelEvaluator, type EvaluationResult } from './LevelEvaluator';
 import type { ProofStatus } from './FieldProofStatus';
+import ReactMarkdown from 'react-markdown';
 import { gameData, parseHash, navToHash } from './gameData';
 import type { NavigationState } from './gameData';
 import { WorldOverview3D } from './WorldOverview3D';
@@ -28,6 +29,8 @@ function App() {
   const [evaluating, setEvaluating] = useState(false);
   // True once the initial Lean round-trip has completed for the current level.
   const [leanReady, setLeanReady] = useState(false);
+  // Whether the introduction-commentary popup is visible.
+  const [showIntro, setShowIntro] = useState(false);
 
   const blocklyRef = useRef<BlocklyHandle>(null);
   const [goalsPanelWidth, setGoalsPanelWidth] = useState(300);
@@ -273,6 +276,12 @@ function App() {
       <div className="navbar-left">
         <button className="navbar-btn" onClick={goBack} title="Back to worlds">&#x25C0;</button>
         <button className="navbar-btn" onClick={resetCurrentLevel} title="Reset level">&#x21BB;</button>
+        <button
+          className="navbar-btn"
+          onClick={() => setShowIntro(true)}
+          disabled={!currentLevel.introduction}
+          title={currentLevel.introduction ? 'Show introduction' : 'No introduction for this level'}
+        >&#x2139;</button>
         <span className="navbar-level-label">
           {currentWorld.name} &mdash; {currentLevel.name} ({nav.levelIndex + 1}/{currentWorld.levels.length})
         </span>
@@ -333,6 +342,20 @@ function App() {
         )}
       </div>
     </div>
+    {showIntro && currentLevel.introduction && (
+      <div className="modal-backdrop" onClick={() => setShowIntro(false)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="modal-close"
+            onClick={() => setShowIntro(false)}
+            title="Close"
+          >&times;</button>
+          <div className="modal-body markdown-body">
+            <ReactMarkdown>{currentLevel.introduction}</ReactMarkdown>
+          </div>
+        </div>
+      </div>
+    )}
   </div>;
 }
 

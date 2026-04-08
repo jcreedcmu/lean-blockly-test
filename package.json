@@ -53,6 +53,7 @@
     "nodemon": "^3.1.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
     "react-split": "^2.0.14",
     "three": "^0.182.0",
     "vscode-ws-jsonrpc": "^3.4.0",
