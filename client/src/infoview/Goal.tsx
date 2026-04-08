@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { InteractiveGoal, InteractiveHypothesisBundle, SubexprInfo } from '@leanprover/infoview-api';
-import { Hyp } from './Hyp';
+import { Hyp, type HypClass } from './Hyp';
 import { InteractiveCode } from './InteractiveCode';
 import type { HypKindMap } from '../LevelEvaluator';
 
@@ -72,6 +72,7 @@ function renderHypGroup(
   title: string,
   hyps: InteractiveHypothesisBundle[],
   props: Pick<GoalProps, 'onHypNameClick' | 'onHypDragStart' | 'onSubexprClick'>,
+  affordances: HypClass,
 ): React.ReactElement | null {
   if (hyps.length === 0) return null;
   return (
@@ -82,6 +83,7 @@ function renderHypGroup(
           <Hyp
             key={i}
             hyp={h}
+            affordances={affordances}
             onNameClick={props.onHypNameClick}
             onHypDragStart={props.onHypDragStart}
             onSubexprClick={props.onSubexprClick}
@@ -137,8 +139,8 @@ export function Goal({
 
       {hasKindData ? (
         <>
-          {renderHypGroup('Objects', objectHyps, handlerProps)}
-          {renderHypGroup('Assumptions', assumptionHyps, handlerProps)}
+          {renderHypGroup('Objects', objectHyps, handlerProps, undefined)}
+          {renderHypGroup('Assumptions', assumptionHyps, handlerProps, 'equational')}
         </>
       ) : (
         hyps.length > 0 && (

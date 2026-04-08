@@ -3,8 +3,21 @@ import type { InteractiveHypothesisBundle, SubexprInfo } from '@leanprover/infov
 import { InteractiveHypothesisBundle_nonAnonymousNames } from '@leanprover/infoview-api';
 import { InteractiveCode } from './InteractiveCode';
 
+/**
+ * Classification of a hypothesis for the purpose of choosing which
+ * drag affordances to offer next to it. Currently the only non-trivial
+ * value is `'equational'`, which earns the `apply` / `rewrite`
+ * affordances; the type is a discriminated union to leave room for
+ * future classes (e.g. distinguishing genuine equations from
+ * implications, or function-typed hypotheses) without rewriting the
+ * call sites.
+ */
+export type HypClass = 'equational' | undefined;
+
 export interface HypProps {
   hyp: InteractiveHypothesisBundle;
+  /** Classification of this hypothesis. Controls which drag affordances are offered. */
+  affordances?: HypClass;
   onNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
   onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
   onSubexprClick?: (info: SubexprInfo) => void;
@@ -19,7 +32,7 @@ function isInaccessibleName(name: string): boolean {
  * Renders a single hypothesis bundle.
  * A bundle can have multiple names sharing the same type (e.g., "x y z : Nat").
  */
-export function Hyp({ hyp, onNameClick, onHypDragStart, onSubexprClick }: HypProps): React.ReactElement {
+export function Hyp({ hyp, affordances, onNameClick, onHypDragStart, onSubexprClick }: HypProps): React.ReactElement {
   const names = InteractiveHypothesisBundle_nonAnonymousNames(hyp);
 
   const nameElements = names.map((name, i) => {
@@ -63,7 +76,7 @@ export function Hyp({ hyp, onNameClick, onHypDragStart, onSubexprClick }: HypPro
           </>
         )}
       </span>
-      {onHypDragStart && (
+      {onHypDragStart && affordances === 'equational' && (
         <>
           <span className="hyp-cell hyp-action hyp-action-apply"
             onMouseDown={(e) => onHypDragStart(name, e, 'apply')}>apply</span>
