@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { InteractiveGoal, InteractiveHypothesisBundle, SubexprInfo } from '@leanprover/infoview-api';
 import { Hyp } from './Hyp';
 import { InteractiveCode } from './InteractiveCode';
-import type { HypKindMap } from '../LeanRpcSession';
+import type { HypKindMap } from '../LevelEvaluator';
 
 export interface GoalFilterState {
   /** If true, reverse the order of hypotheses. */

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import type { InteractiveGoal, InteractiveGoals, InteractiveHypothesisBundle, SubexprInfo } from '@leanprover/infoview-api';
 import { Goal, GoalFilterState, defaultGoalFilter } from './Goal';
-import type { HypKindMap } from '../LeanRpcSession';
+import type { HypKindMap } from '../LevelEvaluator';
 
 export interface GoalsProps {
   goals: InteractiveGoals;

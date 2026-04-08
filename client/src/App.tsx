@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useLayoutEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import * as React from 'react'
 
 // Local imports
@@ -9,8 +9,8 @@ import { Goals } from './infoview';
 import { log } from './log';
 import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
-import { LspDiagnostic, type HypKindMap } from './LeanRpcSession';
 import { leanSession } from './LeanSession';
+import { LevelEvaluator, type EvaluationResult } from './LevelEvaluator';
 import type { ProofStatus } from './FieldProofStatus';
 import { gameData, parseHash, navToHash } from './gameData';
 import type { NavigationState } from './gameData';
@@ -21,14 +21,16 @@ import './css/App.css'
 
 
 function App() {
-  const [goals, setGoals] = useState<InteractiveGoals | null>(null);
-  const [hypKindMap, setHypKindMap] = useState<HypKindMap>(new Map());
-  const [goalsLoading, setGoalsLoading] = useState(false);
-  const [proofComplete, setProofComplete] = useState<boolean | null>(false); // null = checking, true = complete, false = incomplete
-  const [diagnostics, setDiagnostics] = useState<Array<{ severity?: number; message: string }>>([]);
+  // The single source of truth for "what does Lean say about the current proof".
+  // null = not yet evaluated; otherwise the latest non-stale evaluation result.
+  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
+  // True while an evaluation is in flight (used to render the "Checking..." state).
+  const [evaluating, setEvaluating] = useState(false);
+  // True once the initial Lean round-trip has completed for the current level.
+  const [leanReady, setLeanReady] = useState(false);
+
   const blocklyRef = useRef<BlocklyHandle>(null);
   const [goalsPanelWidth, setGoalsPanelWidth] = useState(300);
-  const gameAreaRef = useRef<HTMLDivElement>(null);
   const [nav, setNav] = useState<NavigationState>(() => parseHash(location.hash));
   const navRef = useRef(nav);
   navRef.current = nav;
@@ -38,161 +40,92 @@ function App() {
     )
   );
 
-  // True once the initial Lean round-trip has completed for the current level
-  const [leanReady, setLeanReady] = useState(false);
+  // The evaluator is constructed lazily once the Lean session is ready.
+  const evaluatorRef = useRef<LevelEvaluator | null>(null);
 
-  // Track latest goals so diagnostics callback can reference them
-  const latestGoalsRef = useRef<InteractiveGoals | null>(null);
+  // Cancel-in-flight: each evaluate() call gets a sequence number.
+  // When it resolves, we drop the result if a newer call has been issued.
+  const evalSeqRef = useRef(0);
 
-  // Track latest source info for matching diagnostics to blocks
+  // Source info from the most recent workspace-to-Lean conversion.
+  // Used to map evaluation diagnostics back to individual blocks.
   const latestSourceInfoRef = useRef<SourceInfo[]>([]);
 
-  const prelude = `import Mathlib
+  // Run an evaluation, guarding against stale completions.
+  // sourceInfo is captured per-call so that the per-block status update
+  // uses the source info that matches the contribution being evaluated.
+  const runEvaluation = useCallback(async (
+    contribution: string,
+    sourceInfo: SourceInfo[],
+  ) => {
+    const evaluator = evaluatorRef.current;
+    if (!evaluator) return;
 
-def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
-  ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
+    const seq = ++evalSeqRef.current;
+    setEvaluating(true);
+    blocklyRef.current?.clearProofStatuses();
 
-open Lean Server Widget Elab in
-structure HypIsAssumption where
-  fvarId : String
-  isAssumption : Bool
-  deriving FromJson, ToJson
-
-open Lean Server Widget Elab in
-structure GoalHypKinds where
-  mvarId : String
-  hyps : Array HypIsAssumption
-  deriving FromJson, ToJson
-
-open Lean Server Widget Elab in
-structure HypKindResult where
-  goals : Array GoalHypKinds
-  deriving FromJson, ToJson
-
-open Lean Server Widget Elab in
-structure HypKindParams where
-  ctx : WithRpcRef ContextInfo
-  mvarId : String
-  deriving RpcEncodable
-
-open Lean Server Widget Elab Meta in
-def parseLeanName (s : String) : Name :=
-  s.splitOn "." |>.foldl (fun acc part =>
-    match part.toNat? with
-    | some n => Name.mkNum acc n
-    | none => Name.mkStr acc part
-  ) Name.anonymous
-
-open Lean Server Widget Elab Meta in
-@[server_rpc_method]
-def getHypKinds (p : HypKindParams) :
-    RequestM (RequestTask HypKindResult) :=
-  RequestM.pureTask do
-    let ci := p.ctx.val
-    ci.runMetaM {} do
-      let mvarId := MVarId.mk (parseLeanName p.mvarId)
-      let mctx ← getMCtx
-      let some mvarDecl := mctx.findDecl? mvarId
-        | return { goals := #[] }
-      withLCtx mvarDecl.lctx mvarDecl.localInstances do
-        let mut hyps : Array HypIsAssumption := #[]
-        for decl in ← getLCtx do
-          if decl.isAuxDecl then continue
-          let typeOfType ← inferType decl.type
-          hyps := hyps.push {
-            fvarId := toString decl.fvarId.name
-            isAssumption := typeOfType.isProp
-          }
-        return { goals := #[{ mvarId := p.mvarId, hyps }] }
-
-`;
-
-  // Called from the diagnostics callback — computes per-block proof statuses
-  // from diagnostics + source info, and also demotes overall proof status on errors.
-  const onDiagnosticsUpdate = useCallback((diags: LspDiagnostic[]) => {
-    if (!leanSession.getSession()) return;
-    if (leanSession.getSession().hasErrors()) {
-      setProofComplete(false);
+    let result: EvaluationResult | null = null;
+    try {
+      result = await evaluator.evaluate(contribution);
+    } catch (err) {
+      console.error('[App] evaluate threw:', err);
     }
 
-    // Compute per-block proof statuses
-    const sourceInfo = latestSourceInfoRef.current;
-    if (sourceInfo.length === 0 || !blocklyRef.current) return;
-
-    const preludeLines = prelude.split('\n').length - 1;
-    const errorDiags = diags.filter(d => d.severity === 1);
-
-    const statuses = new Map<string, ProofStatus>();
-    for (const si of sourceInfo) {
-      const blockStartLine = si.startLineCol[0] + preludeLines;
-      const blockEndLine = si.endLineCol[0] + preludeLines;
-
-      const hasError = errorDiags.some(d => {
-        const diagStartLine = d.range.start.line;
-        const diagEndLine = d.range.end.line;
-        return diagStartLine <= blockEndLine && diagEndLine >= blockStartLine;
-      });
-
-      statuses.set(si.id, hasError ? 'incomplete' : 'complete');
+    // Drop the result if a newer evaluation has been kicked off.
+    if (seq !== evalSeqRef.current) {
+      log('App', `Dropping stale evaluation result (seq ${seq} < ${evalSeqRef.current})`);
+      return;
     }
 
-    blocklyRef.current.updateProofStatuses(statuses);
+    setEvaluating(false);
+    setEvaluation(result);
+
+    // Map diagnostics back to per-block proof statuses.
+    if (result && sourceInfo.length > 0 && blocklyRef.current) {
+      const errorDiags = result.diagnostics.filter(d => d.severity === 1);
+      const statuses = new Map<string, ProofStatus>();
+      for (const si of sourceInfo) {
+        const blockStartLine = si.startLineCol[0];
+        const blockEndLine = si.endLineCol[0];
+        const hasError = errorDiags.some(d =>
+          d.range.start.line <= blockEndLine && d.range.end.line >= blockStartLine,
+        );
+        statuses.set(si.id, hasError ? 'incomplete' : 'complete');
+      }
+      blocklyRef.current.updateProofStatuses(statuses);
+    }
   }, []);
 
   // Send the initial code for a level and wait for the full round-trip.
-  async function sendInitialCode(session: import('./LeanRpcSession').LeanRpcSession, worldId: string, levelIndex: number) {
+  const sendInitialCode = useCallback(async (worldId: string, levelIndex: number) => {
     const initialState = levelStatesRef.current[worldId][levelIndex];
     const { leanCode, sourceInfo } = workspaceToLean(initialState);
     latestSourceInfoRef.current = sourceInfo;
-    const preludeLineCount = prelude.split('\n').length - 1;
-    const fullCode = prelude + leanCode;
-
-    try {
-      const result = await session.getGoals(fullCode, preludeLineCount);
-      if (result) {
-        latestGoalsRef.current = result.goals;
-        setGoals(result.goals);
-        setHypKindMap(result.hypKindMap);
-        const noGoals = result.goals.goals.length === 0;
-        setProofComplete(noGoals && !session.hasErrors());
-      }
-      log('App', 'Initial Lean round-trip complete');
-    } catch (err) {
-      console.error('[App] Initial goals check failed:', err);
-    }
+    await runEvaluation(leanCode, sourceInfo);
+    log('App', 'Initial Lean round-trip complete');
     setLeanReady(true);
-  }
+  }, [runEvaluation]);
 
-  // Hook into the global Lean session (created before React mounts)
+  // Wire up the evaluator once the session is ready, and kick off the
+  // initial round-trip (or warm up Mathlib if we're on the world overview).
   useEffect(() => {
-    // Wire up diagnostics callback
-    leanSession.setDiagnosticsCallback((diags) => {
-      console.log('[App] Diagnostics changed:', diags.length, 'items');
-      setDiagnostics(diags);
-      onDiagnosticsUpdate(diags);
-    });
-
-    // As soon as the session is ready, send code to start Mathlib loading.
-    // If we're already on a level, send the full code and wait for the round-trip.
-    // If we're on the world overview, send just the preamble to warm up.
-    leanSession.whenReady().then(async (session) => {
+    leanSession.whenReady().then(async (manager) => {
+      if (!evaluatorRef.current) {
+        evaluatorRef.current = new LevelEvaluator(manager);
+      }
       const currentNav = navRef.current;
       if (currentNav.kind === 'playing') {
         log('App', 'Session ready, sending initial level code...');
-        await sendInitialCode(session, currentNav.worldId, currentNav.levelIndex);
+        await sendInitialCode(currentNav.worldId, currentNav.levelIndex);
       } else {
-        // Warm up: send preamble so Mathlib starts importing
-        log('App', 'Session ready (world overview), warming up with preamble...');
-        const preludeLineCount = prelude.split('\n').length - 1;
-        await session.getGoals(prelude + '\n', preludeLineCount);
-        log('App', 'Preamble warm-up complete');
+        // Warm up: run an empty contribution so Mathlib starts importing.
+        log('App', 'Session ready (world overview), warming up with empty contribution...');
+        await evaluatorRef.current.evaluate('');
+        log('App', 'Warm-up complete');
       }
     });
-
-    return () => {
-      leanSession.setDiagnosticsCallback(null);
-    };
-  }, [onDiagnosticsUpdate]);
+  }, [sendInitialCode]);
 
   const levelStatesRef = useRef(levelStates);
   levelStatesRef.current = levelStates;
@@ -242,9 +175,8 @@ def getHypKinds (p : HypKindParams) :
 
     // If the session is already ready (warmed up from world overview),
     // start checking the level's code immediately.
-    const session = leanSession.getSession();
-    if (session && !leanReady) {
-      sendInitialCode(session, worldId, levelIndex);
+    if (evaluatorRef.current && !leanReady) {
+      sendInitialCode(worldId, levelIndex);
     }
   }
 
@@ -268,88 +200,23 @@ def getHypKinds (p : HypKindParams) :
 
   function onBlocklyChange(result: WorkspaceToLeanResult) {
     const { leanCode, sourceInfo } = result;
-
-    // Store source info for diagnostics matching
     latestSourceInfoRef.current = sourceInfo;
 
-    // Skip proof checking when Blockly hasn't produced any tactic code yet,
-    // or when the initial Lean round-trip hasn't completed yet
-    if (!leanCode.trim() || !leanSession.getSession() || !leanReady) return;
+    // Skip when Blockly hasn't produced any tactic code yet, or before
+    // the initial round-trip has completed.
+    if (!leanCode.trim() || !evaluatorRef.current || !leanReady) return;
 
-    // Clear per-block statuses while Lean re-checks
-    blocklyRef.current?.clearProofStatuses();
-
-    const fullCode = prelude + leanCode;
-    setProofComplete(null); // Set to "checking" state
-
-    console.log('[onBlocklyChange] Fetching goals for file');
-
-    const preludeLineCount = prelude.split('\n').length - 1;
-
-    (async () => {
-      try {
-        const result = await leanSession.getSession()!.getGoals(fullCode, preludeLineCount);
-        console.log('[onBlocklyChange] Goals:', result);
-
-        if (result) {
-          latestGoalsRef.current = result.goals;
-          setGoals(result.goals);
-          setHypKindMap(result.hypKindMap);
-
-          // Determine proof status: complete only if no goals AND no errors
-          const session = leanSession.getSession();
-          if (session) {
-            const noGoals = result.goals.goals.length === 0;
-            const isComplete = noGoals && !session.hasErrors();
-            setProofComplete(isComplete);
-          }
-        }
-      } catch (err) {
-        console.error('[onBlocklyChange] Error checking proof status:', err);
-        setProofComplete(false);
-      }
-    })();
+    runEvaluation(leanCode, sourceInfo);
   }
 
-  async function onRequestGoals(
-    blockId: string,
+  function onRequestGoals(
+    _blockId: string,
     leanCode: string,
-    _sourceInfo: SourceInfo[],
+    sourceInfo: SourceInfo[],
     _blockSourceInfo: SourceInfo | undefined
   ) {
-    console.log('[onRequestGoals] ========================================');
-    console.log('[onRequestGoals] Block ID:', blockId);
-
-    if (!leanSession.getSession()) {
-      console.log('[onRequestGoals] RPC session not initialized');
-      return;
-    }
-
-    const fullCode = prelude + leanCode;
-    const preludeLineCount = prelude.split('\n').length - 1;
-    console.log('[onRequestGoals] Full code being sent:');
-    console.log('---BEGIN CODE---');
-    console.log(fullCode);
-    console.log('---END CODE---');
-
-    setGoalsLoading(true);
-    try {
-      console.log('[onRequestGoals] Fetching goals via LeanRpcSession...');
-      const result = await leanSession.getSession().getGoals(fullCode, preludeLineCount);
-      console.log('[onRequestGoals] Goals received:', result);
-
-      if (result) {
-        console.log('[onRequestGoals] Setting goals');
-        setGoals(result.goals);
-        setHypKindMap(result.hypKindMap);
-      } else {
-        console.log('[onRequestGoals] No goals returned');
-      }
-    } catch (err) {
-      console.error('[onRequestGoals] Error fetching goals:', err);
-    } finally {
-      setGoalsLoading(false);
-    }
+    if (!evaluatorRef.current) return;
+    runEvaluation(leanCode, sourceInfo);
   }
 
   function onDividerMouseDown(e: React.MouseEvent) {
@@ -389,6 +256,17 @@ def getHypKinds (p : HypKindParams) :
       </div>
     </div>;
   }
+
+  // Derive view-friendly shapes from the single evaluation result.
+  const goalsForView: InteractiveGoals | null = evaluation
+    ? { goals: evaluation.leafGoals.map(lg => lg.goal) }
+    : null;
+  const hypKindMap = evaluation?.hypKindMap ?? new Map();
+  const diagnostics = evaluation?.diagnostics ?? [];
+  // proofComplete: null while checking, true on success, false otherwise.
+  const proofComplete: boolean | null = evaluating
+    ? null
+    : evaluation?.complete ?? false;
 
   return <div className="app-root">
     <div className="navbar">
@@ -432,14 +310,14 @@ def getHypKinds (p : HypKindParams) :
             <span className="proof-incomplete">Proof incomplete</span>
           )}
         </div>
-        {goalsLoading ? (
+        {evaluating && !evaluation ? (
           <div className="goals-loading">
             <div className="spinner" />
             <span>Loading goals...</span>
           </div>
         ) : (
           <Goals
-            goals={goals}
+            goals={goalsForView}
             hypKindMap={hypKindMap}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}
           />

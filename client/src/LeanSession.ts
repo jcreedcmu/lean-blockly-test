@@ -6,27 +6,24 @@
  * survives React StrictMode double-mounting, navigation between levels,
  * and component re-renders.
  *
- * Components access it via getLeanSession().
+ * After the LeanSessionManager refactor, this module is just a thin
+ * holder for the singleton manager. Higher-level concerns (preamble,
+ * level evaluation, win conditions) live in `LevelEvaluator`.
  */
 import { connect as lspConnect } from './LeanLspClient';
-import { LeanRpcSession, type GoalsWithHypKinds, type LspDiagnostic } from './LeanRpcSession';
+import { LeanSessionManager } from './LeanSessionManager';
 import { log, logError } from './log';
 
-const BLOCKLY_DOC_URI = 'file:///blockly/Blockly.lean';
 const TAG = 'LeanSession';
 
-type ReadyCallback = (session: LeanRpcSession) => void;
-type DiagnosticsCallback = (diagnostics: LspDiagnostic[]) => void;
-
-class LeanSessionManager {
-  private session: LeanRpcSession | null = null;
+class LeanSessionHolder {
+  private manager: LeanSessionManager | null = null;
   private connecting = false;
-  private readyCallbacks: ReadyCallback[] = [];
-  private diagnosticsCallback: DiagnosticsCallback | null = null;
+  private readyCallbacks: Array<(m: LeanSessionManager) => void> = [];
 
   /** Start the connection immediately. */
   start() {
-    if (this.session || this.connecting) return;
+    if (this.manager || this.connecting) return;
     this.connecting = true;
 
     const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -35,18 +32,11 @@ class LeanSessionManager {
     log(TAG, 'Connecting to Lean server...');
 
     lspConnect(wsUrl).then((conn) => {
-      const session = new LeanRpcSession(conn, BLOCKLY_DOC_URI);
-      this.session = session;
+      const manager = new LeanSessionManager(conn);
+      this.manager = manager;
       this.connecting = false;
-
-      session.setDiagnosticsCallback((diags) => {
-        this.diagnosticsCallback?.(diags);
-      });
-
       log(TAG, 'Session ready');
-
-      // Notify anyone waiting
-      for (const cb of this.readyCallbacks) cb(session);
+      for (const cb of this.readyCallbacks) cb(manager);
       this.readyCallbacks = [];
     }).catch((err) => {
       this.connecting = false;
@@ -54,27 +44,20 @@ class LeanSessionManager {
     });
   }
 
-  /** Get the session if ready, or null. */
-  getSession(): LeanRpcSession | null {
-    return this.session;
+  getManager(): LeanSessionManager | null {
+    return this.manager;
   }
 
   /** Wait for the session to be ready. Resolves immediately if already ready. */
-  whenReady(): Promise<LeanRpcSession> {
-    if (this.session) return Promise.resolve(this.session);
+  whenReady(): Promise<LeanSessionManager> {
+    if (this.manager) return Promise.resolve(this.manager);
     return new Promise((resolve) => {
       this.readyCallbacks.push(resolve);
     });
   }
-
-  /** Set the diagnostics callback. Only one at a time (last caller wins). */
-  setDiagnosticsCallback(cb: DiagnosticsCallback | null) {
-    this.diagnosticsCallback = cb;
-  }
 }
 
-/** The global singleton. */
-export const leanSession = new LeanSessionManager();
+export const leanSession = new LeanSessionHolder();
 
 // Start immediately on import — this runs before React mounts.
 leanSession.start();
