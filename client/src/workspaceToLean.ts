@@ -192,9 +192,9 @@ function blockToChunks(
       const targetChunks = blockToChunks(inputs['REWRITE_TARGET']?.block, indent + '  ', true);
       chunks = [
         ...indentChunk,
-        chunk(`rewrite `, blockId),
+        chunk(`rewrite [`, blockId),
         ...sourceChunks,
-        chunk(` at `, blockId),
+        chunk(`] at `, blockId),
         ...targetChunks,
         chunk(`\n`, blockId),
       ];
