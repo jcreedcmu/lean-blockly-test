@@ -18,6 +18,7 @@ Ensure that you have a recent nodejs, probably  `v25.6.1` should suffice.
 
 ```shell
 git clone git@github.com:jcreedcmu/lean-blockly-test.git
+cd lean-blockly-test
 npm install
 pushd Projects/MathlibDemo/ && lake exe cache get && popd
 npm start
