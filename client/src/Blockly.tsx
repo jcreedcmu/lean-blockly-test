@@ -127,8 +127,10 @@ function useBlockly(
 
     blockly.ContextMenuRegistry.registry.register(showGoalsMenuItem);
 
-    function changeListener() {
-      if (handlerRef.current !== undefined) {
+    function changeListener(e: blockly.Events.Abstract) {
+      // Only re-evaluate when block content actually changes, not on
+      // UI events like selections, flyout toggles, or viewport changes.
+      if (!e.isUiEvent && handlerRef.current !== undefined) {
         const state = blockly.serialization.workspaces.save(ws);
         handlerRef.current(workspaceToLean(state));
       }
