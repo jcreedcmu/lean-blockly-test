@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as React from 'react'
 
 // Local imports
@@ -303,6 +303,10 @@ function App() {
 
   const currentWorld = gameData.worlds.find(w => w.id === nav.worldId)!;
   const currentLevel = currentWorld.levels[nav.levelIndex];
+  const allowedBlocks = useMemo(
+    () => getAllowedBlocks(currentLevel.permissions),
+    [currentLevel.permissions]
+  );
 
   // Derive view-friendly shapes from the single evaluation result.
   const goalsForView: InteractiveGoals | null = evaluation
@@ -355,7 +359,7 @@ function App() {
         onBlocklyChange={onBlocklyChange}
         onRequestGoals={onRequestGoals}
         initialData={levelStates[nav.worldId][nav.levelIndex]}
-        allowedBlocks={getAllowedBlocks(currentLevel.permissions)}
+        allowedBlocks={allowedBlocks}
       />
       <div className="panel-divider" onMouseDown={onDividerMouseDown} />
       <div className="goals-panel" style={{ width: goalsPanelWidth }}>
