@@ -31,6 +31,8 @@ function App() {
   const [leanReady, setLeanReady] = useState(false);
   // Whether the introduction-commentary popup is visible.
   const [showIntro, setShowIntro] = useState(false);
+  // Track which levels have been visited so we can auto-show intro on first visit.
+  const visitedLevelsRef = useRef<Set<string>>(new Set());
   // Whether the "Copied!" toast is visible.
   const [showCopiedToast, setShowCopiedToast] = useState(false);
 
@@ -184,6 +186,18 @@ function App() {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  // Auto-show introduction on first visit to a level.
+  useEffect(() => {
+    if (nav.kind !== 'playing') return;
+    const key = `${nav.worldId}:${nav.levelIndex}`;
+    if (visitedLevelsRef.current.has(key)) return;
+    visitedLevelsRef.current.add(key);
+    const world = gameData.worlds.find(w => w.id === nav.worldId);
+    if (world?.levels[nav.levelIndex]?.introduction) {
+      setShowIntro(true);
+    }
+  }, [nav]);
 
   function enterLevel(worldId: string, levelIndex: number) {
     location.hash = navToHash({ kind: 'playing', worldId, levelIndex });
