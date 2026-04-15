@@ -102,12 +102,22 @@ function App() {
     }
   }, []);
 
+  // Pending code to evaluate once the Lean session becomes ready.
+  const pendingEvalRef = useRef<{ leanCode: string; sourceInfo: SourceInfo[] } | null>(null);
+
   // Send the initial code for a level and wait for the full round-trip.
   const sendInitialCode = useCallback(async (worldId: string, levelIndex: number) => {
     const initialState = levelStatesRef.current[worldId][levelIndex];
     const { leanCode, sourceInfo } = workspaceToLean(initialState);
     latestSourceInfoRef.current = sourceInfo;
-    await runEvaluation(leanCode, sourceInfo);
+    // If user has already edited blocks, use their latest code instead.
+    const pending = pendingEvalRef.current;
+    if (pending) {
+      pendingEvalRef.current = null;
+      await runEvaluation(pending.leanCode, pending.sourceInfo);
+    } else {
+      await runEvaluation(leanCode, sourceInfo);
+    }
     log('App', 'Initial Lean round-trip complete');
     setLeanReady(true);
   }, [runEvaluation]);
@@ -221,9 +231,14 @@ function App() {
     const { leanCode, sourceInfo } = result;
     latestSourceInfoRef.current = sourceInfo;
 
-    // Skip when Blockly hasn't produced any tactic code yet, or before
-    // the initial round-trip has completed.
-    if (!leanCode.trim() || !evaluatorRef.current || !leanReady) return;
+    if (!leanCode.trim()) return;
+
+    // If the Lean session isn't ready yet, queue the latest code so it
+    // gets evaluated as soon as loading finishes.
+    if (!evaluatorRef.current || !leanReady) {
+      pendingEvalRef.current = { leanCode, sourceInfo };
+      return;
+    }
 
     runEvaluation(leanCode, sourceInfo);
   }
@@ -266,15 +281,6 @@ function App() {
 
   const currentWorld = gameData.worlds.find(w => w.id === nav.worldId)!;
   const currentLevel = currentWorld.levels[nav.levelIndex];
-
-  if (!leanReady) {
-    return <div className="app-root">
-      <div className="loading-screen">
-        <div className="spinner" />
-        <span>Loading Lean and Mathlib...</span>
-      </div>
-    </div>;
-  }
 
   // Derive view-friendly shapes from the single evaluation result.
   const goalsForView: InteractiveGoals | null = evaluation
@@ -332,7 +338,9 @@ function App() {
       <div className="panel-divider" onMouseDown={onDividerMouseDown} />
       <div className="goals-panel" style={{ width: goalsPanelWidth }}>
         <div className="proof-status">
-          {proofComplete === null ? (
+          {!leanReady ? (
+            <span className="proof-checking">Loading Lean...</span>
+          ) : proofComplete === null ? (
             <span className="proof-checking">Checking...</span>
           ) : proofComplete ? (
             <span className="proof-complete">Proof complete!</span>
@@ -340,7 +348,11 @@ function App() {
             <span className="proof-incomplete">Proof incomplete</span>
           )}
         </div>
-        {evaluating && !evaluation ? (
+        {!leanReady ? (
+          <div className="goals-loading">
+            <div className="spinner" />
+          </div>
+        ) : evaluating && !evaluation ? (
           <div className="goals-loading">
             <div className="spinner" />
             <span>Loading goals...</span>
