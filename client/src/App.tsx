@@ -13,6 +13,9 @@ import { leanSession } from './LeanSession';
 import { LevelEvaluator, type EvaluationResult } from './LevelEvaluator';
 import type { ProofStatus } from './FieldProofStatus';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { gameData, parseHash, navToHash, getAllowedBlocks, getAllowedAffordances } from './gameData';
 import type { NavigationState } from './gameData';
 import { WorldOverview3D } from './WorldOverview3D';
@@ -402,7 +405,7 @@ function App() {
             title="Close"
           >&times;</button>
           <div className="modal-body markdown-body">
-            <ReactMarkdown>{currentLevel.introduction}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentLevel.introduction}</ReactMarkdown>
           </div>
         </div>
       </div>
