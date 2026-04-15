@@ -1,6 +1,6 @@
 import * as React from 'react';
-import type { InteractiveGoal, InteractiveHypothesisBundle, SubexprInfo } from '@leanprover/infoview-api';
-import { Hyp, type HypClass } from './Hyp';
+import type { InteractiveGoal, InteractiveHypothesisBundle } from '@leanprover/infoview-api';
+import { Hyp, type HypClass, type HypInteractionProps } from './Hyp';
 import { InteractiveCode } from './InteractiveCode';
 import type { HypKindMap } from '../LevelEvaluator';
 
@@ -25,13 +25,10 @@ export const defaultGoalFilter: GoalFilterState = {
   showLetValue: true,
 };
 
-export interface GoalProps {
+export interface GoalProps extends HypInteractionProps {
   goal: InteractiveGoal;
   hypKindMap?: HypKindMap;
   filter?: GoalFilterState;
-  onHypNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
-  onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
-  onSubexprClick?: (info: SubexprInfo) => void;
 }
 
 function isInaccessibleName(name: string): boolean {
@@ -71,7 +68,7 @@ function isAssumption(h: InteractiveHypothesisBundle, hypKindMap?: HypKindMap): 
 function renderHypGroup(
   title: string,
   hyps: InteractiveHypothesisBundle[],
-  props: Pick<GoalProps, 'onHypNameClick' | 'onHypDragStart' | 'onSubexprClick'>,
+  props: HypInteractionProps,
   affordances: HypClass,
 ): React.ReactElement | null {
   if (hyps.length === 0) return null;
@@ -84,9 +81,7 @@ function renderHypGroup(
             key={i}
             hyp={h}
             affordances={affordances}
-            onNameClick={props.onHypNameClick}
-            onHypDragStart={props.onHypDragStart}
-            onSubexprClick={props.onSubexprClick}
+            {...props}
           />
         ))}
       </div>
@@ -101,9 +96,7 @@ export function Goal({
   goal,
   hypKindMap,
   filter = defaultGoalFilter,
-  onHypNameClick,
-  onHypDragStart,
-  onSubexprClick,
+  ...interactionProps
 }: GoalProps): React.ReactElement {
   if (!goal) {
     return <></>;
@@ -126,8 +119,6 @@ export function Goal({
   const objectHyps = hasKindData ? hyps.filter(h => isAssumption(h, hypKindMap) !== true) : hyps;
   const assumptionHyps = hasKindData ? hyps.filter(h => isAssumption(h, hypKindMap) === true) : [];
 
-  const handlerProps = { onHypNameClick, onHypDragStart, onSubexprClick };
-
   return (
     <div className="goal">
       {goal.userName && (
@@ -139,8 +130,8 @@ export function Goal({
 
       {hasKindData ? (
         <>
-          {renderHypGroup('Objects', objectHyps, handlerProps, undefined)}
-          {renderHypGroup('Assumptions', assumptionHyps, handlerProps, 'equational')}
+          {renderHypGroup('Objects', objectHyps, interactionProps, undefined)}
+          {renderHypGroup('Assumptions', assumptionHyps, interactionProps, 'equational')}
         </>
       ) : (
         hyps.length > 0 && (
@@ -149,9 +140,7 @@ export function Goal({
               <Hyp
                 key={i}
                 hyp={h}
-                onNameClick={onHypNameClick}
-                onHypDragStart={onHypDragStart}
-                onSubexprClick={onSubexprClick}
+                {...interactionProps}
               />
             ))}
           </div>
@@ -161,7 +150,7 @@ export function Goal({
       <div className="goal-target">
         <span className="goal-vdash">{goal.goalPrefix ?? '\u22A2'} </span>
         <span className="goal-type">
-          <InteractiveCode fmt={goal.type} onSubexprClick={onSubexprClick} />
+          <InteractiveCode fmt={goal.type} onSubexprClick={interactionProps.onSubexprClick} />
         </span>
       </div>
     </div>

@@ -10,7 +10,18 @@ const level: LevelSource = {
   name: "The choose tactic",
   theoremName: "RealAnalysisStory_8",
   statement: "(f : ℝ → ℝ) (h : ∃ c : ℝ, f c = 2) : ∃ x : ℝ, (f x) ^ 2 = 4",
-  allowedBlocks: ["prop","tactic_apply","tactic_refl","tactic_rewrite","tactic_ring_nf","tactic_use","tactic_intro","tactic_specialize","tactic_choose"],
+  permissions: [
+    {t: "allowTactic", tacticName: "prop"},
+    {t: "allowTactic", tacticName: "tactic_apply"},
+    {t: "allowTactic", tacticName: "tactic_refl"},
+    {t: "allowTactic", tacticName: "tactic_rewrite"},
+    {t: "allowTactic", tacticName: "tactic_ring_nf"},
+    {t: "allowTactic", tacticName: "tactic_use"},
+    {t: "allowTactic", tacticName: "tactic_intro"},
+    {t: "allowTactic", tacticName: "tactic_specialize"},
+    {t: "allowTactic", tacticName: "tactic_choose"},
+    {t: "allowAllAffordances"},
+  ],
   introduction: `
 # Extracting information from existential quantifiers
 

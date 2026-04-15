@@ -2,13 +2,37 @@ import type { BlocklyState } from './Blockly.tsx';
 
 // ── Public types ────────────────────────────────────────────────────
 
+export type LevelPermission =
+  | { t: 'allowTactic'; tacticName: string }
+  | { t: 'allowAffordance'; affordance: 'rewrite' | 'apply' }
+  | { t: 'allowAllAffordances' };
+
 export type LevelDefinition = {
   name: string;
   initial: BlocklyState;
-  allowedBlocks?: string[];
+  permissions?: LevelPermission[];
   introduction?: string;
   conclusion?: string;
 };
+
+/** Extract the list of allowed block types from permissions, or undefined if unrestricted. */
+export function getAllowedBlocks(permissions?: LevelPermission[]): string[] | undefined {
+  if (!permissions) return undefined;
+  return permissions
+    .filter((p): p is Extract<LevelPermission, { t: 'allowTactic' }> => p.t === 'allowTactic')
+    .map(p => p.tacticName);
+}
+
+/** Extract the set of allowed affordances from permissions, or undefined if unrestricted. */
+export function getAllowedAffordances(permissions?: LevelPermission[]): Set<string> | undefined {
+  if (!permissions) return undefined;
+  const affordances = new Set<string>();
+  for (const p of permissions) {
+    if (p.t === 'allowAllAffordances') return undefined;
+    if (p.t === 'allowAffordance') affordances.add(p.affordance);
+  }
+  return affordances;
+}
 
 export type World = {
   id: string;
@@ -41,7 +65,7 @@ export type LevelSource = {
   statement: string;
   introduction?: string;
   conclusion?: string;
-  allowedBlocks?: string[];
+  permissions?: LevelPermission[];
 };
 
 // ── Blockly state helper ────────────────────────────────────────────
@@ -67,7 +91,7 @@ function levelSourceToDefinition(src: LevelSource): LevelDefinition {
   return {
     name: src.name,
     initial: makeLevelState(src.theoremName, src.statement),
-    allowedBlocks: src.allowedBlocks,
+    permissions: src.permissions,
     introduction: src.introduction,
     conclusion: src.conclusion,
   };

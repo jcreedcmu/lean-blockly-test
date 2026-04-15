@@ -10,7 +10,17 @@ const level: LevelSource = {
   name: "The specialize tactic",
   theoremName: "RealAnalysisStory_7",
   statement: "(t : ℝ) (t_pos : t > 0) (f : ℝ → ℝ) (hf : ∀ x > 0, f (x) = x^2) : f (t) = t^2",
-  allowedBlocks: ["prop","tactic_apply","tactic_refl","tactic_rewrite","tactic_ring_nf","tactic_use","tactic_intro","tactic_specialize"],
+  permissions: [
+    {t: "allowTactic", tacticName: "prop"},
+    {t: "allowTactic", tacticName: "tactic_apply"},
+    {t: "allowTactic", tacticName: "tactic_refl"},
+    {t: "allowTactic", tacticName: "tactic_rewrite"},
+    {t: "allowTactic", tacticName: "tactic_ring_nf"},
+    {t: "allowTactic", tacticName: "tactic_use"},
+    {t: "allowTactic", tacticName: "tactic_intro"},
+    {t: "allowTactic", tacticName: "tactic_specialize"},
+    {t: "allowAllAffordances"},
+  ],
   introduction: `
 # Using universal statements
 

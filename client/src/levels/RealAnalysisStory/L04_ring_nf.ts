@@ -10,7 +10,14 @@ const level: LevelSource = {
   name: "The ring_nf tactic",
   theoremName: "RealAnalysisStory_4",
   statement: "(x y : ℝ) : (x + y)^3 = x^3 + 3*x^2*y + 3*x*y^2 + y^3",
-  allowedBlocks: ["prop","tactic_apply","tactic_refl","tactic_rewrite","tactic_ring_nf"],
+  permissions: [
+    {t: "allowTactic", tacticName: "prop"},
+    {t: "allowTactic", tacticName: "tactic_apply"},
+    {t: "allowTactic", tacticName: "tactic_refl"},
+    {t: "allowTactic", tacticName: "tactic_rewrite"},
+    {t: "allowTactic", tacticName: "tactic_ring_nf"},
+    {t: "allowAllAffordances"},
+  ],
   introduction: `
 # Algebraic manipulations
 

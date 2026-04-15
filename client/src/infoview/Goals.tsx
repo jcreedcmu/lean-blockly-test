@@ -1,16 +1,14 @@
 import * as React from 'react';
 import { useState } from 'react';
-import type { InteractiveGoal, InteractiveGoals, InteractiveHypothesisBundle, SubexprInfo } from '@leanprover/infoview-api';
+import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { Goal, GoalFilterState, defaultGoalFilter } from './Goal';
+import type { HypInteractionProps } from './Hyp';
 import type { HypKindMap } from '../LevelEvaluator';
 
-export interface GoalsProps {
+export interface GoalsProps extends HypInteractionProps {
   goals: InteractiveGoals;
   hypKindMap?: HypKindMap;
   filter?: GoalFilterState;
-  onHypNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
-  onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
-  onSubexprClick?: (info: SubexprInfo) => void;
 }
 
 /**
@@ -20,9 +18,7 @@ export function Goals({
   goals,
   hypKindMap,
   filter = defaultGoalFilter,
-  onHypNameClick,
-  onHypDragStart,
-  onSubexprClick,
+  ...interactionProps
 }: GoalsProps): React.ReactElement {
   const [selectedGoal, setSelectedGoal] = useState(0);
 
@@ -58,9 +54,7 @@ export function Goals({
           goal={currentGoal}
           hypKindMap={hypKindMap}
           filter={filter}
-          onHypNameClick={onHypNameClick}
-          onHypDragStart={onHypDragStart}
-          onSubexprClick={onSubexprClick}
+          {...interactionProps}
         />
       </div>
 

@@ -10,7 +10,15 @@ const level: LevelSource = {
   name: "The use tactic",
   theoremName: "RealAnalysisStory_5",
   statement: "(x y : ℝ) : ∃ (c : ℝ), (x + y)^4 = x^4 + 4*x^3*y + c*x^2*y^2 + 4*x*y^3 + y^4",
-  allowedBlocks: ["prop","tactic_apply","tactic_refl","tactic_rewrite","tactic_ring_nf","tactic_use"],
+  permissions: [
+    {t: "allowTactic", tacticName: "prop"},
+    {t: "allowTactic", tacticName: "tactic_apply"},
+    {t: "allowTactic", tacticName: "tactic_refl"},
+    {t: "allowTactic", tacticName: "tactic_rewrite"},
+    {t: "allowTactic", tacticName: "tactic_ring_nf"},
+    {t: "allowTactic", tacticName: "tactic_use"},
+    {t: "allowAllAffordances"},
+  ],
   introduction: `
 # Proving existence
 

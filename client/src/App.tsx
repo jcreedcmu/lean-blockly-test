@@ -13,7 +13,7 @@ import { leanSession } from './LeanSession';
 import { LevelEvaluator, type EvaluationResult } from './LevelEvaluator';
 import type { ProofStatus } from './FieldProofStatus';
 import ReactMarkdown from 'react-markdown';
-import { gameData, parseHash, navToHash } from './gameData';
+import { gameData, parseHash, navToHash, getAllowedBlocks, getAllowedAffordances } from './gameData';
 import type { NavigationState } from './gameData';
 import { WorldOverview3D } from './WorldOverview3D';
 
@@ -347,7 +347,7 @@ function App() {
         onBlocklyChange={onBlocklyChange}
         onRequestGoals={onRequestGoals}
         initialData={levelStates[nav.worldId][nav.levelIndex]}
-        allowedBlocks={currentLevel.allowedBlocks}
+        allowedBlocks={getAllowedBlocks(currentLevel.permissions)}
       />
       <div className="panel-divider" onMouseDown={onDividerMouseDown} />
       <div className="goals-panel" style={{ width: goalsPanelWidth }}>
@@ -375,6 +375,7 @@ function App() {
           <Goals
             goals={goalsForView}
             hypKindMap={hypKindMap}
+            allowedAffordances={getAllowedAffordances(currentLevel.permissions)}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}
           />
         )}

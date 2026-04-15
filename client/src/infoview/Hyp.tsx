@@ -14,13 +14,19 @@ import { InteractiveCode } from './InteractiveCode';
  */
 export type HypClass = 'equational' | undefined;
 
-export interface HypProps {
+/** Props that control hypothesis interaction, shared across Hyp/Goal/Goals. */
+export interface HypInteractionProps {
+  /** Which drag affordances are allowed on this level (e.g. 'apply', 'rewrite'). undefined = all. */
+  allowedAffordances?: Set<string>;
+  onHypNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
+  onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
+  onSubexprClick?: (info: SubexprInfo) => void;
+}
+
+export interface HypProps extends HypInteractionProps {
   hyp: InteractiveHypothesisBundle;
   /** Classification of this hypothesis. Controls which drag affordances are offered. */
   affordances?: HypClass;
-  onNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
-  onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
-  onSubexprClick?: (info: SubexprInfo) => void;
 }
 
 /** Returns true if the name contains the inaccessible marker. */
@@ -32,7 +38,7 @@ function isInaccessibleName(name: string): boolean {
  * Renders a single hypothesis bundle.
  * A bundle can have multiple names sharing the same type (e.g., "x y z : Nat").
  */
-export function Hyp({ hyp, affordances, onNameClick, onHypDragStart, onSubexprClick }: HypProps): React.ReactElement {
+export function Hyp({ hyp, affordances, allowedAffordances, onHypNameClick, onHypDragStart, onSubexprClick }: HypProps): React.ReactElement {
   const names = InteractiveHypothesisBundle_nonAnonymousNames(hyp);
 
   const nameElements = names.map((name, i) => {
@@ -47,9 +53,9 @@ export function Hyp({ hyp, affordances, onNameClick, onHypDragStart, onSubexprCl
       <span
         key={i}
         className={className}
-        onClick={onNameClick ? () => onNameClick(name, hyp) : undefined}
+        onClick={onHypNameClick ? () => onHypNameClick(name, hyp) : undefined}
         onMouseDown={onHypDragStart ? (e) => onHypDragStart(name, e) : undefined}
-        style={{ cursor: onHypDragStart ? 'grab' : onNameClick ? 'pointer' : undefined }}
+        style={{ cursor: onHypDragStart ? 'grab' : onHypNameClick ? 'pointer' : undefined }}
       >
         {name}
         {i < names.length - 1 ? ' ' : ''}
@@ -78,10 +84,12 @@ export function Hyp({ hyp, affordances, onNameClick, onHypDragStart, onSubexprCl
       </span>
       {onHypDragStart && affordances === 'equational' && (
         <>
-          <span className="hyp-cell hyp-action hyp-action-apply"
-            onMouseDown={(e) => onHypDragStart(name, e, 'apply')}>apply</span>
-          <span className="hyp-cell hyp-action hyp-action-rewrite"
-            onMouseDown={(e) => onHypDragStart(name, e, 'rewrite')}>rewrite</span>
+          {(!allowedAffordances || allowedAffordances.has('apply')) &&
+            <span className="hyp-cell hyp-action hyp-action-apply"
+              onMouseDown={(e) => onHypDragStart(name, e, 'apply')}>apply</span>}
+          {(!allowedAffordances || allowedAffordances.has('rewrite')) &&
+            <span className="hyp-cell hyp-action hyp-action-rewrite"
+              onMouseDown={(e) => onHypDragStart(name, e, 'rewrite')}>rewrite</span>}
         </>
       )}
     </div>

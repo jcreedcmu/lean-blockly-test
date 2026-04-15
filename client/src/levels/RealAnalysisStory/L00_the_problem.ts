@@ -10,7 +10,10 @@ const level: LevelSource = {
   name: "Introduction to Lean",
   theoremName: "RealAnalysisStory_1",
   statement: "(x : ℝ) (h : x = 5) : x = 5",
-  allowedBlocks: ["prop","tactic_apply"],
+  permissions: [
+    {t: "allowTactic", tacticName: "prop"},
+    {t: "allowTactic", tacticName: "tactic_apply"},
+  ],
   introduction: `
 # Theorem Prover Software
 

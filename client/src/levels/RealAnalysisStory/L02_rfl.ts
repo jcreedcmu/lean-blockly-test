@@ -10,7 +10,11 @@ const level: LevelSource = {
   name: "The rfl tactic",
   theoremName: "RealAnalysisStory_2",
   statement: "(x y : ℝ) : x ^ 2 + 2 * y = x ^ 2 + 2 * y",
-  allowedBlocks: ["prop","tactic_apply","tactic_refl"],
+  permissions: [
+    {t: "allowTactic", tacticName: "prop"},
+    {t: "allowTactic", tacticName: "tactic_apply"},
+    {t: "allowTactic", tacticName: "tactic_refl"},
+  ],
   introduction: `
 # When things are identical to themselves
 
