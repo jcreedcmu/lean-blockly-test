@@ -183,6 +183,11 @@ function App() {
         );
       }
 
+      // Clear stale evaluation state so the old level's goals/diagnostics
+      // don't flash with the new level's permissions.
+      setEvaluation(null);
+      setEvaluating(false);
+
       setNav(newNav);
     }
 
