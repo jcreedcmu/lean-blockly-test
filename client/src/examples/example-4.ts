@@ -159,7 +159,7 @@ export const example = {
                                                     },
                                                     "next": {
                                                       "block": {
-                                                        "type": "tactic_rw",
+                                                        "type": "tactic_rewrite",
                                                         "id": "f5piLnWwQvlx,Ki5WTp4",
                                                         "fields": {
                                                           "DIRECTION_TYPE": "RIGHT"
@@ -177,7 +177,7 @@ export const example = {
                                                         },
                                                         "next": {
                                                           "block": {
-                                                            "type": "tactic_rw",
+                                                            "type": "tactic_rewrite",
                                                             "id": "W|.ZlRq5@bi.2CML=mPB",
                                                             "fields": {
                                                               "DIRECTION_TYPE": "RIGHT"

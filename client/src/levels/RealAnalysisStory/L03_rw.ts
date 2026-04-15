@@ -10,7 +10,7 @@ const level: LevelSource = {
   name: "The `rewrite` tactic",
   theoremName: "RealAnalysisStory_3",
   statement: "(x y : ℝ) (Bob : x = 2) : x + y = 2 + y",
-  allowedBlocks: ["prop","tactic_apply","tactic_refl","tactic_rw"],
+  allowedBlocks: ["prop","tactic_apply","tactic_refl","tactic_rewrite"],
   introduction: `
 # Rewriting with equalities
 

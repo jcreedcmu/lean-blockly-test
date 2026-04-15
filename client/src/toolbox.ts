@@ -25,11 +25,11 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'tactic_rw',
+      type: 'tactic_rewrite',
     },
     {
       kind: 'block',
-      type: 'tactic_rw_at',
+      type: 'tactic_rewrite_at',
     },
     {
       kind: 'block',

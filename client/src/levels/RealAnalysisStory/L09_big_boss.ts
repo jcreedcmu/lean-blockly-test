@@ -11,7 +11,7 @@ const level: LevelSource = {
   theoremName: "RealAnalysisStory_9",
   statement: `(f : ℝ → ℝ) (h_existential : ∃ (a : ℝ), f (a) = 3) (h_universal : ∀ x > 0, f (x + 1) = f (x) + 9) :
   ∃ (b : ℝ), ∀ y > 0, f (y + 1)^2 = (f (y) + (f b)^2)^2`,
-  allowedBlocks: ["prop","tactic_apply","tactic_refl","tactic_rw","tactic_ring_nf","tactic_use","tactic_intro","tactic_specialize","tactic_choose"],
+  allowedBlocks: ["prop","tactic_apply","tactic_refl","tactic_rewrite","tactic_ring_nf","tactic_use","tactic_intro","tactic_specialize","tactic_choose"],
   introduction: `
 # The Final Challenge
 

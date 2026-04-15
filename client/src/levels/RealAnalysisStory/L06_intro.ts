@@ -10,7 +10,7 @@ const level: LevelSource = {
   name: "The intro tactic",
   theoremName: "RealAnalysisStory_6",
   statement: ": ∀ ε : ℝ, ε > 0 → (ε + 1)^2 = (ε + 1)^2",
-  allowedBlocks: ["prop","tactic_apply","tactic_refl","tactic_rw","tactic_ring_nf","tactic_use","tactic_intro"],
+  allowedBlocks: ["prop","tactic_apply","tactic_refl","tactic_rewrite","tactic_ring_nf","tactic_use","tactic_intro"],
   introduction: `
 # Universal statements
 

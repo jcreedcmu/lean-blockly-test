@@ -22,7 +22,7 @@ export const example = {
         }
       },
       {
-        "type": "tactic_rw",
+        "type": "tactic_rewrite",
         "id": "z_*{MfAzbYpX8ZTwoCPY",
         "x": 338,
         "y": 308,

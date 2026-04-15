@@ -174,25 +174,25 @@ function blockToChunks(
       break;
     }
 
-    case 'tactic_rw': {
+    case 'tactic_rewrite': {
       const direction = fields['DIRECTION_TYPE'];
       const sourceChunks = blockToChunks(inputs['REWRITE_SOURCE']?.block, indent + '  ', true);
       const arrow = direction === 'LEFT' ? '← ' : '';
       chunks = [
         ...indentChunk,
-        chunk(`rw [${arrow}`, blockId),
+        chunk(`rewrite [${arrow}`, blockId),
         ...sourceChunks,
         chunk(`]\n`, blockId),
       ];
       break;
     }
 
-    case 'tactic_rw_at': {
+    case 'tactic_rewrite_at': {
       const sourceChunks = blockToChunks(inputs['REWRITE_SOURCE']?.block, indent + '  ', true);
       const targetChunks = blockToChunks(inputs['REWRITE_TARGET']?.block, indent + '  ', true);
       chunks = [
         ...indentChunk,
-        chunk(`rw `, blockId),
+        chunk(`rewrite `, blockId),
         ...sourceChunks,
         chunk(` at `, blockId),
         ...targetChunks,

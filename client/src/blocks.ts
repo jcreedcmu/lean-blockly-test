@@ -215,7 +215,7 @@ function defineTactics() {
       'style': 'logic_blocks',
     },
     {
-      'type': 'tactic_rw',
+      'type': 'tactic_rewrite',
       'message0': 'rewrite %1 %2',
       'args0': [
         {
@@ -243,11 +243,11 @@ function defineTactics() {
       'previousStatement': 'tactic',
       'nextStatement': 'tactic',
       'style': 'logic_blocks',
-      'tooltip': 'rw',
-      'helpUrl': 'rw',
+      'tooltip': 'rewrite',
+      'helpUrl': 'rewrite',
     },
     {
-      'type': 'tactic_rw_at',
+      'type': 'tactic_rewrite_at',
       'message0': 'rewrite %1 at %2',
       'previousStatement': 'tactic',
       'nextStatement': 'tactic',

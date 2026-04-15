@@ -241,8 +241,8 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         outerBlock.render();
         dragBlock = outerBlock;
       } else if (mode === 'rewrite') {
-        // Create a tactic_rw block with prop child on REWRITE_SOURCE input
-        const outerBlock = ws.newBlock('tactic_rw') as BlockSvg;
+        // Create a tactic_rewrite block with prop child on REWRITE_SOURCE input
+        const outerBlock = ws.newBlock('tactic_rewrite') as BlockSvg;
         const innerBlock = ws.newBlock('prop') as BlockSvg;
         innerBlock.setFieldValue(name, 'PROP_NAME');
         innerBlock.initSvg();
