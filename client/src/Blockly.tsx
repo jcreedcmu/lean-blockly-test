@@ -22,8 +22,21 @@ export type BlocklyHandle = {
   saveWorkspace: () => BlocklyState | null;
   updateProofStatuses: (statuses: Map<string, ProofStatus>) => void;
   clearProofStatuses: () => void;
-  startHypDrag: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
+  startHypDrag: (name: string, e: React.MouseEvent, mode?: HypDragMode) => void;
   startGoalDrag: (e: React.MouseEvent) => void;
+};
+
+/** Drag modes for a hypothesis affordance. `'prop'` drops a bare `prop`
+ * block with the hyp name. The rest each wrap the `prop` in the
+ * corresponding tactic block on its input. */
+export type HypDragMode = 'prop' | 'apply' | 'rewrite' | 'choose';
+
+/** For wrapping modes, which Blockly input on the outer tactic block
+ * receives the inner `prop` block. */
+const WRAPPING_TACTIC_INPUT: Record<Exclude<HypDragMode, 'prop'>, string> = {
+  apply: 'ARG',
+  rewrite: 'REWRITE_SOURCE',
+  choose: 'ARG',
 };
 
 function useBlockly(
@@ -200,40 +213,24 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         }
       }
     },
-    startHypDrag: (name: string, e: React.MouseEvent, mode: 'prop' | 'apply' | 'rewrite' = 'prop') => {
+    startHypDrag: (name: string, e: React.MouseEvent, mode: HypDragMode = 'prop') => {
       startBlockDrag(e, (ws) => {
-        if (mode === 'apply') {
-          // Create a tactic_apply block with prop child on ARG input
-          const outerBlock = ws.newBlock('tactic_apply') as BlockSvg;
-          const innerBlock = ws.newBlock('prop') as BlockSvg;
-          innerBlock.setFieldValue(name, 'PROP_NAME');
-          innerBlock.initSvg();
-          innerBlock.render();
-          const input = outerBlock.getInput('ARG');
-          input!.connection!.connect(innerBlock.outputConnection!);
-          outerBlock.initSvg();
-          outerBlock.render();
-          return outerBlock;
-        } else if (mode === 'rewrite') {
-          // Create a tactic_rewrite block with prop child on REWRITE_SOURCE input
-          const outerBlock = ws.newBlock('tactic_rewrite') as BlockSvg;
-          const innerBlock = ws.newBlock('prop') as BlockSvg;
-          innerBlock.setFieldValue(name, 'PROP_NAME');
-          innerBlock.initSvg();
-          innerBlock.render();
-          const input = outerBlock.getInput('REWRITE_SOURCE');
-          input!.connection!.connect(innerBlock.outputConnection!);
-          outerBlock.initSvg();
-          outerBlock.render();
-          return outerBlock;
-        } else {
-          // Create a prop block with the hypothesis name
-          const block = ws.newBlock('prop') as BlockSvg;
-          block.setFieldValue(name, 'PROP_NAME');
-          block.initSvg();
-          block.render();
-          return block;
-        }
+        // Inner `prop` block carrying the hypothesis name.
+        const innerBlock = ws.newBlock('prop') as BlockSvg;
+        innerBlock.setFieldValue(name, 'PROP_NAME');
+        innerBlock.initSvg();
+        innerBlock.render();
+
+        if (mode === 'prop') return innerBlock;
+
+        // Wrap the prop in the corresponding tactic block on its
+        // designated input (apply/choose → ARG, rewrite → REWRITE_SOURCE).
+        const outerBlock = ws.newBlock(`tactic_${mode}`) as BlockSvg;
+        const input = outerBlock.getInput(WRAPPING_TACTIC_INPUT[mode]);
+        input!.connection!.connect(innerBlock.outputConnection!);
+        outerBlock.initSvg();
+        outerBlock.render();
+        return outerBlock;
       });
     },
     startGoalDrag: (e: React.MouseEvent) => {

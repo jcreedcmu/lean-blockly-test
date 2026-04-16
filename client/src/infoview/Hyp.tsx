@@ -3,31 +3,32 @@ import type { InteractiveHypothesisBundle, SubexprInfo } from '@leanprover/infov
 import { InteractiveHypothesisBundle_nonAnonymousNames } from '@leanprover/infoview-api';
 import { InteractiveCode } from './InteractiveCode';
 
-/**
- * Classification of a hypothesis for the purpose of choosing which
- * drag affordances to offer next to it. Currently the only non-trivial
- * value is `'equational'`, which earns the `apply` / `rewrite`
- * affordances; the type is a discriminated union to leave room for
- * future classes (e.g. distinguishing genuine equations from
- * implications, or function-typed hypotheses) without rewriting the
- * call sites.
- */
-export type HypClass = 'equational' | undefined;
+/** Hypothesis-level drag modes recognized by Blockly's `startHypDrag`.
+ * `'prop'` creates a bare `prop` block; the rest wrap the prop in the
+ * corresponding tactic block. Also the affordance names reported by
+ * the Lean-side `getGoalInfo` RPC. */
+export type HypDragMode = 'prop' | 'apply' | 'rewrite' | 'choose';
+
+/** Affordance modes that appear as labeled buttons next to a hyp. Must
+ * match the affordance strings the Lean RPC reports. The order here is
+ * the left-to-right rendering order in the infoview. */
+export const HYP_AFFORDANCES = ['apply', 'rewrite', 'choose'] as const;
 
 /** Props that control hypothesis interaction, shared across Hyp/Goal/Goals. */
 export interface HypInteractionProps {
   /** Which drag affordances are allowed on this level (e.g. 'apply', 'rewrite'). undefined = all. */
   allowedAffordances?: Set<string>;
   onHypNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
-  onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
+  onHypDragStart?: (name: string, e: React.MouseEvent, mode?: HypDragMode) => void;
   onGoalDragStart?: (e: React.MouseEvent) => void;
   onSubexprClick?: (info: SubexprInfo) => void;
 }
 
 export interface HypProps extends HypInteractionProps {
   hyp: InteractiveHypothesisBundle;
-  /** Classification of this hypothesis. Controls which drag affordances are offered. */
-  affordances?: HypClass;
+  /** Potentially-available affordances for this hyp, as reported by
+   * the server. The client intersects with `allowedAffordances`. */
+  affordances?: Set<string>;
 }
 
 /** Returns true if the name contains the inaccessible marker. */
@@ -83,15 +84,16 @@ export function Hyp({ hyp, affordances, allowedAffordances, onHypNameClick, onHy
           </>
         )}
       </span>
-      {onHypDragStart && affordances === 'equational' && (
-        <>
-          {(!allowedAffordances || allowedAffordances.has('apply')) &&
-            <span className="hyp-cell hyp-action hyp-action-apply"
-              onMouseDown={(e) => onHypDragStart(name, e, 'apply')}>apply</span>}
-          {(!allowedAffordances || allowedAffordances.has('rewrite')) &&
-            <span className="hyp-cell hyp-action hyp-action-rewrite"
-              onMouseDown={(e) => onHypDragStart(name, e, 'rewrite')}>rewrite</span>}
-        </>
+      {onHypDragStart && affordances && HYP_AFFORDANCES.map((a) =>
+        affordances.has(a) && (!allowedAffordances || allowedAffordances.has(a)) ? (
+          <span
+            key={a}
+            className={`hyp-cell hyp-action hyp-action-${a}`}
+            onMouseDown={(e) => onHypDragStart(name, e, a)}
+          >
+            {a}
+          </span>
+        ) : null
       )}
     </div>
   );

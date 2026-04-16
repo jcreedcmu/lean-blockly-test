@@ -49,17 +49,21 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
 
 // ── Public types ─────────────────────────────────────────────────────
 
-/** Per-goal information we extract server-side from the Lean Expr AST,
- * keyed within a goal by fvarId (for hypotheses) and mvarId (at the
- * goal level). Each leaf goal gets one `GoalInfo`. */
+/** Per-hypothesis info extracted server-side from the Lean `Expr` AST.
+ * `affordances` is the set of drag-and-drop affordances the Lean side
+ * deems *potentially* applicable; the client intersects it with the
+ * level's allowed-affordance set before rendering. */
+export interface HypInfo {
+  isAssumption: boolean;
+  affordances: Set<string>;
+}
+
+/** Per-goal information from the server. `hyps` is keyed by fvarId,
+ * `target.affordances` lists drag affordances for the goal target. */
 export interface GoalInfo {
   mvarId: string;
-  /** fvarId → per-hypothesis info. `isAssumption` is true when the
-   * hypothesis's type is itself a Prop (vs. a Type/Sort). */
-  hyps: Map<string, { isAssumption: boolean }>;
-  /** Syntactic features of the goal's target type. Extend this record
-   * as new classifiers are added on the Lean side. */
-  target: { isExists: boolean };
+  hyps: Map<string, HypInfo>;
+  target: { affordances: Set<string> };
 }
 
 /** mvarId → GoalInfo, for every leaf goal in the current evaluation. */
@@ -273,14 +277,17 @@ export class LevelEvaluator {
           { ctx: goal.ctx, mvarId: goal.mvarId },
           callPos,
         );
-        const hyps = new Map<string, { isAssumption: boolean }>();
+        const hyps = new Map<string, HypInfo>();
         for (const h of result.hyps) {
-          hyps.set(h.fvarId, { isAssumption: h.isAssumption });
+          hyps.set(h.fvarId, {
+            isAssumption: h.isAssumption,
+            affordances: new Set(h.affordances),
+          });
         }
         goalInfoMap.set(result.mvarId, {
           mvarId: result.mvarId,
           hyps,
-          target: { isExists: result.target.isExists },
+          target: { affordances: new Set(result.target.affordances) },
         });
       } catch (err) {
         logError(TAG, 'getGoalInfo failed:', err);
@@ -314,6 +321,6 @@ export class LevelEvaluator {
 
 interface GoalInfoResult {
   mvarId: string;
-  hyps: Array<{ fvarId: string; isAssumption: boolean }>;
-  target: { isExists: boolean };
+  hyps: Array<{ fvarId: string; isAssumption: boolean; affordances: string[] }>;
+  target: { affordances: string[] };
 }

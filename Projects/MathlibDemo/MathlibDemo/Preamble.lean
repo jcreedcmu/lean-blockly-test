@@ -15,41 +15,47 @@ import Mathlib
 
 /-
   Per-goal information extracted from the Lean `Expr` AST and served to
-  the client via the `getGoalInfo` RPC. The client uses this for two
-  things today:
+  the client via the `getGoalInfo` RPC.
 
-  * **Hypothesis classification** — `hyps` carries, per fvarId, whether
-    the hypothesis is an *assumption* (its type is a `Prop`) or an
-    *object* (its type is a `Type`/`Sort`). This drives the split
-    between the "Objects" and "Assumptions" sections of the infoview
-    and decides which drag affordances (`apply`, `rewrite`) appear.
+  For each hypothesis we report whether it is an *assumption* (a
+  `Prop`-typed hyp, e.g. `h : x = y`) or an *object* (a type-typed hyp
+  like `x : ℝ`), plus a list of the drag-and-drop affordances that
+  *could* apply to it. For the goal target we similarly report which
+  affordances could apply.
 
-  * **Target syntax classification** — `target` holds syntactic
-    features of the goal's target type (currently just `isExists`).
-    This is a principled check on the elaborated `Expr`, not a
-    pretty-printer-surface heuristic, and it drives affordances that
-    depend on what the goal "shapes up as" (e.g. the `use` drag
-    affordance for existentials).
+  The RPC reports what is *potentially* available — i.e. what the Lean
+  AST actually supports. The TypeScript client intersects this with the
+  per-level `allowedAffordances` before rendering.
 
-  Extend `TargetInfo` (and the client-side `GoalInfo` mirror) when new
-  goal-shape classifiers are needed; extending the record leaves
-  existing consumers unaffected.
+  Affordance name → where it comes from:
+
+    hypothesis:
+      "apply"    — hyp is an assumption (its type is a Prop)
+      "rewrite"  — hyp is an assumption (Prop); ideally equality-shaped,
+                   but we currently approximate via `isAssumption`
+      "choose"   — hyp is an assumption whose type is top-level `Exists`
+    target:
+      "use"      — goal's target is top-level `Exists`
+
+  Add a new affordance by extending the `Array String` returned here —
+  no need to add or migrate fields.
 -/
 open Lean Server Widget Elab in
-structure HypIsAssumption where
+structure HypInfo where
   fvarId : String
   isAssumption : Bool
+  affordances : Array String
   deriving FromJson, ToJson
 
 open Lean Server Widget Elab in
 structure TargetInfo where
-  isExists : Bool
+  affordances : Array String
   deriving FromJson, ToJson
 
 open Lean Server Widget Elab in
 structure GoalInfo where
   mvarId : String
-  hyps : Array HypIsAssumption
+  hyps : Array HypInfo
   target : TargetInfo
   deriving FromJson, ToJson
 
@@ -77,19 +83,31 @@ def getGoalInfo (p : GoalInfoParams) :
       let mvarId := MVarId.mk (parseLeanName p.mvarId)
       let mctx ← getMCtx
       let some mvarDecl := mctx.findDecl? mvarId
-        | return { mvarId := p.mvarId, hyps := #[], target := { isExists := false } }
+        | return { mvarId := p.mvarId, hyps := #[], target := { affordances := #[] } }
       withLCtx mvarDecl.lctx mvarDecl.localInstances do
-        let mut hyps : Array HypIsAssumption := #[]
+        let mut hyps : Array HypInfo := #[]
         for decl in ← getLCtx do
           if decl.isAuxDecl then continue
-          let typeOfType ← inferType decl.type
+          let hypType ← instantiateMVars decl.type
+          let typeOfType ← inferType hypType
+          let isAssumption := typeOfType.isProp
+          let mut affordances : Array String := #[]
+          if isAssumption then
+            affordances := affordances.push "apply"
+            affordances := affordances.push "rewrite"
+            if hypType.isAppOf ``Exists then
+              affordances := affordances.push "choose"
           hyps := hyps.push {
             fvarId := toString decl.fvarId.name
-            isAssumption := typeOfType.isProp
+            isAssumption
+            affordances
           }
         let target ← instantiateMVars mvarDecl.type
+        let mut targetAffordances : Array String := #[]
+        if target.isAppOf ``Exists then
+          targetAffordances := targetAffordances.push "use"
         return {
           mvarId := p.mvarId
           hyps
-          target := { isExists := target.isAppOf ``Exists }
+          target := { affordances := targetAffordances }
         }

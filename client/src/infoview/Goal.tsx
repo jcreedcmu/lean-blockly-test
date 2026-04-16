@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { InteractiveGoal, InteractiveHypothesisBundle } from '@leanprover/infoview-api';
-import { Hyp, type HypClass, type HypInteractionProps } from './Hyp';
+import { Hyp, type HypInteractionProps } from './Hyp';
 import { InteractiveCode } from './InteractiveCode';
 import type { GoalInfo } from '../LevelEvaluator';
 
@@ -67,11 +67,20 @@ function isAssumption(h: InteractiveHypothesisBundle, goalInfo?: GoalInfo): bool
   return goalInfo.hyps.get(h.fvarIds[0])?.isAssumption;
 }
 
+/** Look up the server-reported affordance set for a bundle's first fvarId. */
+function hypAffordances(
+  h: InteractiveHypothesisBundle,
+  goalInfo?: GoalInfo,
+): Set<string> | undefined {
+  if (!goalInfo || !h.fvarIds || h.fvarIds.length === 0) return undefined;
+  return goalInfo.hyps.get(h.fvarIds[0])?.affordances;
+}
+
 function renderHypGroup(
   title: string,
   hyps: InteractiveHypothesisBundle[],
   props: HypInteractionProps,
-  affordances: HypClass,
+  goalInfo: GoalInfo | undefined,
 ): React.ReactElement | null {
   if (hyps.length === 0) return null;
   return (
@@ -82,7 +91,7 @@ function renderHypGroup(
           <Hyp
             key={i}
             hyp={h}
-            affordances={affordances}
+            affordances={hypAffordances(h, goalInfo)}
             {...props}
           />
         ))}
@@ -132,8 +141,8 @@ export function Goal({
 
       {hasKindData ? (
         <>
-          {renderHypGroup('Objects', objectHyps, interactionProps, undefined)}
-          {renderHypGroup('Assumptions', assumptionHyps, interactionProps, 'equational')}
+          {renderHypGroup('Objects', objectHyps, interactionProps, goalInfo)}
+          {renderHypGroup('Assumptions', assumptionHyps, interactionProps, goalInfo)}
         </>
       ) : (
         hyps.length > 0 && (
@@ -155,7 +164,7 @@ export function Goal({
           <InteractiveCode fmt={goal.type} onSubexprClick={interactionProps.onSubexprClick} />
         </span>
         {interactionProps.onGoalDragStart &&
-          goalInfo?.target.isExists === true &&
+          goalInfo?.target.affordances.has('use') &&
           (!interactionProps.allowedAffordances || interactionProps.allowedAffordances.has('use')) && (
             <span
               className="goal-action goal-action-use"

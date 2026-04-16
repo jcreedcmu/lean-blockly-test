@@ -167,6 +167,15 @@
   background: #e3f2fd;
 }
 
+.hyp-action-choose {
+  color: #ef6c00;
+  border-color: #ffcc80;
+}
+
+.hyp-action-choose:hover {
+  background: #fff3e0;
+}
+
 .goal-action {
   margin-left: 0.5em;
 }

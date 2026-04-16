@@ -4,7 +4,7 @@ import type { BlocklyState } from './Blockly.tsx';
 
 export type LevelPermission =
   | { t: 'allowTactic'; tacticName: string }
-  | { t: 'allowAffordance'; affordance: 'rewrite' | 'apply' | 'use' }
+  | { t: 'allowAffordance'; affordance: 'rewrite' | 'apply' | 'use' | 'choose' }
   | { t: 'allowAllAffordances' };
 
 export type LevelDefinition = {
