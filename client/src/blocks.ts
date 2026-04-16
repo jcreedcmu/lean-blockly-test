@@ -99,7 +99,7 @@ function defineLemma() {
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'lemma',
-      'message0': 'theorem %1 %2   %3 %4 because %5 %6 %7',
+      'message0': 'theorem %1 %2   %3 %4 proof: %5 %6 %7',
       'args0': [
         {
           'type': 'field_label_serializable',
