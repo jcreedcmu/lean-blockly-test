@@ -100,6 +100,19 @@
   flex-direction: row;
   flex: 1;
   overflow: hidden;
+  position: relative; /* for the tutorial anchor */
+}
+
+/* Small invisible element centered in the workspace, used as the
+   Joyride spotlight target so the tutorial bubble doesn't try to
+   highlight the entire game-area. */
+.tutorial-workspace-anchor {
+  position: absolute;
+  left: 30%;
+  top: 40%;
+  width: 120px;
+  height: 80px;
+  pointer-events: none;
 }
 
 .panel-divider {

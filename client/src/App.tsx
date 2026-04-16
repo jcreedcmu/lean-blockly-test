@@ -13,6 +13,7 @@ import { leanSession } from './LeanSession';
 import { LevelEvaluator, type EvaluationResult } from './LevelEvaluator';
 import type { ProofStatus } from './FieldProofStatus';
 import ReactMarkdown from 'react-markdown';
+import { Tutorial, isTutorialDone } from './Tutorial';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -39,6 +40,11 @@ function App() {
   const visitedLevelsRef = useRef<Set<string>>(new Set());
   // Whether the "Copied!" toast is visible.
   const [showCopiedToast, setShowCopiedToast] = useState(false);
+
+  // Onboarding tutorial state. Auto-starts on first-ever level load;
+  // can also be re-triggered via the navbar button.
+  const [runTutorial, setRunTutorial] = useState(false);
+
 
   const blocklyRef = useRef<BlocklyHandle>(null);
   const [goalsPanelWidth, setGoalsPanelWidth] = useState(300);
@@ -211,6 +217,13 @@ function App() {
     }
   }, [nav]);
 
+  // Auto-start the tutorial on the user's very first level load.
+  useEffect(() => {
+    if (nav.kind !== 'playing') return;
+    if (isTutorialDone()) return;
+    setRunTutorial(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function enterLevel(worldId: string, levelIndex: number) {
     location.hash = navToHash({ kind: 'playing', worldId, levelIndex });
 
@@ -341,6 +354,7 @@ function App() {
     : evaluation?.complete ?? false;
 
   return <div className="app-root">
+    <Tutorial run={runTutorial} onDone={() => setRunTutorial(false)} />
     <div className="navbar">
       <div className="navbar-left">
         <button className="navbar-btn" onClick={goBack} title="Back to worlds">&#x25C0;</button>
@@ -356,6 +370,11 @@ function App() {
           onClick={copyStandaloneSource}
           title="Copy standalone Lean source to clipboard"
         >&#x1F41B;</button>
+        <button
+          className="navbar-btn"
+          onClick={() => setRunTutorial(true)}
+          title="Start tutorial"
+        >&#x2753;</button>
         <span className="navbar-level-label">
           {currentWorld.name} &mdash; {currentLevel.name} ({nav.levelIndex + 1}/{currentWorld.levels.length})
         </span>
@@ -382,6 +401,9 @@ function App() {
         initialData={levelStates[nav.worldId][nav.levelIndex]}
         allowedBlocks={allowedBlocks}
       />
+      {/* Tiny anchor for the tutorial spotlight — targets a small region
+          in the center of the workspace instead of the entire game-area. */}
+      <div className="tutorial-workspace-anchor" />
       <div className="panel-divider" onMouseDown={onDividerMouseDown} />
       <div className="goals-panel" style={{ width: goalsPanelWidth }}>
         <div className="proof-status">
