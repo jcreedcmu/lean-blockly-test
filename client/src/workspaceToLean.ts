@@ -146,7 +146,6 @@ function blockToChunks(
     case 'tactic_apply':
     case 'tactic_use':
     case 'tactic_unfold':
-    case 'tactic_specialize':
     case 'tactic_cases':
     case 'tactic_induction':
     case 'tactic_obtain': {
@@ -175,13 +174,10 @@ function blockToChunks(
       break;
     }
 
-    // Both variadic-specialize variants emit the same Lean:
-    // `specialize <HYP> <ARG0> <ARG1> …`. The two block types differ
-    // only in the UX for editing arity (mutator vs +/- buttons); the
-    // serialized shape — HYP + a dense `ARG0..ARGn` run of inputs —
-    // is identical.
-    case 'tactic_specialize1':
-    case 'tactic_specialize2': {
+    // Variadic specialize: `specialize <HYP> <ARG0> <ARG1> …`. Inputs
+    // beyond HYP are a dense `ARG0..ARGn` run produced by the inline
+    // +/- buttons on the block.
+    case 'tactic_specialize': {
       const hypChunks = blockToChunks(inputs['HYP']?.block, '');
       const argChunks: CodeChunk[] = [];
       for (let i = 0; inputs[`ARG${i}`]; i++) {

@@ -125,7 +125,7 @@ export function defineBlocks() {
   defineProposition();
   defineTactics();
   defineMisc();
-  defineSpecializeVariants();
+  defineSpecialize();
 }
 
 type TacticProps = { name: string, msg: string };
@@ -135,7 +135,6 @@ export const singleArgTactics: TacticProps[] = [
   { name: 'exact', msg: 'exactly' },
   { name: 'intro', msg: 'intro' },
   { name: 'use', msg: 'use' },
-  { name: 'specialize', msg: 'specialize' },
 ];
 
 function defineMisc() {
@@ -484,20 +483,20 @@ function defineTactics() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Variable-arity specialize: two exploratory variants.
+// Variable-arity `specialize` block.
 //
-//   tactic_specialize1  — mutator variant. A gear icon opens a
-//                         popup mini-workspace where you drag
-//                         `arg` item blocks in/out to change arity.
-//   tactic_specialize2  — plus/minus button variant. Inline `+` and
-//                         `−` field buttons append/remove a value
-//                         input directly on the block.
+// Matches Lean's `specialize h x y z` syntax: a required hypothesis
+// (HYP) followed by zero or more arguments (ARG0..ARGn). Inline `+`
+// and `−` field buttons grow/shrink the arg list in place — no
+// gear-icon popup.
 //
-// Both blocks share the same codegen (`specialize HYP ARG0 ARG1 …`)
-// and the same input scheme (HYP + dynamically-added ARG0..ARGn).
+// Serialization (`saveExtraState` / `loadExtraState`) is provided via
+// Blockly's mutator API with no decompose/compose, which is the one
+// way to legally install those "mutation property" methods without
+// also getting a mutator-dialog icon.
 // ─────────────────────────────────────────────────────────────────────
 
-// Inline SVG data URIs for the +/- buttons on tactic_specialize2.
+// Inline SVG data URIs for the +/- buttons.
 const PLUS_ICON_URI = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14">' +
   '<rect width="14" height="14" rx="2" fill="white" stroke="#666"/>' +
@@ -511,105 +510,18 @@ const MINUS_ICON_URI = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   '</svg>'
 );
 
-// Mixin applied to tactic_specialize1 via Blockly's mutator system.
-// Provides saveExtraState/loadExtraState/decompose/compose/
-// saveConnections — the standard mutator protocol. `updateShape_` is
-// the private helper that actually adds/removes ARG inputs.
-//
-// `any` casts are plentiful here because mutator mixins receive a
-// block `this` with a shape that evolves at runtime; spelling that
-// out precisely in TypeScript isn't worth the noise.
-const SPECIALIZE1_MIXIN = {
-  saveExtraState: function(this: { argCount_: number }) {
-    return { argCount: this.argCount_ };
-  },
-  loadExtraState: function(
-    this: { argCount_: number; updateShape_: () => void },
-    state: { argCount?: number },
-  ) {
-    this.argCount_ = state?.argCount ?? 0;
-    this.updateShape_();
-  },
-  decompose: function(this: { argCount_: number }, workspace: blockly.Workspace) {
-    const container = workspace.newBlock('specialize1_container') as blockly.BlockSvg;
-    container.initSvg();
-    let connection = container.getInput('STACK')!.connection!;
-    for (let i = 0; i < this.argCount_; i++) {
-      const item = workspace.newBlock('specialize1_item') as blockly.BlockSvg;
-      item.initSvg();
-      connection.connect(item.previousConnection!);
-      connection = item.nextConnection!;
-    }
-    return container;
-  },
-  compose: function(
-    this: blockly.Block & { argCount_: number; updateShape_: () => void },
-    containerBlock: blockly.Block,
-  ) {
-    let itemBlock = containerBlock.getInputTargetBlock('STACK');
-    const connections: (blockly.Connection | null)[] = [];
-    while (itemBlock && !itemBlock.isInsertionMarker()) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      connections.push((itemBlock as any).valueConnection_ ?? null);
-      itemBlock = itemBlock.getNextBlock();
-    }
-    // Disconnect any children whose connections weren't preserved.
-    for (let i = 0; i < this.argCount_; i++) {
-      const conn = this.getInput(`ARG${i}`)?.connection?.targetConnection;
-      if (conn && !connections.includes(conn)) conn.disconnect();
-    }
-    this.argCount_ = connections.length;
-    this.updateShape_();
-    // Reconnect preserved children.
-    for (let i = 0; i < connections.length; i++) {
-      const conn = connections[i];
-      if (conn) this.getInput(`ARG${i}`)?.connection?.connect(conn);
-    }
-  },
-  saveConnections: function(this: blockly.Block, containerBlock: blockly.Block) {
-    let itemBlock = containerBlock.getInputTargetBlock('STACK');
-    let i = 0;
-    while (itemBlock) {
-      const input = this.getInput(`ARG${i}`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (itemBlock as any).valueConnection_ = input?.connection?.targetConnection ?? null;
-      itemBlock = itemBlock.getNextBlock();
-      i++;
-    }
-  },
-  updateShape_: function(this: blockly.Block & { argCount_: number }) {
-    // Remove inputs beyond the current argCount.
-    let i = 0;
-    while (this.getInput(`ARG${i}`)) {
-      if (i >= this.argCount_) this.removeInput(`ARG${i}`);
-      i++;
-    }
-    // Add missing inputs up to argCount.
-    for (let j = 0; j < this.argCount_; j++) {
-      if (!this.getInput(`ARG${j}`)) {
-        this.appendValueInput(`ARG${j}`).setCheck('proposition');
-      }
-    }
-  },
-};
-
-// Helper shared between specialize2's init and the mutator mixin.
-// We always append new ARG slots at the end; the JSON places
-// CONTROLS immediately after HYP, so new args naturally land to the
-// right of the +/− buttons.
-function appendSpecialize2ArgInput(
+// New ARG slots are always appended at the tail. `message0` places
+// CONTROLS (the +/- buttons) immediately after HYP, so appending puts
+// new args to the right of the buttons.
+function appendSpecializeArgInput(
   block: blockly.Block & { argCount_: number },
   i: number,
 ) {
   block.appendValueInput(`ARG${i}`).setCheck('proposition');
 }
 
-// Mixin applied to tactic_specialize2 via Blockly's mutator API.
-// Blockly prohibits a plain extension from installing saveExtraState
-// / loadExtraState ("mutation properties changed"), but allows it
-// when registered as a mutator — even one without decompose/compose,
-// which means no gear icon / popup mini-workspace is added.
-const SPECIALIZE2_MIXIN = {
+// Mixin applied via Blockly's mutator API.
+const SPECIALIZE_MIXIN = {
   saveExtraState: function(this: { argCount_: number }) {
     return { argCount: this.argCount_ };
   },
@@ -622,7 +534,7 @@ const SPECIALIZE2_MIXIN = {
         ? Number((state as { argCount?: number }).argCount ?? 0)
         : 0;
     while (this.argCount_ < target) {
-      appendSpecialize2ArgInput(this, this.argCount_);
+      appendSpecializeArgInput(this, this.argCount_);
       this.argCount_ += 1;
     }
     while (this.argCount_ > target) {
@@ -632,9 +544,8 @@ const SPECIALIZE2_MIXIN = {
   },
 };
 
-// opt_helperFn for the specialize2 mutator: runs on every block init,
-// zeroing argCount_ and attaching the +/- buttons in CONTROLS.
-function specialize2Init(this: blockly.Block) {
+// Runs on every block init: zero argCount_ and wire +/- buttons.
+function specializeInit(this: blockly.Block) {
   const self = this as blockly.Block & { argCount_: number };
   self.argCount_ = 0;
 
@@ -642,7 +553,7 @@ function specialize2Init(this: blockly.Block) {
     PLUS_ICON_URI, 14, 14, '+',
     () => {
       const i = self.argCount_;
-      appendSpecialize2ArgInput(self, i);
+      appendSpecializeArgInput(self, i);
       self.argCount_ = i + 1;
     },
   );
@@ -660,52 +571,11 @@ function specialize2Init(this: blockly.Block) {
     .appendField(minusBtn, 'MINUS');
 }
 
-function defineSpecializeVariants() {
+function defineSpecialize() {
   blockly.defineBlocksWithJsonArray([
-    // Main block for the mutator variant. The gear icon is added
-    // automatically by Blockly when `mutator: '…'` is set.
     {
-      'type': 'tactic_specialize1',
-      'message0': 'specialize1 %1',
-      'args0': [
-        { 'type': 'input_value', 'name': 'HYP', 'check': 'proposition', 'align': 'LEFT' },
-      ],
-      'inputsInline': true,
-      'previousStatement': 'tactic',
-      'nextStatement': 'tactic',
-      'style': 'logic_blocks',
-      'tooltip': 'specialize (mutator variant)',
-      'helpUrl': 'specialize',
-      'mutator': 'specialize1_mutator',
-    },
-    // Top-level block for specialize1's mini-workspace. Holds a
-    // statement stack of `specialize1_item` blocks; adding/removing
-    // items on this stack drives `compose`.
-    {
-      'type': 'specialize1_container',
-      'message0': 'arguments %1 %2',
-      'args0': [
-        { 'type': 'input_dummy' },
-        { 'type': 'input_statement', 'name': 'STACK' },
-      ],
-      'style': 'logic_blocks',
-      'tooltip': 'Drag `arg` blocks in or out to set the argument count.',
-    },
-    // One item in the specialize1 mini-workspace; each represents
-    // exactly one ARG value input on the main block.
-    {
-      'type': 'specialize1_item',
-      'message0': 'arg',
-      'previousStatement': null,
-      'nextStatement': null,
-      'style': 'logic_blocks',
-      'tooltip': 'One argument slot on the parent specialize block.',
-    },
-    // Main block for the +/- variant. CONTROLS holds the inline
-    // buttons that grow/shrink the arg list.
-    {
-      'type': 'tactic_specialize2',
-      'message0': 'specialize2 %1 %2',
+      'type': 'tactic_specialize',
+      'message0': 'specialize %1 %2',
       'args0': [
         { 'type': 'input_value', 'name': 'HYP', 'check': 'proposition', 'align': 'LEFT' },
         { 'type': 'input_dummy', 'name': 'CONTROLS' },
@@ -714,33 +584,19 @@ function defineSpecializeVariants() {
       'previousStatement': 'tactic',
       'nextStatement': 'tactic',
       'style': 'logic_blocks',
-      'tooltip': 'specialize (+/− variant)',
+      'tooltip': 'specialize',
       'helpUrl': 'specialize',
-      'mutator': 'specialize2_buttons',
+      'mutator': 'specialize_buttons',
     },
   ]);
 
-  // Register mutator for specialize1. `opt_helperFn` runs on every
-  // block init and sets the initial arity; `opt_blockList` is the
-  // list of block types Blockly allows into the mini-workspace.
-  if (!blockly.Extensions.isRegistered('specialize1_mutator')) {
+  if (!blockly.Extensions.isRegistered('specialize_buttons')) {
+    // Register as a mutator (no decompose/compose → no gear icon) so
+    // we can legally install saveExtraState / loadExtraState.
     blockly.Extensions.registerMutator(
-      'specialize1_mutator',
-      SPECIALIZE1_MIXIN,
-      function(this: { argCount_: number }) { this.argCount_ = 0; },
-      ['specialize1_item'],
-    );
-  }
-  if (!blockly.Extensions.isRegistered('specialize2_buttons')) {
-    // Register as a mutator so we can legally install
-    // saveExtraState / loadExtraState (Blockly refuses to let plain
-    // extensions install those). No decompose/compose in the mixin
-    // means Blockly skips the gear icon entirely — we just get the
-    // serialization hooks and the helper-fn button setup.
-    blockly.Extensions.registerMutator(
-      'specialize2_buttons',
-      SPECIALIZE2_MIXIN,
-      specialize2Init,
+      'specialize_buttons',
+      SPECIALIZE_MIXIN,
+      specializeInit,
     );
   }
 }
