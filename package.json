@@ -58,6 +58,7 @@
     "react-markdown": "^10.1.0",
     "react-split": "^2.0.14",
     "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "three": "^0.182.0",
     "vscode-ws-jsonrpc": "^3.4.0",
