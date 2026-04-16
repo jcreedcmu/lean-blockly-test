@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture6_3",
   statement: `(x y : ℝ) (hx : x = 2) (hy : y = 3) :
     x = 3 ∨ y = 3`,
+  objects: "(x y : ℝ)",
+  assumptions: "(hx : x = 2) (hy : y = 3)",
+  goal: "x = 3 ∨ y = 3",
   introduction: `
 # Level 3: Left and Right - Making Choices in Mathematics
 

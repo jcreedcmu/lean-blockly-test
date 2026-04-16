@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `(a b c : ℕ → ℝ) (L M : ℝ) (hL : L ≠ 0) (hM : M ≠ 0) (ha : SeqLim a L)
     (hb : SeqLim b M) (hc : ∀ n, c n = a n * b n):
     SeqLim c (L * M)`,
+  objects: "(a b c : ℕ → ℝ) (L M : ℝ)",
+  assumptions: "(hL : L ≠ 0) (hM : M ≠ 0) (ha : SeqLim a L) (hb : SeqLim b M) (hc : ∀ n, c n = a n * b n)",
+  goal: "SeqLim c (L * M)",
   introduction: `
 # Level 1: Big Boss - Product of Sequences
 

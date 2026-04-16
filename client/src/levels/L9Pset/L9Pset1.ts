@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L9Pset_1",
   statement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) :
     SeqBdd a`,
+  objects: "(a : ℕ → ℝ) (L : ℝ)",
+  assumptions: "(ha : SeqLim a L)",
+  goal: "SeqBdd a",
   introduction: `# Problem 1
 
 Prove the same theorem as \`Bdd_of_ConvNonzero\`, but without the assumption that \`L ≠ 0\`. (Hint: break

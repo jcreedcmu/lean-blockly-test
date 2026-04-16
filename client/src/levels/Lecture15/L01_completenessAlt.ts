@@ -13,6 +13,9 @@ const level: LevelSource = {
   (hx : ∀ ε > 0, ∃ N, ∀ n ≥ N, ∀ m ≥ n, SeqDiffBy (q m) (q n) ε) :
   ∃ (y : ℕ → ℚ), (IsCauchy y) ∧
   ∀ ε > 0, ∃ N, ∀ n ≥ N, SeqDiffBy (q n) y ε`,
+  objects: "(q : ℕ → ℕ → ℚ)",
+  assumptions: "(hq : ∀ n, IsCauchy (q n)) (hx : ∀ ε > 0, ∃ N, ∀ n ≥ N, ∀ m ≥ n, SeqDiffBy (q m) (q n) ε)",
+  goal: "∃ (y : ℕ → ℚ), (IsCauchy y) ∧ ∀ ε > 0, ∃ N, ∀ n ≥ N, SeqDiffBy (q n) y ε",
   introduction: `
 # Level 1 **Big Boss:**  Completeness!
 

@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `(a b c : ℕ → ℝ) (L M : ℝ)
     (ha : SeqLim a L) (hb : SeqLim b M) (hc : ∀ n, c n = a n + b n) :
     SeqLim c (L + M)`,
+  objects: "(a b c : ℕ → ℝ) (L M : ℝ)",
+  assumptions: "(ha : SeqLim a L) (hb : SeqLim b M) (hc : ∀ n, c n = a n + b n)",
+  goal: "SeqLim c (L + M)",
   introduction: `
 # Level 1 **Big Boss**: Adding Convergent Sequences
 

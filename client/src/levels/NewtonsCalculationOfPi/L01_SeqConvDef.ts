@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "The Convergence of a Sequence",
   theoremName: "NewtonsCalculationOfPi_1",
   statement: "(a : ℕ → ℝ) (L : ℝ) (a_const : ∀ n, a n = L) : SeqLim a L",
+  objects: "(a : ℕ → ℝ) (L : ℝ)",
+  assumptions: "(a_const : ∀ n, a n = L)",
+  goal: "SeqLim a L",
   introduction: `
 # Level 1: The Main Definition
 

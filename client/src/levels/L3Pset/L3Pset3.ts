@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L3Pset_3",
   statement: `(a : ℕ → ℝ) (ha : ∀ n, a n = 1 / n ^ 2) :
     ∃ L, SeqLim a L`,
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha : ∀ n, a n = 1 / n ^ 2)",
+  goal: "∃ L, SeqLim a L",
   introduction: `# Problem 3
 
 Determine what the limit of the sequence \`1 / n ^ 2\` is, and prove it.

@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L10Pset_1",
   statement: `(a b c : ℕ → ℝ) (hc : ∀ n, c n = if Even n then a (n / 2) else b ((n - 1) / 2))
         (cConv : SeqConv c) : ∃ L, SeqLim a L`,
+  objects: "(a b c : ℕ → ℝ)",
+  assumptions: "(hc : ∀ n, c n = if Even n then a (n / 2) else b ((n - 1) / 2)) (cConv : SeqConv c)",
+  goal: "∃ L, SeqLim a L",
   introduction: `
 # Problem 1:
 

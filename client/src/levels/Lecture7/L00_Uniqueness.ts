@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture7_1",
   statement: `(a : ℕ → ℝ) (L M : ℝ) (aToL : SeqLim a L) (aToM : SeqLim a M) :
     L = M`,
+  objects: "(a : ℕ → ℝ) (L M : ℝ)",
+  assumptions: "(aToL : SeqLim a L) (aToM : SeqLim a M)",
+  goal: "L = M",
   introduction: `
 # Level 1: Uniqueness of Limits
 

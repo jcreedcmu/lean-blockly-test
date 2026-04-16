@@ -11,6 +11,7 @@ const level: LevelSource = {
   theoremName: "Lecture20_1",
   statement: `:
     ∃ L, FunLimAt (fun x ↦ (x^2 - 1)/(x - 1)) L 1`,
+  goal: "∃ L, FunLimAt (fun x ↦ (x^2 - 1)/(x - 1)) L 1",
   introduction: `
 # Level 1: Introduction to Function Limits
 

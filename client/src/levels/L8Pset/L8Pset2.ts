@@ -10,6 +10,7 @@ const level: LevelSource = {
   name: "Problem 2",
   theoremName: "L8Pset_2",
   statement: ": ∃ N, ∀ n, (n + N) ^ 2 ≤ 2 ^ (n + N)",
+  goal: "∃ N, ∀ n, (n + N) ^ 2 ≤ 2 ^ (n + N)",
   introduction: `# Problem 2
 
 We proved in class that \`n < 2 ^ n\`. It's even true that \`n ^ 2 ≤ 2 ^ n\`, but only for \`n\` sufficiently large (how large?).

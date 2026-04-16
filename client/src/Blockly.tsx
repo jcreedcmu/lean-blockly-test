@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as blockly from 'blockly'
 import type { ContextMenuRegistry, BlockSvg } from 'blockly'
 import * as blocks from './blocks'
+import { FieldTheoremStatement } from './blocks'
 import { toolbox as defaultToolbox, filterToolbox } from './toolbox'
 import { workspaceToLean, WorkspaceToLeanResult, SourceInfo } from './workspaceToLean'
 import { FieldProofStatus, ProofStatus } from './FieldProofStatus'
@@ -23,6 +24,11 @@ export type BlocklyHandle = {
   saveWorkspace: () => BlocklyState | null;
   updateProofStatuses: (statuses: Map<string, ProofStatus>) => void;
   clearProofStatuses: () => void;
+  /** For each entry, look up the lemma block whose THEOREM_NAME matches
+   * the key and set its THEOREM_DECLARATION field's display override.
+   * The override can be a multi-line string (rendered with tspans).
+   * Pass `null` to restore the original serialized declaration text. */
+  setTheoremDisplays: (displays: Map<string, string | null>) => void;
   /** Start a drag originating from a hypothesis. If `affordance` is
    * omitted, drags a bare `prop` block carrying the hyp name. Otherwise
    * wraps the hyp name in the tactic block corresponding to the
@@ -205,6 +211,19 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
               field.setStatus('unknown');
             }
           }
+        }
+      }
+    },
+    setTheoremDisplays: (displays: Map<string, string | null>) => {
+      if (!wsRef.current) return;
+      for (const block of wsRef.current.getAllBlocks(false)) {
+        if (block.type !== 'lemma') continue;
+        const theoremName = block.getFieldValue('THEOREM_NAME');
+        if (typeof theoremName !== 'string') continue;
+        if (!displays.has(theoremName)) continue;
+        const field = block.getField('THEOREM_DECLARATION');
+        if (field instanceof FieldTheoremStatement) {
+          field.setDisplayOverride(displays.get(theoremName) ?? null);
         }
       }
     },

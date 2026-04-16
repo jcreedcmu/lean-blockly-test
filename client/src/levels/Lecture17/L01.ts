@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture17_1",
   statement: `LeibnizSeriesFinite {a : ℕ → ℝ} (ha : ∀ n, a n = 1 / ((n + 1) * (n + 2))) :
 ∀ n, ∑ k ∈ range n, a k = 1 - 1 / (n + 1)`,
+  objects: "{a : ℕ → ℝ}",
+  assumptions: "(ha : ∀ n, a n = 1 / ((n + 1) * (n + 2)))",
+  goal: "∀ n, ∑ k ∈ range n, a k = 1 - 1 / (n + 1)",
   introduction: `
 # Level 1: Leibniz Series — Partial Sums
 

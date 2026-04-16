@@ -10,6 +10,7 @@ const level: LevelSource = {
   name: "The intro tactic",
   theoremName: "RealAnalysisStory_6",
   statement: ": ∀ ε : ℝ, ε > 0 → (ε + 1)^2 = (ε + 1)^2",
+  goal: "∀ ε : ℝ, ε > 0 → (ε + 1)^2 = (ε + 1)^2",
   permissions: [
     {t: "allowTactic", tacticName: "prop"},
     {t: "allowTactic", tacticName: "tactic_apply"},

@@ -9,10 +9,17 @@ export type LevelPermission =
 
 export type LevelDefinition = {
   name: string;
+  theoremName: string;
   initial: BlocklyState;
   permissions?: LevelPermission[];
   introduction?: string;
   conclusion?: string;
+  /** Pre-formatted multi-line rendering of the theorem signature split
+   * into Objects / Assumptions / Goal sections, joined with `\n`. Used
+   * as the lemma block's display override; the FieldTheoremStatement
+   * renders `\n`s as actual line breaks via `<tspan>`s. Absent when the
+   * level supplies none of the three structured fields. */
+  display?: string;
 };
 
 /** Extract the list of allowed block types from permissions, or undefined if unrestricted. */
@@ -62,7 +69,16 @@ export type LevelSource = {
   level: number;
   name: string;
   theoremName: string;
+  /** The true Lean declaration, fed to the compiler via workspaceToLean. */
   statement: string;
+  /** Optional user-visible decomposition of `statement`. These are
+   * hand-authored today; a future publish step could generate them from
+   * Lean itself (see `getDeclSignature` sketch). When any of the three
+   * is present, the lemma block shows a multi-line Objects / Assumptions
+   * / Goal view instead of the raw `statement` string. */
+  objects?: string;
+  assumptions?: string;
+  goal?: string;
   introduction?: string;
   conclusion?: string;
   permissions?: LevelPermission[];
@@ -87,13 +103,36 @@ function makeLevelState(theoremName: string, declaration: string): BlocklyState 
   };
 }
 
+/** Render the decomposed-signature sections with the label on its own
+ * line and the content indented below it:
+ *
+ *     Objects:
+ *       (x : ℝ)
+ *     Assumptions:
+ *       (h : x = x)
+ *     Goal:
+ *       x^2 - 1 = …
+ *
+ * Returns undefined if the source supplied none of the three sections.
+ */
+function formatDisplay(src: LevelSource): string | undefined {
+  if (!src.objects && !src.assumptions && !src.goal) return undefined;
+  const lines: string[] = [];
+  if (src.objects)     lines.push('Objects:',     `  ${src.objects}`);
+  if (src.assumptions) lines.push('Assumptions:', `  ${src.assumptions}`);
+  if (src.goal)        lines.push('Goal:',        `  ${src.goal}`);
+  return lines.join('\n');
+}
+
 function levelSourceToDefinition(src: LevelSource): LevelDefinition {
   return {
     name: src.name,
+    theoremName: src.theoremName,
     initial: makeLevelState(src.theoremName, src.statement),
     permissions: src.permissions,
     introduction: src.introduction,
     conclusion: src.conclusion,
+    display: formatDisplay(src),
   };
 }
 

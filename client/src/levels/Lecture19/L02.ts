@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `EventuallyCovers_of_Rearrangement
     {σ : ℕ → ℕ} (hσ : Rearrangement σ) (M : ℕ) :
     ∃ N, ∀ n ≥ N, (range M) ⊆ image σ (range n)`,
+  objects: "{σ : ℕ → ℕ} (M : ℕ)",
+  assumptions: "(hσ : Rearrangement σ)",
+  goal: "∃ N, ∀ n ≥ N, (range M) ⊆ image σ (range n)",
   introduction: `
 # Level 2: Rearrangements
 

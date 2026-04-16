@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `StrongCauchy_of_AbsSeriesConv
     {a : ℕ → ℝ} (ha : AbsSeriesConv a) {ε : ℝ} (hε : ε > 0) :
     ∃ N, ∀ (S : Finset ℕ), (∀ k ∈ S, k ≥ N) → ∑ k ∈ S, |a k| < ε`,
+  objects: "{a : ℕ → ℝ} (ha : AbsSeriesConv a) {ε : ℝ}",
+  assumptions: "(hε : ε > 0)",
+  goal: "∃ N, ∀ (S : Finset ℕ), (∀ k ∈ S, k ≥ N) → ∑ k ∈ S, |a k| < ε",
   introduction: `
 # Level 1: More Flexible Cauchy
 

@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture6_2",
   statement: `(x y : ℝ) (hx : x = 2) (hy : y = 3) :
     x = 2 ∧ y = 3`,
+  objects: "(x y : ℝ)",
+  assumptions: "(hx : x = 2) (hy : y = 3)",
+  goal: "x = 2 ∧ y = 3",
   introduction: `
 # Level 2: Split Ands - Breaking Down Complex Goals
 

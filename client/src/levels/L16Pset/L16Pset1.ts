@@ -10,6 +10,8 @@ const level: LevelSource = {
   name: "Problem 1",
   theoremName: "L16Pset_1",
   statement: "(x : ℝ) (n : ℕ) : (1 - x) * ∑ k ∈ range n, x ^ k = 1 - x ^ n",
+  objects: "(x : ℝ) (n : ℕ)",
+  goal: "(1 - x) * ∑ k ∈ range n, x ^ k = 1 - x ^ n",
   introduction: `
 # Problem 1: Finite geometric series
 

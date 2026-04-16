@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `(a : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L) (b : ℕ →
 ℝ) (bEqAbsa : ∀ n, b n = |a n|) :
     SeqLim b |L|`,
+  objects: "(a : ℕ → ℝ) (L : ℝ) (b : ℕ → ℝ)",
+  assumptions: "(aToL : SeqLim a L) (bEqAbsa : ∀ n, b n = |a n|)",
+  goal: "SeqLim b |L|",
   introduction: `
 # Level 3: Continuity of Absolute Value—Sequences of Absolute Values
 

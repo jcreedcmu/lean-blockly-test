@@ -11,6 +11,7 @@ const level: LevelSource = {
   theoremName: "L22Pset_3",
   statement: `: ∃ g : ℝ → ℝ,
   FunDeriv (fun x ↦ x ^ 3) g`,
+  goal: "∃ g : ℝ → ℝ, FunDeriv (fun x ↦ x ^ 3) g",
   introduction: `
 # Level 3: Differentiability Exercise
 

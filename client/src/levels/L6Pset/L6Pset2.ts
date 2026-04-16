@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L6Pset_2",
   statement: `(x y z : ℝ) (h : x = 2 ∧ y = 3 ∧ z = 4)
   : z = 4`,
+  objects: "(x y z : ℝ)",
+  assumptions: "(h : x = 2 ∧ y = 3 ∧ z = 4)",
+  goal: "z = 4",
   introduction: `# Problem 2
 
 You know that \`h : x = 2 ∧ y = 3 ∧ z = 4\`.

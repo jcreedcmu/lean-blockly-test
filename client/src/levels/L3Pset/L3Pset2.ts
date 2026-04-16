@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L3Pset_2",
   statement: `(a : ℕ → ℝ) (ha : ∀ n, a n = (n + 1) / n) :
     ∃ L, SeqLim a L`,
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha : ∀ n, a n = (n + 1) / n)",
+  goal: "∃ L, SeqLim a L",
   introduction: `# Problem 2
 
 Prove that the sequence \`(n + 1) / n\` has a limit, say, \`L\`, and determine what it is.

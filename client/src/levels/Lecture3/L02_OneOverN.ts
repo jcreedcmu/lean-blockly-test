@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "First Real Limit",
   theoremName: "Lecture3_2",
   statement: "(a : ℕ → ℝ) (ha : ∀ n, a n = 1 / n) : SeqLim a 0",
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha : ∀ n, a n = 1 / n)",
+  goal: "SeqLim a 0",
   introduction: `
 # Level 2: Our First Real Limit
 

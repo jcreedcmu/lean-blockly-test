@@ -11,6 +11,7 @@ const level: LevelSource = {
   theoremName: "Lecture21_4",
   statement: `:
     FunCont (fun x ↦ x^2 - 1)`,
+  goal: "FunCont (fun x ↦ x^2 - 1)",
   introduction: `
 # Level 4: Continuous Functions
 

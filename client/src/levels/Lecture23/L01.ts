@@ -15,6 +15,9 @@ const level: LevelSource = {
     (hunif : ∀ x ∈ Icc a b, ∀ y ∈ Icc a b, |y - x| < δ → |f y - f x| < ε)
     (hfine : 2 * (b - a) / n < δ) :
   |RiemannSum f a b (n * k) - RiemannSum f a b n| < (b - a) * ε`,
+  objects: "(f : ℝ → ℝ) {a b : ℝ} {n k : ℕ} {ε δ : ℝ}",
+  assumptions: "(hab : a < b) (hn : n ≠ 0) (hk : k ≠ 0) (hε : ε > 0) (hδ : δ > 0) (hunif : ∀ x ∈ Icc a b, ∀ y ∈ Icc a b, |y - x| < δ → |f y - f x| < ε) (hfine : 2 * (b - a) / n < δ)",
+  goal: "|RiemannSum f a b (n * k) - RiemannSum f a b n| < (b - a) * ε",
   introduction: `
 # Level 1: Riemann Sum Refinement
 

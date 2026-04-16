@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "Least Upper Bound Property",
   theoremName: "Lecture24_3",
   statement: "HasLUB_of_BddNonempty {S : Set ℝ} (hS : S.Nonempty) {M : ℝ} (hM : IsUB S M) : ∃ L, IsLUB S L",
+  objects: "{S : Set ℝ} {M : ℝ}",
+  assumptions: "(hS : S.Nonempty) (hM : IsUB S M)",
+  goal: "∃ L, IsLUB S L",
   introduction: `
 # Level 3: Least Upper Bound Property
 

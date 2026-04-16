@@ -11,6 +11,7 @@ const level: LevelSource = {
   theoremName: "L1Pset_2",
   statement: `:
  ∃ c, ∀ x y : ℝ, x ^ 2 + y ^ 2 = 2 → x * y = 1 → (x + y) ^ 2 = c`,
+  goal: "∃ c, ∀ x y : ℝ, x ^ 2 + y ^ 2 = 2 → x * y = 1 → (x + y) ^ 2 = c",
   introduction: `
 # Problem 2
 

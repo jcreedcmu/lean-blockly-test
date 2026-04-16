@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L4Pset_1",
   statement: `(a : ℕ → ℝ) (ha2n : ∀ n, a (2 * n) = 3 - 1 / n) (ha2np1 : ∀ n, a (2 * n + 1) = 1 + 1 / n)
   : ¬ SeqConv a`,
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha2n : ∀ n, a (2 * n) = 3 - 1 / n) (ha2np1 : ∀ n, a (2 * n + 1) = 1 + 1 / n)",
+  goal: "¬ SeqConv a",
   introduction: `# Problem 1
 
 Let \`a (n)\` be a sequence that alternates between

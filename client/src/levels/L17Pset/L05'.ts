@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L17Pset_2",
   statement: `MonotoneLimitBound {a : ℕ → ℝ} (amono : Monotone a) {L : ℝ} (ha : SeqLim a L) : ∀ n,
   a n ≤ L`,
+  objects: "{a : ℕ → ℝ} {L : ℝ}",
+  assumptions: "(amono : Monotone a) (ha : SeqLim a L)",
+  goal: "∀ n, a n ≤ L",
   introduction: `
 # Level 2: Monotone Limit Bound
 

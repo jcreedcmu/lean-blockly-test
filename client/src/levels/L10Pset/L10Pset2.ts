@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L10Pset_1",
   statement: `(a b c : ℕ → ℝ) (ha : SeqLim a 0) (hb : SeqBdd b) (hc : ∀ n, c n = a n * b n)
       : SeqLim c 0`,
+  objects: "(a b c : ℕ → ℝ)",
+  assumptions: "(ha : SeqLim a 0) (hb : SeqBdd b) (hc : ∀ n, c n = a n * b n)",
+  goal: "SeqLim c 0",
   introduction: `
 # Problem 1:
 

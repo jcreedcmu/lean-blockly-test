@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture21_3",
   statement: `(f g : ℝ → ℝ) (hf : ∀ x, f x = x ^ 2 - 1) (hg : ∀ x, g x = 2 * x) :
     FunDeriv f g`,
+  objects: "(f g : ℝ → ℝ)",
+  assumptions: "(hf : ∀ x, f x = x ^ 2 - 1) (hg : ∀ x, g x = 2 * x)",
+  goal: "FunDeriv f g",
   introduction: `
 # Level 3: Derivatives Everywhere
 

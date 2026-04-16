@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `(a : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L) (LneZero : L ≠ 0) (b : ℕ →
 ℝ) (bEqInva : ∀ n, b n = 1 / a n) :
     SeqLim b (1 / L)`,
+  objects: "(a : ℕ → ℝ) (L : ℝ) (b : ℕ → ℝ)",
+  assumptions: "(aToL : SeqLim a L) (LneZero : L ≠ 0) (bEqInva : ∀ n, b n = 1 / a n)",
+  goal: "SeqLim b (1 / L)",
   introduction: `
 # Level 4: Reciprocals of Convergent Sequences — Big Boss Level
 

@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "Problem 2",
   theoremName: "L12Pset_2",
   statement: "(a : ℕ → ℝ) (ha : ∀ n, a n = 1 / n) : IsCauchy a ∧ ¬ Monotone a ∧ ¬ Antitone a",
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha : ∀ n, a n = 1 / n)",
+  goal: "IsCauchy a ∧ ¬ Monotone a ∧ ¬ Antitone a",
   introduction: `
 # Problem 2:
 

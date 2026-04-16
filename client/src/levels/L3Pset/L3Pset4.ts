@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L3Pset_4",
   statement: `(a : ℕ → ℝ) (ha : ∀ n, a n = (3 * n + 8) / (2 * n + 5)) :
     ∃ L, SeqLim a L`,
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha : ∀ n, a n = (3 * n + 8) / (2 * n + 5))",
+  goal: "∃ L, SeqLim a L",
   introduction: `# Problem 4
 
 Here's an even more involved limit problem. We've had luck getting \`bound\` to prove \`|X| = X\`, especially when there's a hypothesis \`h : 0 ≤ X\` already available in the list of assumptions. But I've found it not to be reliable, unfortunately. So let me give you one more theorem for your toolchest.

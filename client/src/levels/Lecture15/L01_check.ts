@@ -13,6 +13,9 @@ const level: LevelSource = {
   (hx : ∀ n, x n = Real_of_CauSeq (hq n))
   (hxCau : IsCauchy x) :
   ∃ (y : ℕ → ℚ) (hy : IsCauchy y), SeqLim x (Real_of_CauSeq hy)`,
+  objects: "(q : ℕ → ℕ → ℚ) (x : ℕ → ℝ)",
+  assumptions: "(hq : ∀ n, IsCauchy (q n)) (hx : ∀ n, x n = Real_of_CauSeq (hq n)) (hxCau : IsCauchy x)",
+  goal: "∃ (y : ℕ → ℚ) (hy : IsCauchy y), SeqLim x (Real_of_CauSeq hy)",
   introduction: `
 # Level 1 **Big Boss:** Completeness!
 

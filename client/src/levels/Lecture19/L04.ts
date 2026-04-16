@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture19_4",
   statement: `{a : ℕ → ℝ} (ha1 : SeriesConv a) (ha2 : ¬ AbsSeriesConv a) : ∀ L,
   ∃ (σ : ℕ → ℕ) (hσ : Rearrangement σ), SeriesLim (a ∘ σ) L`,
+  objects: "{a : ℕ → ℝ} (ha1 : SeriesConv a)",
+  assumptions: "(ha2 : ¬ AbsSeriesConv a)",
+  goal: "∀ L, ∃ (σ : ℕ → ℕ) (hσ : Rearrangement σ), SeriesLim (a ∘ σ) L",
   introduction: `
 # Level 4 **Bigger Boss**: Conditional Convergence Theorem
 

@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L13Pset_1",
   statement: `{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X] (a : ℕ → X) (ha : UnBddPeaks a)
   : ∃ σ, Subseq σ ∧ Antitone (a ∘ σ)`,
+  objects: "{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X] (a : ℕ → X)",
+  assumptions: "(ha : UnBddPeaks a)",
+  goal: "∃ σ, Subseq σ ∧ Antitone (a ∘ σ)",
   introduction: `
 # Problem 1:
 

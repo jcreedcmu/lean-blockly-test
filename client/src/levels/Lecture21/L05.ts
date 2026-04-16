@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `FunLim_of_SeqLim {f : ℝ → ℝ} {L c : ℝ}
     (h : ∀ x : ℕ → ℝ, (∀ n, x n ≠ c) → SeqLim x c → SeqLim (fun n ↦ f (x n)) L) :
     FunLimAt f L c`,
+  objects: "{f : ℝ → ℝ} {L c : ℝ}",
+  assumptions: "(h : ∀ x : ℕ → ℝ, (∀ n, x n ≠ c) → SeqLim x c → SeqLim (fun n ↦ f (x n)) L)",
+  goal: "FunLimAt f L c",
   introduction: `
 # Level 1: Sequential Criterion for Limits (Backward Direction)
 

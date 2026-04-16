@@ -10,6 +10,8 @@ const level: LevelSource = {
   name: "NotEven",
   theoremName: "Lecture8_1",
   statement: "(n : ℕ) : n < 2 ^ n",
+  objects: "(n : ℕ)",
+  goal: "n < 2 ^ n",
   introduction: `
 # Level 1: Induction
 

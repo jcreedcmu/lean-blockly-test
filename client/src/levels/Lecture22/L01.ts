@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture22_1",
   statement: `(f g : ℝ → ℝ) (hf : FunCont f) (hg : FunCont g) :
     FunCont (f ∘ g)`,
+  objects: "(f g : ℝ → ℝ)",
+  assumptions: "(hf : FunCont f) (hg : FunCont g)",
+  goal: "FunCont (f ∘ g)",
   introduction: `
 # Level 1: Continuous Composition
 

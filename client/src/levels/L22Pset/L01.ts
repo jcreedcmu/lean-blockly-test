@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L22Pset_1",
   statement: `(f : ℕ → ℝ → ℝ) (F : ℝ → ℝ) (hfF : UnifConv f F) :
   ∀ x, SeqLim (fun n ↦ f n x) (F x)`,
+  objects: "(f : ℕ → ℝ → ℝ) (F : ℝ → ℝ)",
+  assumptions: "(hfF : UnifConv f F)",
+  goal: "∀ x, SeqLim (fun n ↦ f n x) (F x)",
   introduction: `
 # Level 1: Pointwise of Uniform Convergence
 

@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L18Pset_2",
   statement: `(a : ℕ → ℝ) {n m : ℕ} (hmn : n ≤ m) :
   |∑ k ∈ Ico n m, a k| ≤ ∑ k ∈ Ico n m, |a k|`,
+  objects: "(a : ℕ → ℝ) {n m : ℕ}",
+  assumptions: "(hmn : n ≤ m)",
+  goal: "|∑ k ∈ Ico n m, a k| ≤ ∑ k ∈ Ico n m, |a k|",
   introduction: `
 # Level 2: \`Series_abs_add\`
 

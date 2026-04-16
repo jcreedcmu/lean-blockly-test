@@ -11,6 +11,8 @@ const level: LevelSource = {
   theoremName: "L9Pset_3",
   statement: `(N : ℕ) :
     2 * ∑ k ∈ range N, (k + 1) = N * (N + 1)`,
+  objects: "(N : ℕ)",
+  goal: "2 * ∑ k ∈ range N, (k + 1) = N * (N + 1)",
   introduction: `# Problem 3
 
 Prove that \`2 * (1 + 2 + ... + N) = N * (N + 1)\`.

@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "Alternating Series Test",
   theoremName: "Lecture18_2",
   statement: "AlternatingSeriesTest {a : ℕ → ℝ} (ha : Antitone a) (aLim : SeqLim a 0) : SeriesConv (fun n ↦ (-1)^n * a n)",
+  objects: "{a : ℕ → ℝ}",
+  assumptions: "(ha : Antitone a) (aLim : SeqLim a 0)",
+  goal: "SeriesConv (fun n ↦ (-1)^n * a n)",
   introduction: `
 # Level 2: Alternating Series Test
 

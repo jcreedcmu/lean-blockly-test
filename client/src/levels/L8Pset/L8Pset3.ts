@@ -10,6 +10,8 @@ const level: LevelSource = {
   name: "Problem 3",
   theoremName: "L8Pset_3",
   statement: "(n : ℕ) : ∃ k, n * (n + 1) * (2 * n + 1) = 6 * k",
+  objects: "(n : ℕ)",
+  goal: "∃ k, n * (n + 1) * (2 * n + 1) = 6 * k",
   introduction: `# Problem 3
 
 Prove that \`n (n + 1) (2 n + 1)\` is always divisible by \`6\`. (Hint: induction.)

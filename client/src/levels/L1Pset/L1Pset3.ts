@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L1Pset_3",
   statement: `(g : ℝ → ℝ) (h1 : ∀ x, g (x + 1) = g (x) + 3)
  (h2 : g (0) = 5) : g (1) = 8`,
+  objects: "(g : ℝ → ℝ)",
+  assumptions: "(h1 : ∀ x, g (x + 1) = g (x) + 3) (h2 : g (0) = 5)",
+  goal: "g (1) = 8",
   introduction: `
 # Problem 3
 

@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `IsCauchy_of_MonotoneBdd {X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X]
   [FloorSemiring X] {a : ℕ → X} {M : X} (ha : Monotone a) (hM : ∀ n, a n ≤ M)
   : IsCauchy a`,
+  objects: "{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X] {a : ℕ → X} {M : X}",
+  assumptions: "(ha : Monotone a) (hM : ∀ n, a n ≤ M)",
+  goal: "IsCauchy a",
   introduction: `
 # Level 3: Monotone and Bounded Implies Cauchy
 

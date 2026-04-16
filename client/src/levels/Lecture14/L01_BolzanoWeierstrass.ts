@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `IsCauchy_of_AntitoneBdd {X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X]
     [FloorSemiring X] {a : ℕ → X} {M : X} (ha : Antitone a) (hM : ∀ n, M ≤ a n)
     : IsCauchy a`,
+  objects: "{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X] {a : ℕ → X} {M : X}",
+  assumptions: "(ha : Antitone a) (hM : ∀ n, M ≤ a n)",
+  goal: "IsCauchy a",
   introduction: `
 # Level 1 **Big Boss:**  Bolzano-Weierstrass
 

@@ -13,6 +13,9 @@ const level: LevelSource = {
  (h2 : g (0) = 5)
  :
   g (2) = 11`,
+  objects: "(g : ℝ → ℝ)",
+  assumptions: "(h1 : ∀ x, g (x + 1) = g (x) + 3) (h2 : g (0) = 5)",
+  goal: "g (2) = 11",
   introduction: `
 # Problem 4
 

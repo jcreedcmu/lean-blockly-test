@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "Problem 3",
   theoremName: "L16Pset_3",
   statement: "(a b c : ℕ → ℝ) (h : ∀ n, c n = a n + b n) : ∀ n, Series c n = Series a n + Series b n",
+  objects: "(a b c : ℕ → ℝ)",
+  assumptions: "(h : ∀ n, c n = a n + b n)",
+  goal: "∀ n, Series c n = Series a n + Series b n",
   introduction: `
 # Problem 3: Prove that the sum of two series is the series of the sum.
 

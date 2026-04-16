@@ -18,6 +18,9 @@ const level: LevelSource = {
 (hcd : ∀ n, c n ≤ d n)
 (hde : ∀ n, d n ≤ e n)
   : SeqLim b L ∧ SeqLim d L`,
+  objects: "(a b c d e : ℕ → ℝ) (L : ℝ)",
+  assumptions: "(ha : SeqLim a L) (hc : SeqLim c L) (he : SeqLim e L) (hab : ∀ n, a n ≤ b n) (hbc : ∀ n, b n ≤ c n) (hcd : ∀ n, c n ≤ d n) (hde : ∀ n, d n ≤ e n)",
+  goal: "SeqLim b L ∧ SeqLim d L",
   introduction: `# Problem 5
 
 You are given five sequences \`a b c d e : ℕ → ℝ\`, and you know that

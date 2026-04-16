@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L20Pset_1",
   statement: `(f : ℝ → ℝ) (c : ℝ) (hf : FunContAt f c) :
   FunLimAt f (f c) c`,
+  objects: "(f : ℝ → ℝ) (c : ℝ)",
+  assumptions: "(hf : FunContAt f c)",
+  goal: "FunLimAt f (f c) c",
   introduction: `
 # Level 1: ContinuousIff I
 

@@ -15,6 +15,9 @@ const level: LevelSource = {
     (hfint : ∀ n, HasIntegral (f n) a b (ℓ n))
     (hfF : UnifConv f F) :
     ∃ (L : ℝ), SeqLim ℓ L ∧ HasIntegral F a b L`,
+  objects: "{f : ℕ → ℝ → ℝ} {F : ℝ → ℝ} {a b : ℝ} {ℓ : ℕ → ℝ}",
+  assumptions: "(hab : a < b) (hfint : ∀ n, HasIntegral (f n) a b (ℓ n)) (hfF : UnifConv f F)",
+  goal: "∃ (L : ℝ), SeqLim ℓ L ∧ HasIntegral F a b L",
   introduction: `
 # Level 1: Uniform Convergence Implies Integrability
 

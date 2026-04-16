@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture13_1",
   statement: `(σ : ℕ → ℕ) (hσ : ∀ n, n < σ n) (n₀ : ℕ) :
   Subseq (fun n ↦ σ^[n] n₀)`,
+  objects: "(σ : ℕ → ℕ) (n₀ : ℕ)",
+  assumptions: "(hσ : ∀ n, n < σ n)",
+  goal: "Subseq (fun n ↦ σ^[n] n₀)",
   introduction: `
 # Level 1: Iterated Subsequence
 

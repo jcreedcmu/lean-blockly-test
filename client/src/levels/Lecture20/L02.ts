@@ -11,6 +11,7 @@ const level: LevelSource = {
   theoremName: "Lecture20_2",
   statement: `:
     FunContAt (fun x ↦ x^2 - 1) 2`,
+  goal: "FunContAt (fun x ↦ x^2 - 1) 2",
   introduction: `
 # Level 2: Continuity at a Point
 

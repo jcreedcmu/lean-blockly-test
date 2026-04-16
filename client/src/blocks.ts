@@ -8,17 +8,85 @@ Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.
 
 /**
  * Custom field for theorem statements with monospace styling.
+ *
+ * The *serialized* value is the raw Lean declaration consumed by
+ * `workspaceToLean` for codegen. The *displayed* text can be replaced
+ * at runtime via `setDisplayOverride` — levels use this to swap in a
+ * hand-authored decomposed view (`Objects: … / Assumptions: … / Goal:
+ * …`) without touching the serialized value. When the displayed text
+ * contains `\n`, it's rendered as multiple lines via `<tspan>` elements
+ * (SVG `<text>` itself ignores newlines).
  */
-class FieldTheoremStatement extends FieldLabelSerializable {
+export class FieldTheoremStatement extends FieldLabelSerializable {
+  private displayOverride: string | null = null;
+
   constructor(value?: string) {
     super(value ?? '');
   }
 
   initView(): void {
     super.initView();
-    // Add custom CSS class to the text element
     if (this.textElement_) {
       blockly.utils.dom.addClass(this.textElement_, 'blocklyMonospace');
+    }
+  }
+
+  /** Replace the rendered label with `text`, or restore the serialized
+   * value when `text` is null. Doesn't affect `getValue()` or what the
+   * workspace serializer writes. */
+  setDisplayOverride(text: string | null): void {
+    if (this.displayOverride === text) return;
+    this.displayOverride = text;
+    this.forceRerender();
+  }
+
+  getText(): string {
+    return this.displayOverride ?? super.getText();
+  }
+
+  /** If the raw text has newlines, split it into `<tspan>` children and
+   * resize to the resulting bounding box.
+   *
+   * Two quirks of Blockly's default rendering we have to work around:
+   *   - `getDisplayText_()` runs `text.replace(/\s/g, NBSP)`, which
+   *     collapses our `\n`s to non-breaking spaces before they ever
+   *     reach the DOM. We go through `getText()` directly.
+   *   - `super.render_()` inserts a single `Text` node (the field's
+   *     persistent `textContent_`). For multi-line, we replace that
+   *     with tspans. To stay consistent across repeated renders (and
+   *     across transitions back to single-line), we always fully
+   *     rebuild the tspans. */
+  protected override render_(): void {
+    super.render_();
+    if (!this.textElement_) return;
+    const text = this.getText();
+
+    // Strip any text / tspan children we (or super) added.
+    while (this.textElement_.firstChild) {
+      this.textElement_.removeChild(this.textElement_.firstChild);
+    }
+
+    const lines = text.split('\n');
+    const svgNs = 'http://www.w3.org/2000/svg';
+    for (let i = 0; i < lines.length; i++) {
+      const tspan = document.createElementNS(svgNs, 'tspan');
+      tspan.setAttribute('x', '0');
+      if (i > 0) tspan.setAttribute('dy', '1.2em');
+      // Non-breaking space for empty lines so each tspan retains height.
+      // Also apply the same whitespace→NBSP substitution Blockly would
+      // have done (leading spaces on SVG text otherwise collapse).
+      tspan.textContent = lines[i].length > 0
+        ? lines[i].replace(/ /g, '\u00A0')
+        : '\u00A0';
+      this.textElement_.appendChild(tspan);
+    }
+
+    try {
+      const bbox = this.textElement_.getBBox();
+      this.size_.width = bbox.width;
+      this.size_.height = bbox.height;
+    } catch {
+      // getBBox can throw for detached DOM; leave size_ as set by super.
     }
   }
 

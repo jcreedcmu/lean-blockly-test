@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L6Pset_4",
   statement: `(a : ℕ → ℝ) (ha : ∀ N, ∃ n ≥ N, |a n| > 10)
   : ¬ ∃ L, |L| < 5 ∧ SeqLim a L`,
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha : ∀ N, ∃ n ≥ N, |a n| > 10)",
+  goal: "¬ ∃ L, |L| < 5 ∧ SeqLim a L",
   introduction: `# Problem 4
 
 You are given that a sequence \`a : ℕ → ℝ\` with the property that it takes arbitrarily large values exceeding 10 in absolute value.

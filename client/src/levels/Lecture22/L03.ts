@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture22_3",
   statement: `{a b : ℝ} (hab : a < b) :
     IntegrableOn (fun x ↦ x) a b`,
+  objects: "{a b : ℝ}",
+  assumptions: "(hab : a < b)",
+  goal: "IntegrableOn (fun x ↦ x) a b",
   introduction: `
 # Level 3: Integration!
 

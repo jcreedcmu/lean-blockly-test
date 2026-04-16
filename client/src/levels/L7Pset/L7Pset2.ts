@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L7Pset_2",
   statement: `(a b : ℕ → ℝ) (L M : ℝ) (ha : SeqLim a L) (hb : SeqLim b M) (hLM : L < M) :
   ∃ N, ∀ n ≥ N, a n < b n`,
+  objects: "(a b : ℕ → ℝ) (L M : ℝ)",
+  assumptions: "(ha : SeqLim a L) (hb : SeqLim b M) (hLM : L < M)",
+  goal: "∃ N, ∀ n ≥ N, a n < b n",
   introduction: `# Problem 2
 
 Suppose that sequences \`a b : ℕ → ℝ\` converge to \`L\` and \`M\`, resp, with \`L < M\`. Show that

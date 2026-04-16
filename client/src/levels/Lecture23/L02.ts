@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture23_2",
   statement: `(f : ℝ → ℝ) (a b : ℝ) (hab : a < b) (hf : UnifContOn f (Icc a b)) :
     IntegrableOn f a b`,
+  objects: "(f : ℝ → ℝ) (a b : ℝ) (hf : UnifContOn f (Icc a b))",
+  assumptions: "(hab : a < b)",
+  goal: "IntegrableOn f a b",
   introduction: `
 # Level 2: Integration Converges!
 

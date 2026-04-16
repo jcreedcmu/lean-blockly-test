@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L6Pset_3",
   statement: `(a : ℕ → ℝ) (ha : SeqLim a 5)
   : ∃ N, ∀ n ≥ N, 0 < a n`,
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha : SeqLim a 5)",
+  goal: "∃ N, ∀ n ≥ N, 0 < a n",
   introduction: `# Problem 3
 
 You are given that a sequence \`a : ℕ → ℝ\` converges to 5.

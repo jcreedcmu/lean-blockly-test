@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `(a b c : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L)
 (cToL : SeqLim c L) (aLeb : ∀ n, a n ≤ b n) (bLec : ∀ n, b n ≤ c n) :
   SeqLim b L`,
+  objects: "(a b c : ℕ → ℝ) (L : ℝ)",
+  assumptions: "(aToL : SeqLim a L) (cToL : SeqLim c L) (aLeb : ∀ n, a n ≤ b n) (bLec : ∀ n, b n ≤ c n)",
+  goal: "SeqLim b L",
   introduction: `
 # Level 7 Big Boss: Squeeze Theorem
 

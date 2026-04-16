@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture10_2",
   statement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) (K : ℝ) (hK : SeqBddBy a K) :
     L ≤ K`,
+  objects: "(a : ℕ → ℝ) (L : ℝ) (K : ℝ)",
+  assumptions: "(ha : SeqLim a L) (hK : SeqBddBy a K)",
+  goal: "L ≤ K",
   introduction: `
 # Level 2: Order Limit Theorem
 

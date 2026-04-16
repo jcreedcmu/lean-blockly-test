@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "DiffGoesToZero",
   theoremName: "L18Pset_10",
   statement: "{a : ℕ → ℝ} (aLim : SeqLim a 0) : SeqLim (fun n ↦ ∑ k ∈ range (2 * n + 1), (-1)^k * a k - ∑ k ∈ range (2 * n), (-1)^k * a k) 0",
+  objects: "{a : ℕ → ℝ}",
+  assumptions: "(aLim : SeqLim a 0)",
+  goal: "SeqLim (fun n ↦ ∑ k ∈ range (2 * n + 1), (-1)^k * a k - ∑ k ∈ range (2 * n), (-1)^k * a k) 0",
   introduction: `
 # Level 10: \`DiffGoesToZero\`
 

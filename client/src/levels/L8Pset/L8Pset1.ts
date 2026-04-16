@@ -10,6 +10,8 @@ const level: LevelSource = {
   name: "Problem 1",
   theoremName: "L8Pset_1",
   statement: "(n : ℕ) : 2 * n + 9 ≤ 2 ^ (n + 4)",
+  objects: "(n : ℕ)",
+  goal: "2 * n + 9 ≤ 2 ^ (n + 4)",
   introduction: `# Problem 1
 
 `,

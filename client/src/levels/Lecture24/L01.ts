@@ -10,6 +10,8 @@ const level: LevelSource = {
   name: "Heine-Borel Theorem: Part 1a",
   theoremName: "Lecture24_1",
   statement: "(S : Set ℝ) (hcomp : IsCompact S) : ∃ M, ∀ s ∈ S, |s| < M",
+  objects: "(S : Set ℝ) (hcomp : IsCompact S)",
+  goal: "∃ M, ∀ s ∈ S, |s| < M",
   introduction: `
 # Level 1: Heine-Borel Theorem: Part 1a
 

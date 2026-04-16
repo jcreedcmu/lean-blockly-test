@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture6_5",
   statement: `(x y : ℝ) (h : x = 2 ∨ y = 3) :
     (x - 2) * (y - 3) = 0`,
+  objects: "(x y : ℝ)",
+  assumptions: "(h : x = 2 ∨ y = 3)",
+  goal: "(x - 2) * (y - 3) = 0",
   introduction: `
 # Level 5: Cases' - Handling All Possibilities
 

@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture12_2",
   statement: `(p : ℕ → Prop) (h : ∀ N, ∃ n > N, p n) :
   ∃ σ, Subseq σ ∧ ∀ n, p (σ n)`,
+  objects: "(p : ℕ → Prop)",
+  assumptions: "(h : ∀ N, ∃ n > N, p n)",
+  goal: "∃ σ, Subseq σ ∧ ∀ n, p (σ n)",
   introduction: `
 # Level 2: Enhanced \`Choose\`
 

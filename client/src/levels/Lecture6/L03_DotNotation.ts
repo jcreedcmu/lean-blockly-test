@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture6_4",
   statement: `(x y : ℝ) (h : x = 2 ∧ y = 3) :
     y = 3`,
+  objects: "(x y : ℝ)",
+  assumptions: "(h : x = 2 ∧ y = 3)",
+  goal: "y = 3",
   introduction: `
 # Level 4: Dot Notation - Accessing Parts of Complex Information
 

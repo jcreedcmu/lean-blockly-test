@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "Problem 1",
   theoremName: "L3Pset_1",
   statement: "(x y : ℝ) (x_pos : 0 < x) (y_pos : 0 < y) : ∃ (N : ℕ), y < x * N",
+  objects: "(x y : ℝ)",
+  assumptions: "(x_pos : 0 < x) (y_pos : 0 < y)",
+  goal: "∃ (N : ℕ), y < x * N",
   introduction: `# Problem 1
 
 The "full" Archimedean Property is this:

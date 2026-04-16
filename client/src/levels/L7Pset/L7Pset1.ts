@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L7Pset_1",
   statement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) (hL : L ≠ 0) :
   ∃ N, ∀ n ≥ N, |a n| ≤ 2 * |L|`,
+  objects: "(a : ℕ → ℝ) (L : ℝ)",
+  assumptions: "(ha : SeqLim a L) (hL : L ≠ 0)",
+  goal: "∃ N, ∀ n ≥ N, |a n| ≤ 2 * |L|",
   introduction: `# Problem 1
 
 Suppose that a sequence \`a : ℕ → ℝ\` converges to \`L ≠ 0\`. Show that eventually \`|a n|\` is at most

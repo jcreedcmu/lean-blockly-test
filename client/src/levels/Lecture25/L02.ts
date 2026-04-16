@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture25_2",
   statement: `IVT {f : ℝ → ℝ} (hf : FunCont f) {a b : ℝ} (hab : a < b)
     (hfa : f a < 0) (hfb : 0 < f b): ∃ c ∈ Ioo a b, f c = 0`,
+  objects: "{f : ℝ → ℝ} {a b : ℝ}",
+  assumptions: "(hf : FunCont f) (hab : a < b) (hfa : f a < 0) (hfb : 0 < f b)",
+  goal: "∃ c ∈ Ioo a b, f c = 0",
   introduction: `
 # Level 2 **BIG BOSS**: Intermediate Value Theorem
 

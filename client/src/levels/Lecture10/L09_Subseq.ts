@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture10_4",
   statement: `(a : ℕ → ℝ) (ha : ∀ n, a n = (-1) ^ n) :
     ∃ σ L, Subseq σ ∧ SeqLim (a ∘ σ) L`,
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha : ∀ n, a n = (-1) ^ n)",
+  goal: "∃ σ L, Subseq σ ∧ SeqLim (a ∘ σ) L",
   introduction: `
 # Level 4: Subsequence Example
 

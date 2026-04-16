@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L17Pset_3",
   statement: `ComparisonTest {a b : ℕ → ℝ} (ha : ∀ n, 0 ≤ a n) (hab : ∀ n, a n ≤ b n)
   (hb : SeriesConv b) : SeriesConv a`,
+  objects: "{a b : ℕ → ℝ} (hb : SeriesConv b)",
+  assumptions: "(ha : ∀ n, 0 ≤ a n) (hab : ∀ n, a n ≤ b n)",
+  goal: "SeriesConv a",
   introduction: `
 # Level 3: The Comparison Test
 

@@ -13,6 +13,9 @@ const level: LevelSource = {
  (h2 : p (x) = 15)
  :
   ∃ b, x ^ 2 + 2 * x = b`,
+  objects: "(p : ℝ → ℝ) (x : ℝ)",
+  assumptions: "(h1 : ∀ t, p (t) = t ^ 2 + 2 * t) (h2 : p (x) = 15)",
+  goal: "∃ b, x ^ 2 + 2 * x = b",
   introduction: `
 # Problem 5
 

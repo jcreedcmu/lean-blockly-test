@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L10Pset_3",
   statement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) (K : ℝ) (hK : ∀ n, K < a n) :
     K ≤ L`,
+  objects: "(a : ℕ → ℝ) (L : ℝ) (K : ℝ)",
+  assumptions: "(ha : SeqLim a L) (hK : ∀ n, K < a n)",
+  goal: "K ≤ L",
   introduction: `
 # Problem 3:
 

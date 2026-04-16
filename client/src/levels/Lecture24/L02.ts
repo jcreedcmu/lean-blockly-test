@@ -10,6 +10,8 @@ const level: LevelSource = {
   name: "Heine-Borel Theorem: Part 1b",
   theoremName: "Lecture24_2",
   statement: "(S : Set ℝ) (hcomp : IsCompact S) : IsClosed S",
+  objects: "(S : Set ℝ) (hcomp : IsCompact S)",
+  goal: "IsClosed S",
   introduction: `
 # Level 2: Heine-Borel Theorem: Part 1b
 

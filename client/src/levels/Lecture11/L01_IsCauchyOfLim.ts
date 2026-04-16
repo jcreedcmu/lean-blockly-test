@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture11_1",
   statement: `IsCauchy_of_SeqConv {a : ℕ → ℝ} (ha : SeqConv a)
     : IsCauchy a`,
+  objects: "{a : ℕ → ℝ}",
+  assumptions: "(ha : SeqConv a)",
+  goal: "IsCauchy a",
   introduction: `
 # Level 1: Big Boss - Limits are Cauchy
 

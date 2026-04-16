@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "Introduction to Lean",
   theoremName: "RealAnalysisStory_1",
   statement: "(x : ℝ) (h : x = 5) : x = 5",
+  objects: "(x : ℝ)",
+  assumptions: "(h : x = 5)",
+  goal: "x = 5",
   permissions: [
     {t: "allowTactic", tacticName: "prop"},
     {t: "allowTactic", tacticName: "tactic_apply"},

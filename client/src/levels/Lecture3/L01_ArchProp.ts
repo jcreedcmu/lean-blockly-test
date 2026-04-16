@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture3_1",
   statement: `ArchProp {ε : ℝ} (hε : 0 < ε) :
     ∃ (N : ℕ), 1 / ε < N`,
+  objects: "{ε : ℝ}",
+  assumptions: "(hε : 0 < ε)",
+  goal: "∃ (N : ℕ), 1 / ε < N",
   introduction: `
 # Level 1: The Archimedean Property
 

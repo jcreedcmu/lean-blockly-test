@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture7_5",
   statement: `(a : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L) :
     ∃ N, ∀ n ≥ N, |L| / 2 ≤ |a (n)|`,
+  objects: "(a : ℕ → ℝ) (L : ℝ)",
+  assumptions: "(aToL : SeqLim a L)",
+  goal: "∃ N, ∀ n ≥ N, |L| / 2 ≤ |a (n)|",
   introduction: `
 # Level 5: Case Analysis Without Existing Hypotheses
 

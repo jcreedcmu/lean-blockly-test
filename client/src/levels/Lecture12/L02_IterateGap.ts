@@ -15,6 +15,9 @@ const level: LevelSource = {
   (σ : ℕ → ℕ) (hσ : ∀ n, σ n ≥ τ n)
   (hgap : ∀ n, ε ≤ |a (σ n) - a (τ n)|)
   : ∀ (k : ℕ), k * ε ≤ a (σ^[k] 0) - a 0`,
+  objects: "{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] (a : ℕ → X) (ε : X) (τ : ℕ → ℕ) (σ : ℕ → ℕ)",
+  assumptions: "(ha : Monotone a) (εpos : ε > 0) (hτ : ∀ n, τ n ≥ n) (hσ : ∀ n, σ n ≥ τ n) (hgap : ∀ n, ε ≤ |a (σ n) - a (τ n)|)",
+  goal: "∀ (k : ℕ), k * ε ≤ a (σ^[k] 0) - a 0",
   introduction: `
 # Level 4: Iterated Gaps
 

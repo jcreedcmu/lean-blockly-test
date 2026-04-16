@@ -11,6 +11,8 @@ const level: LevelSource = {
   theoremName: "L7Pset_3",
   statement: `(x y : ℝ) :
   |(|x| - |y|)| ≤ |x - y|`,
+  objects: "(x y : ℝ)",
+  goal: "|(|x| - |y|)| ≤ |x - y|",
   introduction: `# Problem 3
 
 Prove \`abs_Lipschitz\`, obviously without referring to that theorem!

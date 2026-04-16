@@ -12,6 +12,9 @@ const level: LevelSource = {
   statement: `FunContAtAdd {f g : ℝ → ℝ} {c : ℝ}
     (hf : FunContAt f c) (hg : FunContAt g c) :
     FunContAt (fun x ↦ f x + g x) c`,
+  objects: "{f g : ℝ → ℝ} {c : ℝ}",
+  assumptions: "(hf : FunContAt f c) (hg : FunContAt g c)",
+  goal: "FunContAt (fun x ↦ f x + g x) c",
   introduction: `
 # Level 3: Sum of Continuous Functions
 

@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L18Pset_5",
   statement: `{a : ℕ → ℝ} {L : ℝ} (ha2n : SeqLim (fun n ↦ a (2 * n)) L)
 (ha2np1 : SeqLim (fun n ↦ a (2 * n + 1)) L) : SeqLim a L`,
+  objects: "{a : ℕ → ℝ} {L : ℝ}",
+  assumptions: "(ha2n : SeqLim (fun n ↦ a (2 * n)) L) (ha2np1 : SeqLim (fun n ↦ a (2 * n + 1)) L)",
+  goal: "SeqLim a L",
   introduction: `
 # Level 5: \`SeqEvenOdd\`
 

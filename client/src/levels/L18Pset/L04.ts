@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "CoherenceOfReals",
   theoremName: "L18Pset_4",
   statement: "{a b : ℕ → ℝ} {L M : ℝ} (ha : SeqLim a L) (hb : SeqLim b M) (hab : SeqLim (fun n ↦ a n - b n) 0) : L = M",
+  objects: "{a b : ℕ → ℝ} {L M : ℝ}",
+  assumptions: "(ha : SeqLim a L) (hb : SeqLim b M) (hab : SeqLim (fun n ↦ a n - b n) 0)",
+  goal: "L = M",
   introduction: `
 # Level 4: \`CoherenceOfReals\`
 

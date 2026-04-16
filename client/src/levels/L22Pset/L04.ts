@@ -11,6 +11,8 @@ const level: LevelSource = {
   theoremName: "L22Pset_4",
   statement: `(n : ℕ) :
   ∑ i ∈ Finset.range n, ((i : ℝ) + 1) ^ 2 = ((n : ℝ) * (n + 1) * (2 * n + 1)) / 6`,
+  objects: "(n : ℕ)",
+  goal: "∑ i ∈ Finset.range n, ((i : ℝ) + 1) ^ 2 = ((n : ℝ) * (n + 1) * (2 * n + 1)) / 6",
   introduction: `
 # Level 4: Integral Exercise
 

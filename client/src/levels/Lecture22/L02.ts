@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture22_2",
   statement: `(f : ℕ → ℝ → ℝ) (hf : ∀ n, FunCont (f n))
     (F : ℝ → ℝ) (hfF : UnifConv f F) : FunCont F`,
+  objects: "(f : ℕ → ℝ → ℝ) (F : ℝ → ℝ)",
+  assumptions: "(hf : ∀ n, FunCont (f n)) (hfF : UnifConv f F)",
+  goal: "FunCont F",
   introduction: `
 # Level 2: Uniform Convergence
 

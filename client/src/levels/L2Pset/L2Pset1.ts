@@ -19,6 +19,7 @@ const level: LevelSource = {
     21 / 512 - 3 * x / 256
     + 81 * x ^ 2 / 16384 - 35 * x ^ 3 / 16384
     + 49 * x ^ 4 / 65536)`,
+  goal: "∃ c, ∀ (x : ℝ), (1 + x / 2 - x ^ 2 / 8 + x ^ 3 / 16 - 5 * x ^ 4 / 128 + c * x ^ 5) ^ 2 - (1 + x) = x ^ 6 * ( 21 / 512 - 3 * x / 256 + 81 * x ^ 2 / 16384 - 35 * x ^ 3 / 16384 + 49 * x ^ 4 / 65536)",
   introduction: `# Problem 1
 
 We found in Lecture 2 that Newton's Binomial Theorem gave the expansion

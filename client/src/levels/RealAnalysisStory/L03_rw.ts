@@ -10,6 +10,9 @@ const level: LevelSource = {
   name: "The `rewrite` tactic",
   theoremName: "RealAnalysisStory_3",
   statement: "(x y : ℝ) (Bob : x = 2) : x + y = 2 + y",
+  objects: "(x y : ℝ)",
+  assumptions: "(Bob : x = 2)",
+  goal: "x + y = 2 + y",
   permissions: [
     {t: "allowTactic", tacticName: "prop"},
     {t: "allowTactic", tacticName: "tactic_apply"},

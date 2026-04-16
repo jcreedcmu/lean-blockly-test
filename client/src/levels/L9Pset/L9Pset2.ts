@@ -11,6 +11,8 @@ const level: LevelSource = {
   theoremName: "L9Pset_2",
   statement: `(N : ℕ) :
     ∃ k : ℕ, N * (N + 1) = 2 * k`,
+  objects: "(N : ℕ)",
+  goal: "∃ k : ℕ, N * (N + 1) = 2 * k",
   introduction: `# Problem 2
 
 Prove that \`N * (N + 1)\` is always even.

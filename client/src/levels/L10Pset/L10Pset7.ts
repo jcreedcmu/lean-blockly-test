@@ -13,6 +13,9 @@ const level: LevelSource = {
     (σsub : Subseq σ) (τsub : Subseq τ) (L M : ℝ)
     (hσ : SeqLim (a ∘ σ) L) (hτ : SeqLim (a ∘ τ) M) (hLM : L ≠ M)
     : ¬ SeqConv a`,
+  objects: "(a : ℕ → ℝ) (σ τ : ℕ → ℕ) (σsub : Subseq σ) (τsub : Subseq τ) (L M : ℝ)",
+  assumptions: "(hσ : SeqLim (a ∘ σ) L) (hτ : SeqLim (a ∘ τ) M) (hLM : L ≠ M)",
+  goal: "¬ SeqConv a",
   introduction: `
 # Problem 6:
 

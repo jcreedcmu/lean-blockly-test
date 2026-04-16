@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture11_2",
   statement: `IsCauchy_of_Sum {X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] (a b : ℕ → X) (ha : IsCauchy a) (hb : IsCauchy b)
     : IsCauchy (a + b)`,
+  objects: "{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] (a b : ℕ → X)",
+  assumptions: "(ha : IsCauchy a) (hb : IsCauchy b)",
+  goal: "IsCauchy (a + b)",
   introduction: `
 # Level 2: Sums of Cauchy Sequences
 

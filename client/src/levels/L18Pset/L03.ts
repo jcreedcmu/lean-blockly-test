@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "L18Pset_3",
   statement: `{a : ℕ → ℝ} (ha : Antitone a) {L : ℝ} (aLim : SeqLim a L) : ∀ n,
   L ≤ a n`,
+  objects: "{a : ℕ → ℝ} {L : ℝ}",
+  assumptions: "(ha : Antitone a) (aLim : SeqLim a L)",
+  goal: "∀ n, L ≤ a n",
   introduction: `
 # Level 3: \`AntitoneLimitBound\`
 

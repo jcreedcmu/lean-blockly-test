@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture11_3",
   statement: `IsBdd_of_Cauchy {X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] (a : ℕ → X) (ha : IsCauchy a)
     : SeqBdd a`,
+  objects: "{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] (a : ℕ → X)",
+  assumptions: "(ha : IsCauchy a)",
+  goal: "SeqBdd a",
   introduction: `
 # Level 3: Cauchy Implies Bounded
 

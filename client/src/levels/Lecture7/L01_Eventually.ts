@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "Lecture7_2",
   statement: `(a : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L) (LneZero: L ≠ 0) :
     ∃ N, ∀ n ≥ N, |L| / 2 ≤ |a (n)|`,
+  objects: "(a : ℕ → ℝ) (L : ℝ)",
+  assumptions: "(aToL : SeqLim a L) (LneZero: L ≠ 0)",
+  goal: "∃ N, ∀ n ≥ N, |L| / 2 ≤ |a (n)|",
   introduction: `
 # Level 2: Eventually—Convergent Sequences Stay Near Their Limits
 

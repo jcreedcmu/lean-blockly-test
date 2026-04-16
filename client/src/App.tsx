@@ -313,6 +313,16 @@ function App() {
     [currentLevel?.permissions]
   );
 
+  // Push the hand-authored decomposition onto the lemma block whenever
+  // the current level changes. Clearing with null on transition ensures
+  // an old level's display doesn't leak when the new level has none.
+  useEffect(() => {
+    if (!currentLevel) return;
+    const displays = new Map<string, string | null>();
+    displays.set(currentLevel.theoremName, currentLevel.display ?? null);
+    blocklyRef.current?.setTheoremDisplays(displays);
+  }, [currentLevel]);
+
   if (nav.kind === 'worldOverview' || !currentLevel) {
     return <div className="app-root">
       <WorldOverview3D worlds={gameData.worlds} onSelectWorld={enterLevel} />

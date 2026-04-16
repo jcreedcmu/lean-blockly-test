@@ -11,6 +11,9 @@ const level: LevelSource = {
   theoremName: "RealAnalysisStory_9",
   statement: `(f : ℝ → ℝ) (h_existential : ∃ (a : ℝ), f (a) = 3) (h_universal : ∀ x > 0, f (x + 1) = f (x) + 9) :
   ∃ (b : ℝ), ∀ y > 0, f (y + 1)^2 = (f (y) + (f b)^2)^2`,
+  objects: "(f : ℝ → ℝ)",
+  assumptions: "(h_existential : ∃ (a : ℝ), f (a) = 3) (h_universal : ∀ x > 0, f (x + 1) = f (x) + 9)",
+  goal: "∃ (b : ℝ), ∀ y > 0, f (y + 1)^2 = (f (y) + (f b)^2)^2",
   permissions: [
     {t: "allowTactic", tacticName: "prop"},
     {t: "allowTactic", tacticName: "tactic_apply"},
