@@ -593,15 +593,15 @@ const SPECIALIZE1_MIXIN = {
   },
 };
 
-// Helpers shared between specialize2's init and the mutator mixin.
-// `appendArgInput` keeps the CONTROLS row (the `+` / `−` buttons) at
-// the end of the block by always inserting new ARG slots before it.
+// Helper shared between specialize2's init and the mutator mixin.
+// We always append new ARG slots at the end; the JSON places
+// CONTROLS immediately after HYP, so new args naturally land to the
+// right of the +/− buttons.
 function appendSpecialize2ArgInput(
   block: blockly.Block & { argCount_: number },
   i: number,
 ) {
   block.appendValueInput(`ARG${i}`).setCheck('proposition');
-  block.moveInputBefore(`ARG${i}`, 'CONTROLS');
 }
 
 // Mixin applied to tactic_specialize2 via Blockly's mutator API.
