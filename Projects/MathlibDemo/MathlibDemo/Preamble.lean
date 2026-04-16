@@ -13,6 +13,28 @@ Anything that varies per level (e.g. domain-specific definitions like
 -/
 import Mathlib
 
+/-
+  Per-goal information extracted from the Lean `Expr` AST and served to
+  the client via the `getGoalInfo` RPC. The client uses this for two
+  things today:
+
+  * **Hypothesis classification** — `hyps` carries, per fvarId, whether
+    the hypothesis is an *assumption* (its type is a `Prop`) or an
+    *object* (its type is a `Type`/`Sort`). This drives the split
+    between the "Objects" and "Assumptions" sections of the infoview
+    and decides which drag affordances (`apply`, `rewrite`) appear.
+
+  * **Target syntax classification** — `target` holds syntactic
+    features of the goal's target type (currently just `isExists`).
+    This is a principled check on the elaborated `Expr`, not a
+    pretty-printer-surface heuristic, and it drives affordances that
+    depend on what the goal "shapes up as" (e.g. the `use` drag
+    affordance for existentials).
+
+  Extend `TargetInfo` (and the client-side `GoalInfo` mirror) when new
+  goal-shape classifiers are needed; extending the record leaves
+  existing consumers unaffected.
+-/
 open Lean Server Widget Elab in
 structure HypIsAssumption where
   fvarId : String
@@ -20,18 +42,19 @@ structure HypIsAssumption where
   deriving FromJson, ToJson
 
 open Lean Server Widget Elab in
-structure GoalHypKinds where
+structure TargetInfo where
+  isExists : Bool
+  deriving FromJson, ToJson
+
+open Lean Server Widget Elab in
+structure GoalInfo where
   mvarId : String
   hyps : Array HypIsAssumption
+  target : TargetInfo
   deriving FromJson, ToJson
 
 open Lean Server Widget Elab in
-structure HypKindResult where
-  goals : Array GoalHypKinds
-  deriving FromJson, ToJson
-
-open Lean Server Widget Elab in
-structure HypKindParams where
+structure GoalInfoParams where
   ctx : WithRpcRef ContextInfo
   mvarId : String
   deriving RpcEncodable
@@ -46,15 +69,15 @@ def parseLeanName (s : String) : Name :=
 
 open Lean Server Widget Elab Meta in
 @[server_rpc_method]
-def getHypKinds (p : HypKindParams) :
-    RequestM (RequestTask HypKindResult) :=
+def getGoalInfo (p : GoalInfoParams) :
+    RequestM (RequestTask GoalInfo) :=
   RequestM.pureTask do
     let ci := p.ctx.val
     ci.runMetaM {} do
       let mvarId := MVarId.mk (parseLeanName p.mvarId)
       let mctx ← getMCtx
       let some mvarDecl := mctx.findDecl? mvarId
-        | return { goals := #[] }
+        | return { mvarId := p.mvarId, hyps := #[], target := { isExists := false } }
       withLCtx mvarDecl.lctx mvarDecl.localInstances do
         let mut hyps : Array HypIsAssumption := #[]
         for decl in ← getLCtx do
@@ -64,4 +87,9 @@ def getHypKinds (p : HypKindParams) :
             fvarId := toString decl.fvarId.name
             isAssumption := typeOfType.isProp
           }
-        return { goals := #[{ mvarId := p.mvarId, hyps }] }
+        let target ← instantiateMVars mvarDecl.type
+        return {
+          mvarId := p.mvarId
+          hyps
+          target := { isExists := target.isAppOf ``Exists }
+        }

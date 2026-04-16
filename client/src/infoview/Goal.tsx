@@ -1,16 +1,8 @@
 import * as React from 'react';
-import type { CodeWithInfos, InteractiveGoal, InteractiveHypothesisBundle } from '@leanprover/infoview-api';
+import type { InteractiveGoal, InteractiveHypothesisBundle } from '@leanprover/infoview-api';
 import { Hyp, type HypClass, type HypInteractionProps } from './Hyp';
 import { InteractiveCode } from './InteractiveCode';
-import type { HypKindMap } from '../LevelEvaluator';
-
-/** Flatten a TaggedText to its plain string form. */
-function taggedTextToString(tt: CodeWithInfos): string {
-  if ('text' in tt) return tt.text;
-  if ('append' in tt) return tt.append.map(taggedTextToString).join('');
-  if ('tag' in tt) return taggedTextToString(tt.tag[1]);
-  return '';
-}
+import type { GoalInfo } from '../LevelEvaluator';
 
 export interface GoalFilterState {
   /** If true, reverse the order of hypotheses. */
@@ -35,7 +27,9 @@ export const defaultGoalFilter: GoalFilterState = {
 
 export interface GoalProps extends HypInteractionProps {
   goal: InteractiveGoal;
-  hypKindMap?: HypKindMap;
+  /** Server-extracted info about this specific goal. Absent when the
+   * `getGoalInfo` RPC hasn't populated yet or failed for this mvarId. */
+  goalInfo?: GoalInfo;
   filter?: GoalFilterState;
 }
 
@@ -66,11 +60,11 @@ function filterHypotheses(
   }, []);
 }
 
-/** Check if a hypothesis bundle is an assumption (Prop-typed) using the hypKindMap. */
-function isAssumption(h: InteractiveHypothesisBundle, hypKindMap?: HypKindMap): boolean | undefined {
-  if (!hypKindMap || !h.fvarIds || h.fvarIds.length === 0) return undefined;
+/** Check if a hypothesis bundle is an assumption (Prop-typed) using the goalInfo.hyps map. */
+function isAssumption(h: InteractiveHypothesisBundle, goalInfo?: GoalInfo): boolean | undefined {
+  if (!goalInfo || !h.fvarIds || h.fvarIds.length === 0) return undefined;
   // A bundle may have multiple fvarIds (e.g. "x y z : Nat"), check the first
-  return hypKindMap.get(h.fvarIds[0]);
+  return goalInfo.hyps.get(h.fvarIds[0])?.isAssumption;
 }
 
 function renderHypGroup(
@@ -102,7 +96,7 @@ function renderHypGroup(
  */
 export function Goal({
   goal,
-  hypKindMap,
+  goalInfo,
   filter = defaultGoalFilter,
   ...interactionProps
 }: GoalProps): React.ReactElement {
@@ -122,10 +116,10 @@ export function Goal({
   );
   const hyps = filter.reverse ? [...splitHyps].reverse() : splitHyps;
 
-  // Split into objects vs assumptions if we have hypKindMap data
-  const hasKindData = hypKindMap && hypKindMap.size > 0;
-  const objectHyps = hasKindData ? hyps.filter(h => isAssumption(h, hypKindMap) !== true) : hyps;
-  const assumptionHyps = hasKindData ? hyps.filter(h => isAssumption(h, hypKindMap) === true) : [];
+  // Split into objects vs assumptions if we have goalInfo for this goal
+  const hasKindData = !!goalInfo && goalInfo.hyps.size > 0;
+  const objectHyps = hasKindData ? hyps.filter(h => isAssumption(h, goalInfo) !== true) : hyps;
+  const assumptionHyps = hasKindData ? hyps.filter(h => isAssumption(h, goalInfo) === true) : [];
 
   return (
     <div className="goal">
@@ -161,7 +155,7 @@ export function Goal({
           <InteractiveCode fmt={goal.type} onSubexprClick={interactionProps.onSubexprClick} />
         </span>
         {interactionProps.onGoalDragStart &&
-          taggedTextToString(goal.type).trimStart().startsWith('\u2203') &&
+          goalInfo?.target.isExists === true &&
           (!interactionProps.allowedAffordances || interactionProps.allowedAffordances.has('use')) && (
             <span
               className="goal-action goal-action-use"

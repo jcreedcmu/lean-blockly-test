@@ -35,11 +35,11 @@ import { log, logError } from './log';
 const TAG = 'LevelEvaluator';
 const DEFAULT_URI = 'file:///blockly/Blockly.lean';
 
-// In-memory prelude prepended to the player's contribution. The truly
-// stable bits — `import Mathlib` and the `getHypKinds` machinery —
-// live in the on-disk `MathlibDemo.Preamble` module so they compile
-// once into a `.olean` and never re-elaborate. Only level-specific
-// definitions live here.
+// In-memory prelude prepended to the player's contribution. The stable
+// bits — `import Mathlib`, the per-goal info RPC, etc. — live in the
+// on-disk `MathlibDemo.Preamble` module so they compile once into a
+// `.olean` and never re-elaborate. Only level-specific definitions
+// live here.
 const DEFAULT_PRELUDE = `import MathlibDemo.Preamble
 
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
@@ -49,7 +49,21 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
 
 // ── Public types ─────────────────────────────────────────────────────
 
-export type HypKindMap = Map<string, boolean>;
+/** Per-goal information we extract server-side from the Lean Expr AST,
+ * keyed within a goal by fvarId (for hypotheses) and mvarId (at the
+ * goal level). Each leaf goal gets one `GoalInfo`. */
+export interface GoalInfo {
+  mvarId: string;
+  /** fvarId → per-hypothesis info. `isAssumption` is true when the
+   * hypothesis's type is itself a Prop (vs. a Type/Sort). */
+  hyps: Map<string, { isAssumption: boolean }>;
+  /** Syntactic features of the goal's target type. Extend this record
+   * as new classifiers are added on the Lean side. */
+  target: { isExists: boolean };
+}
+
+/** mvarId → GoalInfo, for every leaf goal in the current evaluation. */
+export type GoalInfoMap = Map<string, GoalInfo>;
 
 export interface ContributionDiagnostic {
   range: Range; // contribution-relative
@@ -67,8 +81,9 @@ export interface LeafGoal {
 export interface EvaluationResult {
   diagnostics: ContributionDiagnostic[];
   leafGoals: LeafGoal[];
-  /** Per-fvarId classification: true = assumption (Prop), false = object (Type). */
-  hypKindMap: HypKindMap;
+  /** Server-extracted info about each leaf goal (hypothesis kinds and
+   * target syntax), keyed by mvarId. */
+  goalInfoMap: GoalInfoMap;
   /** True iff there are no error diagnostics and no leaf goals. */
   complete: boolean;
 }
@@ -244,34 +259,38 @@ export class LevelEvaluator {
     }
     log(TAG, `Got ${diagnostics.length} diagnostic(s), ${leafGoals.length} leaf goal(s)`);
 
-    // Classify hypotheses (Prop vs. Type) for each leaf goal via our
-    // custom getHypKinds RPC. Position must be after the preamble where
-    // the method is registered.
-    const hypKindMap: HypKindMap = new Map();
+    // Extract per-goal server-side info (hypothesis kinds + target
+    // syntax) via the in-memory-prelude `getGoalInfo` RPC. Position
+    // must be after the prelude so the method is registered.
+    const goalInfoMap: GoalInfoMap = new Map();
     const callPos: Position = { line: this.preludeLineCount, character: 0 };
     for (const { goal } of leafGoals) {
       if (!goal.ctx || !goal.mvarId) continue;
       try {
-        const result = await this.session.widgetRpcCall<HypKindResult>(
+        const result = await this.session.widgetRpcCall<GoalInfoResult>(
           this.uri,
-          'getHypKinds',
+          'getGoalInfo',
           { ctx: goal.ctx, mvarId: goal.mvarId },
           callPos,
         );
-        for (const g of result.goals) {
-          for (const h of g.hyps) {
-            hypKindMap.set(h.fvarId, h.isAssumption);
-          }
+        const hyps = new Map<string, { isAssumption: boolean }>();
+        for (const h of result.hyps) {
+          hyps.set(h.fvarId, { isAssumption: h.isAssumption });
         }
+        goalInfoMap.set(result.mvarId, {
+          mvarId: result.mvarId,
+          hyps,
+          target: { isExists: result.target.isExists },
+        });
       } catch (err) {
-        logError(TAG, 'getHypKinds failed:', err);
+        logError(TAG, 'getGoalInfo failed:', err);
       }
     }
 
     const hasErrors = diagnostics.some((d) => d.severity === 1);
     const complete = !hasErrors && leafGoals.length === 0;
 
-    return { diagnostics, leafGoals, hypKindMap, complete };
+    return { diagnostics, leafGoals, goalInfoMap, complete };
   }
 
   // ── Coordinate translation ──────────────────────────────────────
@@ -293,9 +312,8 @@ export class LevelEvaluator {
 
 // ── HypKinds RPC payload type (internal to this module) ────────────
 
-interface HypKindResult {
-  goals: Array<{
-    mvarId: string;
-    hyps: Array<{ fvarId: string; isAssumption: boolean }>;
-  }>;
+interface GoalInfoResult {
+  mvarId: string;
+  hyps: Array<{ fvarId: string; isAssumption: boolean }>;
+  target: { isExists: boolean };
 }

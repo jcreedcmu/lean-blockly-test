@@ -3,11 +3,11 @@ import { useState } from 'react';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { Goal, GoalFilterState, defaultGoalFilter } from './Goal';
 import type { HypInteractionProps } from './Hyp';
-import type { HypKindMap } from '../LevelEvaluator';
+import type { GoalInfoMap } from '../LevelEvaluator';
 
 export interface GoalsProps extends HypInteractionProps {
   goals: InteractiveGoals;
-  hypKindMap?: HypKindMap;
+  goalInfoMap?: GoalInfoMap;
   filter?: GoalFilterState;
 }
 
@@ -16,7 +16,7 @@ export interface GoalsProps extends HypInteractionProps {
  */
 export function Goals({
   goals,
-  hypKindMap,
+  goalInfoMap,
   filter = defaultGoalFilter,
   ...interactionProps
 }: GoalsProps): React.ReactElement {
@@ -52,7 +52,7 @@ export function Goals({
       <div className="goals-content">
         <Goal
           goal={currentGoal}
-          hypKindMap={hypKindMap}
+          goalInfo={currentGoal.mvarId ? goalInfoMap?.get(currentGoal.mvarId) : undefined}
           filter={filter}
           {...interactionProps}
         />

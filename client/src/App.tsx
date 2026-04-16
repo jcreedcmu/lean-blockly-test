@@ -312,7 +312,7 @@ function App() {
   const goalsForView: InteractiveGoals | null = evaluation
     ? { goals: evaluation.leafGoals.map(lg => lg.goal) }
     : null;
-  const hypKindMap = evaluation?.hypKindMap ?? new Map();
+  const goalInfoMap = evaluation?.goalInfoMap ?? new Map();
   const diagnostics = evaluation?.diagnostics ?? [];
   // proofComplete: null while checking, true on success, false otherwise.
   const proofComplete: boolean | null = evaluating
@@ -386,7 +386,7 @@ function App() {
         ) : (
           <Goals
             goals={goalsForView}
-            hypKindMap={hypKindMap}
+            goalInfoMap={goalInfoMap}
             allowedAffordances={getAllowedAffordances(currentLevel.permissions)}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}
             onGoalDragStart={(e) => blocklyRef.current?.startGoalDrag(e)}
