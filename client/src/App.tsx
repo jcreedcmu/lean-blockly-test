@@ -295,18 +295,25 @@ function App() {
     document.addEventListener('mouseup', onMouseUp);
   }
 
-  if (nav.kind === 'worldOverview') {
+  // Hooks must run unconditionally on every render, so resolve the
+  // current level (which may be undefined on the world-overview page)
+  // before the early return and compute `allowedBlocks` up here too.
+  const currentWorld = nav.kind === 'playing'
+    ? gameData.worlds.find(w => w.id === nav.worldId)
+    : undefined;
+  const currentLevel = nav.kind === 'playing'
+    ? currentWorld?.levels[nav.levelIndex]
+    : undefined;
+  const allowedBlocks = useMemo(
+    () => getAllowedBlocks(currentLevel?.permissions),
+    [currentLevel?.permissions]
+  );
+
+  if (nav.kind === 'worldOverview' || !currentLevel) {
     return <div className="app-root">
       <WorldOverview3D worlds={gameData.worlds} onSelectWorld={enterLevel} />
     </div>;
   }
-
-  const currentWorld = gameData.worlds.find(w => w.id === nav.worldId)!;
-  const currentLevel = currentWorld.levels[nav.levelIndex];
-  const allowedBlocks = useMemo(
-    () => getAllowedBlocks(currentLevel.permissions),
-    [currentLevel.permissions]
-  );
 
   // Derive view-friendly shapes from the single evaluation result.
   const goalsForView: InteractiveGoals | null = evaluation
