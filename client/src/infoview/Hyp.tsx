@@ -20,6 +20,7 @@ export interface HypInteractionProps {
   allowedAffordances?: Set<string>;
   onHypNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
   onHypDragStart?: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
+  onGoalDragStart?: (e: React.MouseEvent) => void;
   onSubexprClick?: (info: SubexprInfo) => void;
 }
 

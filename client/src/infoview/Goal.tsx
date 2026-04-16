@@ -1,8 +1,16 @@
 import * as React from 'react';
-import type { InteractiveGoal, InteractiveHypothesisBundle } from '@leanprover/infoview-api';
+import type { CodeWithInfos, InteractiveGoal, InteractiveHypothesisBundle } from '@leanprover/infoview-api';
 import { Hyp, type HypClass, type HypInteractionProps } from './Hyp';
 import { InteractiveCode } from './InteractiveCode';
 import type { HypKindMap } from '../LevelEvaluator';
+
+/** Flatten a TaggedText to its plain string form. */
+function taggedTextToString(tt: CodeWithInfos): string {
+  if ('text' in tt) return tt.text;
+  if ('append' in tt) return tt.append.map(taggedTextToString).join('');
+  if ('tag' in tt) return taggedTextToString(tt.tag[1]);
+  return '';
+}
 
 export interface GoalFilterState {
   /** If true, reverse the order of hypotheses. */
@@ -152,6 +160,16 @@ export function Goal({
         <span className="goal-type">
           <InteractiveCode fmt={goal.type} onSubexprClick={interactionProps.onSubexprClick} />
         </span>
+        {interactionProps.onGoalDragStart &&
+          taggedTextToString(goal.type).trimStart().startsWith('\u2203') &&
+          (!interactionProps.allowedAffordances || interactionProps.allowedAffordances.has('use')) && (
+            <span
+              className="goal-action goal-action-use"
+              onMouseDown={(e) => interactionProps.onGoalDragStart!(e)}
+            >
+              use
+            </span>
+          )}
       </div>
     </div>
   );

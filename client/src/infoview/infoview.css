@@ -133,7 +133,8 @@
   cursor: grab;
 }
 
-.hyp-action {
+.hyp-action,
+.goal-action {
   background: white;
   border-radius: 8px;
   padding: 2px 8px;
@@ -143,7 +144,8 @@
   border: 1px solid #ccc;
 }
 
-.hyp-action:hover {
+.hyp-action:hover,
+.goal-action:hover {
   background: #e8e8e8;
 }
 
@@ -163,6 +165,19 @@
 
 .hyp-action-rewrite:hover {
   background: #e3f2fd;
+}
+
+.goal-action {
+  margin-left: 0.5em;
+}
+
+.goal-action-use {
+  color: #6a1b9a;
+  border-color: #ce93d8;
+}
+
+.goal-action-use:hover {
+  background: #f3e5f5;
 }
 
 .hyp-name.inserted {

@@ -23,6 +23,7 @@ export type BlocklyHandle = {
   updateProofStatuses: (statuses: Map<string, ProofStatus>) => void;
   clearProofStatuses: () => void;
   startHypDrag: (name: string, e: React.MouseEvent, mode?: 'prop' | 'apply' | 'rewrite') => void;
+  startGoalDrag: (e: React.MouseEvent) => void;
 };
 
 function useBlockly(
@@ -200,108 +201,130 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
       }
     },
     startHypDrag: (name: string, e: React.MouseEvent, mode: 'prop' | 'apply' | 'rewrite' = 'prop') => {
-      const ws = wsRef.current;
-      if (!ws) return;
-
-      // Suppress Blockly's auto-scroll that fires when the new block
-      // receives focus during startDrag → moveToDragLayer → focusNode.
-      const origScroll = ws.scrollBoundsIntoView.bind(ws);
-      ws.scrollBoundsIntoView = () => {};
-
-      // Allow the drag surface SVG to render outside the Blockly pane
-      // by temporarily removing overflow clipping and raising z-index.
-      const injectionDiv = ws.getInjectionDiv() as HTMLElement;
-      const container = blocklyRef.current!;
-      const gameArea = container.closest('.game-area') as HTMLElement | null;
-      const saved = {
-        injOverflow: injectionDiv.style.overflow,
-        contZIndex: container.style.zIndex,
-        contPosition: container.style.position,
-        gameOverflow: gameArea?.style.overflow ?? '',
-      };
-      injectionDiv.style.overflow = 'visible';
-      container.style.zIndex = '10';
-      container.style.position = 'relative';
-      if (gameArea) gameArea.style.overflow = 'visible';
-
-      // Convert screen position to workspace coordinates
-      const screenCoord = new blockly.utils.Coordinate(e.clientX, e.clientY);
-      const wsCoord = blockly.utils.svgMath.screenToWsCoordinates(ws, screenCoord);
-
-      let dragBlock: BlockSvg;
-
-      if (mode === 'apply') {
-        // Create a tactic_apply block with prop child on ARG input
-        const outerBlock = ws.newBlock('tactic_apply') as BlockSvg;
-        const innerBlock = ws.newBlock('prop') as BlockSvg;
-        innerBlock.setFieldValue(name, 'PROP_NAME');
-        innerBlock.initSvg();
-        innerBlock.render();
-        const input = outerBlock.getInput('ARG');
-        input!.connection!.connect(innerBlock.outputConnection!);
-        outerBlock.initSvg();
-        outerBlock.render();
-        dragBlock = outerBlock;
-      } else if (mode === 'rewrite') {
-        // Create a tactic_rewrite block with prop child on REWRITE_SOURCE input
-        const outerBlock = ws.newBlock('tactic_rewrite') as BlockSvg;
-        const innerBlock = ws.newBlock('prop') as BlockSvg;
-        innerBlock.setFieldValue(name, 'PROP_NAME');
-        innerBlock.initSvg();
-        innerBlock.render();
-        const input = outerBlock.getInput('REWRITE_SOURCE');
-        input!.connection!.connect(innerBlock.outputConnection!);
-        outerBlock.initSvg();
-        outerBlock.render();
-        dragBlock = outerBlock;
-      } else {
-        // Create a prop block with the hypothesis name
-        const block = ws.newBlock('prop') as BlockSvg;
-        block.setFieldValue(name, 'PROP_NAME');
+      startBlockDrag(e, (ws) => {
+        if (mode === 'apply') {
+          // Create a tactic_apply block with prop child on ARG input
+          const outerBlock = ws.newBlock('tactic_apply') as BlockSvg;
+          const innerBlock = ws.newBlock('prop') as BlockSvg;
+          innerBlock.setFieldValue(name, 'PROP_NAME');
+          innerBlock.initSvg();
+          innerBlock.render();
+          const input = outerBlock.getInput('ARG');
+          input!.connection!.connect(innerBlock.outputConnection!);
+          outerBlock.initSvg();
+          outerBlock.render();
+          return outerBlock;
+        } else if (mode === 'rewrite') {
+          // Create a tactic_rewrite block with prop child on REWRITE_SOURCE input
+          const outerBlock = ws.newBlock('tactic_rewrite') as BlockSvg;
+          const innerBlock = ws.newBlock('prop') as BlockSvg;
+          innerBlock.setFieldValue(name, 'PROP_NAME');
+          innerBlock.initSvg();
+          innerBlock.render();
+          const input = outerBlock.getInput('REWRITE_SOURCE');
+          input!.connection!.connect(innerBlock.outputConnection!);
+          outerBlock.initSvg();
+          outerBlock.render();
+          return outerBlock;
+        } else {
+          // Create a prop block with the hypothesis name
+          const block = ws.newBlock('prop') as BlockSvg;
+          block.setFieldValue(name, 'PROP_NAME');
+          block.initSvg();
+          block.render();
+          return block;
+        }
+      });
+    },
+    startGoalDrag: (e: React.MouseEvent) => {
+      startBlockDrag(e, (ws) => {
+        const block = ws.newBlock('tactic_use') as BlockSvg;
         block.initSvg();
         block.render();
-        dragBlock = block;
-      }
-
-      const size = dragBlock.getHeightWidth();
-      dragBlock.moveTo(new blockly.utils.Coordinate(
-        wsCoord.x - size.width / 2,
-        wsCoord.y - size.height / 2,
-      ));
-
-      // Create a Blockly Dragger and start the drag
-      const dragger = new blockly.dragging.Dragger(dragBlock, ws);
-      const nativeEvent = e.nativeEvent as PointerEvent;
-      dragger.onDragStart(nativeEvent);
-
-      const startX = e.clientX;
-      const startY = e.clientY;
-
-      function onPointerMove(ev: PointerEvent) {
-        const delta = new blockly.utils.Coordinate(ev.clientX - startX, ev.clientY - startY);
-        dragger.onDrag(ev, delta);
-      }
-
-      function cleanup() {
-        document.removeEventListener('pointermove', onPointerMove);
-        document.removeEventListener('pointerup', onPointerUp);
-        // Restore scroll behaviour and overflow/z-index
-        ws.scrollBoundsIntoView = origScroll;
-        injectionDiv.style.overflow = saved.injOverflow;
-        container.style.zIndex = saved.contZIndex;
-        container.style.position = saved.contPosition;
-        if (gameArea) gameArea.style.overflow = saved.gameOverflow;
-      }
-
-      function onPointerUp(ev: PointerEvent) {
-        dragger.onDragEnd(ev);
-        cleanup();
-      }
-
-      document.addEventListener('pointermove', onPointerMove);
-      document.addEventListener('pointerup', onPointerUp);
+        return block;
+      });
     },
   }), []);
+
+  /**
+   * Shared machinery for starting a drag of a newly-created block, used
+   * by the infoview affordances (drag-from-hypothesis, drag-from-goal).
+   * The caller supplies a function that creates and initializes the block;
+   * this wrapper handles positioning, overflow/scroll hacks, and the
+   * Dragger lifecycle.
+   */
+  function startBlockDrag(
+    e: React.MouseEvent,
+    createBlock: (ws: blockly.WorkspaceSvg) => BlockSvg,
+  ) {
+    const ws = wsRef.current;
+    if (!ws) return;
+
+    // Suppress Blockly's auto-scroll that fires when the new block
+    // receives focus during startDrag → moveToDragLayer → focusNode.
+    const origScroll = ws.scrollBoundsIntoView.bind(ws);
+    ws.scrollBoundsIntoView = () => {};
+
+    // Allow the drag surface SVG to render outside the Blockly pane
+    // by temporarily removing overflow clipping and raising z-index.
+    const injectionDiv = ws.getInjectionDiv() as HTMLElement;
+    const container = blocklyRef.current!;
+    const gameArea = container.closest('.game-area') as HTMLElement | null;
+    const saved = {
+      injOverflow: injectionDiv.style.overflow,
+      contZIndex: container.style.zIndex,
+      contPosition: container.style.position,
+      gameOverflow: gameArea?.style.overflow ?? '',
+    };
+    injectionDiv.style.overflow = 'visible';
+    container.style.zIndex = '10';
+    container.style.position = 'relative';
+    if (gameArea) gameArea.style.overflow = 'visible';
+
+    // Convert screen position to workspace coordinates
+    const screenCoord = new blockly.utils.Coordinate(e.clientX, e.clientY);
+    const wsCoord = blockly.utils.svgMath.screenToWsCoordinates(ws, screenCoord);
+
+    const dragBlock = createBlock(ws);
+
+    const size = dragBlock.getHeightWidth();
+    dragBlock.moveTo(new blockly.utils.Coordinate(
+      wsCoord.x - size.width / 2,
+      wsCoord.y - size.height / 2,
+    ));
+
+    // Create a Blockly Dragger and start the drag
+    const dragger = new blockly.dragging.Dragger(dragBlock, ws);
+    const nativeEvent = e.nativeEvent as PointerEvent;
+    dragger.onDragStart(nativeEvent);
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    function onPointerMove(ev: PointerEvent) {
+      const delta = new blockly.utils.Coordinate(ev.clientX - startX, ev.clientY - startY);
+      dragger.onDrag(ev, delta);
+    }
+
+    function cleanup() {
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      // Restore scroll behaviour and overflow/z-index
+      ws.scrollBoundsIntoView = origScroll;
+      injectionDiv.style.overflow = saved.injOverflow;
+      container.style.zIndex = saved.contZIndex;
+      container.style.position = saved.contPosition;
+      if (gameArea) gameArea.style.overflow = saved.gameOverflow;
+    }
+
+    function onPointerUp(ev: PointerEvent) {
+      dragger.onDragEnd(ev);
+      cleanup();
+    }
+
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+  }
 
   useBlockly(blocklyRef, wsRef, props.initialData, props.onBlocklyChange, props.onRequestGoals, props.allowedBlocks);
 

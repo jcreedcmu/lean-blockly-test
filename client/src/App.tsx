@@ -389,6 +389,7 @@ function App() {
             hypKindMap={hypKindMap}
             allowedAffordances={getAllowedAffordances(currentLevel.permissions)}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}
+            onGoalDragStart={(e) => blocklyRef.current?.startGoalDrag(e)}
           />
         )}
         {diagnostics.length > 0 && (
