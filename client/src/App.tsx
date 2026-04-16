@@ -195,12 +195,15 @@ function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // Auto-show introduction on first visit to a level.
+  // Auto-show introduction on first visit to a level — unless the user
+  // has opted out via the `noAutoInfo` localStorage flag (set it in
+  // devtools to suppress the modal; the info button is still available).
   useEffect(() => {
     if (nav.kind !== 'playing') return;
     const key = `${nav.worldId}:${nav.levelIndex}`;
     if (visitedLevelsRef.current.has(key)) return;
     visitedLevelsRef.current.add(key);
+    if (localStorage.getItem('noAutoInfo')) return;
     const world = gameData.worlds.find(w => w.id === nav.worldId);
     if (world?.levels[nav.levelIndex]?.introduction) {
       setShowIntro(true);
