@@ -207,7 +207,7 @@ function defineTactics() {
     },
     {
       'type': 'tactic_ring_nf',
-      'message0': 'ring_nf',
+      'message0': 'ring',
       'previousStatement': 'tactic',
       'nextStatement': 'tactic',
       'tooltip': 'ring_nf simplifies algebraic expressions.',
