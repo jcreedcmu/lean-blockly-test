@@ -31,8 +31,9 @@ import Mathlib
 
     hypothesis:
       "apply"    — hyp is an assumption (its type is a Prop)
-      "rewrite"  — hyp is an assumption (Prop); ideally equality-shaped,
-                   but we currently approximate via `isAssumption`
+      "rewrite"  — hyp is an assumption whose type is top-level `Eq`
+                   (i.e. `h : a = b`). `rewrite` also works on `Iff`
+                   and `HEq`; broaden here if/when levels need it.
       "choose"   — hyp is an assumption whose type is top-level `Exists`
     target:
       "use"      — goal's target is top-level `Exists`
@@ -94,7 +95,8 @@ def getGoalInfo (p : GoalInfoParams) :
           let mut affordances : Array String := #[]
           if isAssumption then
             affordances := affordances.push "apply"
-            affordances := affordances.push "rewrite"
+            if hypType.isAppOf ``Eq then
+              affordances := affordances.push "rewrite"
             if hypType.isAppOf ``Exists then
               affordances := affordances.push "choose"
           hyps := hyps.push {
