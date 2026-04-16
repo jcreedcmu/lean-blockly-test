@@ -51,7 +51,15 @@ const LeanTacticsCategory: CategoryItem = {
       kind: 'block',
       type: 'tactic_other',
     },
-    ...blocks.singleArgTactics.map(t => ({ kind: 'block' as const, type: `tactic_${t.name}` }))
+    ...blocks.singleArgTactics.map(t => ({ kind: 'block' as const, type: `tactic_${t.name}` })),
+    {
+      kind: 'block',
+      type: 'tactic_specialize1',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_specialize2',
+    },
   ],
 };
 

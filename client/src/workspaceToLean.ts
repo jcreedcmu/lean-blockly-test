@@ -175,6 +175,29 @@ function blockToChunks(
       break;
     }
 
+    // Both variadic-specialize variants emit the same Lean:
+    // `specialize <HYP> <ARG0> <ARG1> …`. The two block types differ
+    // only in the UX for editing arity (mutator vs +/- buttons); the
+    // serialized shape — HYP + a dense `ARG0..ARGn` run of inputs —
+    // is identical.
+    case 'tactic_specialize1':
+    case 'tactic_specialize2': {
+      const hypChunks = blockToChunks(inputs['HYP']?.block, '');
+      const argChunks: CodeChunk[] = [];
+      for (let i = 0; inputs[`ARG${i}`]; i++) {
+        argChunks.push(text(' '));
+        argChunks.push(...blockToChunks(inputs[`ARG${i}`]?.block, ''));
+      }
+      chunks = [
+        ...indentChunk,
+        chunk(`specialize `, blockId),
+        ...hypChunks,
+        ...argChunks,
+        chunk(`\n`, blockId),
+      ];
+      break;
+    }
+
     case 'tactic_have': {
       const name = fields['NAME'] ?? 'h';
       const type = fields['TYPE'] ?? 'True';
