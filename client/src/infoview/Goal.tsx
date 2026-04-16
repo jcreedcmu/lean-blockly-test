@@ -158,25 +158,27 @@ export function Goal({
         )
       )}
 
-      <div className="goal-target">
-        <span className="goal-vdash">{goal.goalPrefix ?? '\u22A2'} </span>
-        <span className="goal-type">
-          <InteractiveCode fmt={goal.type} onSubexprClick={interactionProps.onSubexprClick} />
-        </span>
-        {interactionProps.onGoalDragStart && goalInfo?.target.affordances.map((a) => {
-          if (a.kind !== 'use') return null;
-          if (interactionProps.allowedAffordances &&
-              !interactionProps.allowedAffordances.has(a.kind)) return null;
-          return (
-            <span
-              key={a.kind}
-              className={`goal-action goal-action-${a.kind}`}
-              onMouseDown={(e) => interactionProps.onGoalDragStart!(e, a)}
-            >
-              {a.kind}
-            </span>
-          );
-        })}
+      <div className="hyp-group goal-target">
+        <div className="hyp-group-title">Goal</div>
+        <div>
+          <span className="goal-type">
+            <InteractiveCode fmt={goal.type} onSubexprClick={interactionProps.onSubexprClick} />
+          </span>
+          {interactionProps.onGoalDragStart && goalInfo?.target.affordances.map((a) => {
+            if (a.kind !== 'use') return null;
+            if (interactionProps.allowedAffordances &&
+                !interactionProps.allowedAffordances.has(a.kind)) return null;
+            return (
+              <span
+                key={a.kind}
+                className={`goal-action goal-action-${a.kind}`}
+                onMouseDown={(e) => interactionProps.onGoalDragStart!(e, a)}
+              >
+                {a.kind}
+              </span>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
