@@ -260,6 +260,14 @@ export class LevelEvaluator {
       // Skip anything entirely inside the preamble.
       if (diag.range.end.line < this.preludeLineCount) continue;
 
+      // Suppress the Lean linter's "merge intros" suggestion
+      // (severity 2 = Warning, message starts with "Try this: intro").
+      // The diagnostic has no `code` or `tags` so we match by message.
+      if (diag.severity === 2) {
+        const flat = flattenInteractiveMessage(diag.message);
+        if (/^Try this: intro/.test(flat)) continue;
+      }
+
       diagnostics.push({
         range: this.translateRangeToContribution(diag.range),
         severity: diag.severity,
