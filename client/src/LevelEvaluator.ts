@@ -49,13 +49,24 @@ def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
 
 // ── Public types ─────────────────────────────────────────────────────
 
+/** A drag-and-drop affordance reported by the Lean RPC. Each variant's
+ * `kind` matches the server's inductive `Affordance` constructor name
+ * and is also the key used in per-level `allowedAffordances`. Variants
+ * can carry data — e.g. `choose` carries the binder name of the
+ * existential as a suggested default variable. */
+export type Affordance =
+  | { kind: 'apply' }
+  | { kind: 'rewrite' }
+  | { kind: 'choose'; suggestedName: string }
+  | { kind: 'use' };
+
 /** Per-hypothesis info extracted server-side from the Lean `Expr` AST.
- * `affordances` is the set of drag-and-drop affordances the Lean side
+ * `affordances` is the list of drag-and-drop affordances the Lean side
  * deems *potentially* applicable; the client intersects it with the
  * level's allowed-affordance set before rendering. */
 export interface HypInfo {
   isAssumption: boolean;
-  affordances: Set<string>;
+  affordances: Affordance[];
 }
 
 /** Per-goal information from the server. `hyps` is keyed by fvarId,
@@ -63,7 +74,7 @@ export interface HypInfo {
 export interface GoalInfo {
   mvarId: string;
   hyps: Map<string, HypInfo>;
-  target: { affordances: Set<string> };
+  target: { affordances: Affordance[] };
 }
 
 /** mvarId → GoalInfo, for every leaf goal in the current evaluation. */
@@ -281,21 +292,37 @@ export class LevelEvaluator {
         for (const h of result.hyps) {
           hyps.set(h.fvarId, {
             isAssumption: h.isAssumption,
-            affordances: new Set(h.affordances),
+            affordances: h.affordances,
           });
         }
         goalInfoMap.set(result.mvarId, {
           mvarId: result.mvarId,
           hyps,
-          target: { affordances: new Set(result.target.affordances) },
+          target: { affordances: result.target.affordances },
         });
       } catch (err) {
         logError(TAG, 'getGoalInfo failed:', err);
       }
     }
 
-    const hasErrors = diagnostics.some((d) => d.severity === 1);
+    // `complete` must account for errors ANYWHERE in the file, not just
+    // in the contribution. If the preamble fails to elaborate, its
+    // errors are filtered out by the preludeLineCount check above — but
+    // swallowing them would spuriously mark the proof as complete
+    // (no filtered diagnostics, no leaf goals). Guard against that by
+    // scanning the raw diagnostics too.
+    const hasErrors = interactiveDiagnostics.some((d) => d.severity === 1);
     const complete = !hasErrors && leafGoals.length === 0;
+    if (hasErrors && diagnostics.length === 0) {
+      logError(TAG, 'errors present but all inside preamble — ' +
+        'preamble likely broken; surfacing first error to the user.');
+      const firstErr = interactiveDiagnostics.find(d => d.severity === 1)!;
+      diagnostics.push({
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+        severity: 1,
+        message: `Preamble elaboration error (rebuild MathlibDemo?): ${flattenInteractiveMessage(firstErr.message)}`,
+      });
+    }
 
     return { diagnostics, leafGoals, goalInfoMap, complete };
   }
@@ -321,6 +348,6 @@ export class LevelEvaluator {
 
 interface GoalInfoResult {
   mvarId: string;
-  hyps: Array<{ fvarId: string; isAssumption: boolean; affordances: string[] }>;
-  target: { affordances: string[] };
+  hyps: Array<{ fvarId: string; isAssumption: boolean; affordances: Affordance[] }>;
+  target: { affordances: Affordance[] };
 }

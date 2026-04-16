@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { InteractiveGoal, InteractiveHypothesisBundle } from '@leanprover/infoview-api';
 import { Hyp, type HypInteractionProps } from './Hyp';
 import { InteractiveCode } from './InteractiveCode';
-import type { GoalInfo } from '../LevelEvaluator';
+import type { Affordance, GoalInfo } from '../LevelEvaluator';
 
 export interface GoalFilterState {
   /** If true, reverse the order of hypotheses. */
@@ -67,11 +67,11 @@ function isAssumption(h: InteractiveHypothesisBundle, goalInfo?: GoalInfo): bool
   return goalInfo.hyps.get(h.fvarIds[0])?.isAssumption;
 }
 
-/** Look up the server-reported affordance set for a bundle's first fvarId. */
+/** Look up the server-reported affordance list for a bundle's first fvarId. */
 function hypAffordances(
   h: InteractiveHypothesisBundle,
   goalInfo?: GoalInfo,
-): Set<string> | undefined {
+): Affordance[] | undefined {
   if (!goalInfo || !h.fvarIds || h.fvarIds.length === 0) return undefined;
   return goalInfo.hyps.get(h.fvarIds[0])?.affordances;
 }
@@ -163,16 +163,20 @@ export function Goal({
         <span className="goal-type">
           <InteractiveCode fmt={goal.type} onSubexprClick={interactionProps.onSubexprClick} />
         </span>
-        {interactionProps.onGoalDragStart &&
-          goalInfo?.target.affordances.has('use') &&
-          (!interactionProps.allowedAffordances || interactionProps.allowedAffordances.has('use')) && (
+        {interactionProps.onGoalDragStart && goalInfo?.target.affordances.map((a) => {
+          if (a.kind !== 'use') return null;
+          if (interactionProps.allowedAffordances &&
+              !interactionProps.allowedAffordances.has(a.kind)) return null;
+          return (
             <span
-              className="goal-action goal-action-use"
-              onMouseDown={(e) => interactionProps.onGoalDragStart!(e)}
+              key={a.kind}
+              className={`goal-action goal-action-${a.kind}`}
+              onMouseDown={(e) => interactionProps.onGoalDragStart!(e, a)}
             >
-              use
+              {a.kind}
             </span>
-          )}
+          );
+        })}
       </div>
     </div>
   );

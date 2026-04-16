@@ -147,7 +147,6 @@ function blockToChunks(
     case 'tactic_use':
     case 'tactic_unfold':
     case 'tactic_specialize':
-    case 'tactic_choose':
     case 'tactic_cases':
     case 'tactic_induction':
     case 'tactic_obtain': {
@@ -157,6 +156,20 @@ function blockToChunks(
         ...indentChunk,
         chunk(`${tacticName} `, blockId),
         ...argChunks,
+        chunk(`\n`, blockId),
+      ];
+      break;
+    }
+
+    case 'tactic_choose': {
+      const chosenChunks = blockToChunks(inputs['CHOSEN']?.block, '');
+      const sourceChunks = blockToChunks(inputs['SOURCE']?.block, '');
+      chunks = [
+        ...indentChunk,
+        chunk(`choose `, blockId),
+        ...chosenChunks,
+        chunk(` using `, blockId),
+        ...sourceChunks,
         chunk(`\n`, blockId),
       ];
       break;

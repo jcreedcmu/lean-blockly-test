@@ -2,25 +2,23 @@ import * as React from 'react';
 import type { InteractiveHypothesisBundle, SubexprInfo } from '@leanprover/infoview-api';
 import { InteractiveHypothesisBundle_nonAnonymousNames } from '@leanprover/infoview-api';
 import { InteractiveCode } from './InteractiveCode';
+import type { Affordance } from '../LevelEvaluator';
 
-/** Hypothesis-level drag modes recognized by Blockly's `startHypDrag`.
- * `'prop'` creates a bare `prop` block; the rest wrap the prop in the
- * corresponding tactic block. Also the affordance names reported by
- * the Lean-side `getGoalInfo` RPC. */
-export type HypDragMode = 'prop' | 'apply' | 'rewrite' | 'choose';
-
-/** Affordance modes that appear as labeled buttons next to a hyp. Must
- * match the affordance strings the Lean RPC reports. The order here is
- * the left-to-right rendering order in the infoview. */
-export const HYP_AFFORDANCES = ['apply', 'rewrite', 'choose'] as const;
+/** Order in which hypothesis-level affordances are rendered (left-to-right).
+ * Also gates which kinds are recognized as hyp-side buttons at all. */
+export const HYP_AFFORDANCE_KINDS = ['apply', 'rewrite', 'choose'] as const;
+type HypAffordanceKind = typeof HYP_AFFORDANCE_KINDS[number];
 
 /** Props that control hypothesis interaction, shared across Hyp/Goal/Goals. */
 export interface HypInteractionProps {
-  /** Which drag affordances are allowed on this level (e.g. 'apply', 'rewrite'). undefined = all. */
+  /** Which drag affordances are allowed on this level (by `kind`). undefined = all. */
   allowedAffordances?: Set<string>;
   onHypNameClick?: (name: string, hyp: InteractiveHypothesisBundle) => void;
-  onHypDragStart?: (name: string, e: React.MouseEvent, mode?: HypDragMode) => void;
-  onGoalDragStart?: (e: React.MouseEvent) => void;
+  /** Start dragging a new block built from this hyp. If `affordance` is
+   * omitted, drags a bare `prop` block carrying the hyp name. */
+  onHypDragStart?: (name: string, e: React.MouseEvent, affordance?: Affordance) => void;
+  /** Start dragging a new block from the goal target's affordance. */
+  onGoalDragStart?: (e: React.MouseEvent, affordance: Affordance) => void;
   onSubexprClick?: (info: SubexprInfo) => void;
 }
 
@@ -28,7 +26,7 @@ export interface HypProps extends HypInteractionProps {
   hyp: InteractiveHypothesisBundle;
   /** Potentially-available affordances for this hyp, as reported by
    * the server. The client intersects with `allowedAffordances`. */
-  affordances?: Set<string>;
+  affordances?: Affordance[];
 }
 
 /** Returns true if the name contains the inaccessible marker. */
@@ -84,17 +82,21 @@ export function Hyp({ hyp, affordances, allowedAffordances, onHypNameClick, onHy
           </>
         )}
       </span>
-      {onHypDragStart && affordances && HYP_AFFORDANCES.map((a) =>
-        affordances.has(a) && (!allowedAffordances || allowedAffordances.has(a)) ? (
+      {onHypDragStart && affordances && HYP_AFFORDANCE_KINDS.map((kind) => {
+        const a = affordances.find((x): x is Affordance & { kind: HypAffordanceKind } =>
+          x.kind === kind);
+        if (!a) return null;
+        if (allowedAffordances && !allowedAffordances.has(kind)) return null;
+        return (
           <span
-            key={a}
-            className={`hyp-cell hyp-action hyp-action-${a}`}
+            key={kind}
+            className={`hyp-cell hyp-action hyp-action-${kind}`}
             onMouseDown={(e) => onHypDragStart(name, e, a)}
           >
-            {a}
+            {kind}
           </span>
-        ) : null
-      )}
+        );
+      })}
     </div>
   );
 }

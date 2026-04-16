@@ -19,38 +19,76 @@ import Mathlib
 
   For each hypothesis we report whether it is an *assumption* (a
   `Prop`-typed hyp, e.g. `h : x = y`) or an *object* (a type-typed hyp
-  like `x : ℝ`), plus a list of the drag-and-drop affordances that
+  like `x : ℝ`), plus a list of the drag-and-drop `Affordance`s that
   *could* apply to it. For the goal target we similarly report which
   affordances could apply.
 
   The RPC reports what is *potentially* available — i.e. what the Lean
   AST actually supports. The TypeScript client intersects this with the
-  per-level `allowedAffordances` before rendering.
+  per-level `allowedAffordances` (keyed by affordance kind) before
+  rendering.
 
-  Affordance name → where it comes from:
+  Affordance variants:
 
     hypothesis:
-      "apply"    — hyp is an assumption (its type is a Prop)
-      "rewrite"  — hyp is an assumption whose type is top-level `Eq`
-                   (i.e. `h : a = b`). `rewrite` also works on `Iff`
-                   and `HEq`; broaden here if/when levels need it.
-      "choose"   — hyp is an assumption whose type is top-level `Exists`
+      .apply                 — hyp is an assumption (its type is a Prop)
+      .rewrite               — hyp is an assumption whose type is top-level
+                               `Eq` (i.e. `h : a = b`). `rewrite` also
+                               works on `Iff` and `HEq`; broaden here
+                               if/when levels need it.
+      .choose suggestedName  — hyp is an assumption whose type is top-level
+                               `Exists`; `suggestedName` is the binder
+                               name from the existential (e.g. `c` for
+                               `∃ c, f c = 2`), used as the default
+                               variable name in the dragged tactic block.
     target:
-      "use"      — goal's target is top-level `Exists`
+      .use                   — goal's target is top-level `Exists`
 
-  Add a new affordance by extending the `Array String` returned here —
-  no need to add or migrate fields.
+  JSON wire format: `{"kind": "apply"}` / `{"kind": "choose",
+  "suggestedName": "c"}` / etc. The client mirrors this as a tagged
+  union. Adding a new affordance means extending the inductive and
+  updating both codec instances below.
 -/
+open Lean Server Widget Elab in
+inductive Affordance where
+  | apply
+  | rewrite
+  | choose (suggestedName : String)
+  | use
+  deriving Inhabited
+
+open Lean Server Widget Elab in
+instance : ToJson Affordance where
+  toJson
+    | .apply        => Json.mkObj [("kind", Json.str "apply")]
+    | .rewrite      => Json.mkObj [("kind", Json.str "rewrite")]
+    | .choose name  => Json.mkObj [("kind", Json.str "choose"),
+                                   ("suggestedName", Json.str name)]
+    | .use          => Json.mkObj [("kind", Json.str "use")]
+
+open Lean Server Widget Elab in
+instance : FromJson Affordance where
+  fromJson? j := do
+    let kind ← j.getObjValAs? String "kind"
+    match kind with
+    | "apply"   => pure .apply
+    | "rewrite" => pure .rewrite
+    | "choose"  => do
+        let name ← j.getObjValAs? String "suggestedName"
+        pure (.choose name)
+    | "use"     => pure .use
+    | k         => throw s!"unknown affordance kind: {k}"
+
 open Lean Server Widget Elab in
 structure HypInfo where
   fvarId : String
   isAssumption : Bool
-  affordances : Array String
+  affordances : Array Affordance
   deriving FromJson, ToJson
 
 open Lean Server Widget Elab in
 structure TargetInfo where
-  affordances : Array String
+  affordances : Array Affordance
   deriving FromJson, ToJson
 
 open Lean Server Widget Elab in
@@ -75,6 +113,16 @@ def parseLeanName (s : String) : Name :=
   ) Name.anonymous
 
 open Lean Server Widget Elab Meta in
+/-- The binder name of a top-level `Exists` application, falling back
+    to `"x"` if the predicate isn't in the expected `fun x => _` form. -/
+def existsBinderName? (e : Expr) : String :=
+  -- `∃ x, P x` elaborates to `Exists (fun x => P x)`; the predicate is
+  -- the last argument of the `Exists` application.
+  match e.getAppArgs.back? with
+  | some (.lam name _ _ _) => name.toString
+  | _                      => "x"
+
+open Lean Server Widget Elab Meta in
 @[server_rpc_method]
 def getGoalInfo (p : GoalInfoParams) :
     RequestM (RequestTask GoalInfo) :=
@@ -92,22 +140,22 @@ def getGoalInfo (p : GoalInfoParams) :
           let hypType ← instantiateMVars decl.type
           let typeOfType ← inferType hypType
           let isAssumption := typeOfType.isProp
-          let mut affordances : Array String := #[]
+          let mut affordances : Array Affordance := #[]
           if isAssumption then
-            affordances := affordances.push "apply"
+            affordances := affordances.push .apply
             if hypType.isAppOf ``Eq then
-              affordances := affordances.push "rewrite"
+              affordances := affordances.push .rewrite
             if hypType.isAppOf ``Exists then
-              affordances := affordances.push "choose"
+              affordances := affordances.push (.choose (existsBinderName? hypType))
           hyps := hyps.push {
             fvarId := toString decl.fvarId.name
             isAssumption
             affordances
           }
         let target ← instantiateMVars mvarDecl.type
-        let mut targetAffordances : Array String := #[]
+        let mut targetAffordances : Array Affordance := #[]
         if target.isAppOf ``Exists then
-          targetAffordances := targetAffordances.push "use"
+          targetAffordances := targetAffordances.push .use
         return {
           mvarId := p.mvarId
           hyps

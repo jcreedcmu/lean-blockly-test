@@ -396,7 +396,7 @@ function App() {
             goalInfoMap={goalInfoMap}
             allowedAffordances={getAllowedAffordances(currentLevel.permissions)}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}
-            onGoalDragStart={(e) => blocklyRef.current?.startGoalDrag(e)}
+            onGoalDragStart={(e, affordance) => blocklyRef.current?.startGoalDrag(e, affordance)}
           />
         )}
         {diagnostics.length > 0 && (

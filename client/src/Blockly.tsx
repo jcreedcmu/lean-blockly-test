@@ -6,6 +6,7 @@ import * as blocks from './blocks'
 import { toolbox as defaultToolbox, filterToolbox } from './toolbox'
 import { workspaceToLean, WorkspaceToLeanResult, SourceInfo } from './workspaceToLean'
 import { FieldProofStatus, ProofStatus } from './FieldProofStatus'
+import type { Affordance } from './LevelEvaluator'
 
 export type BlocklyState = object;
 
@@ -22,21 +23,15 @@ export type BlocklyHandle = {
   saveWorkspace: () => BlocklyState | null;
   updateProofStatuses: (statuses: Map<string, ProofStatus>) => void;
   clearProofStatuses: () => void;
-  startHypDrag: (name: string, e: React.MouseEvent, mode?: HypDragMode) => void;
-  startGoalDrag: (e: React.MouseEvent) => void;
-};
-
-/** Drag modes for a hypothesis affordance. `'prop'` drops a bare `prop`
- * block with the hyp name. The rest each wrap the `prop` in the
- * corresponding tactic block on its input. */
-export type HypDragMode = 'prop' | 'apply' | 'rewrite' | 'choose';
-
-/** For wrapping modes, which Blockly input on the outer tactic block
- * receives the inner `prop` block. */
-const WRAPPING_TACTIC_INPUT: Record<Exclude<HypDragMode, 'prop'>, string> = {
-  apply: 'ARG',
-  rewrite: 'REWRITE_SOURCE',
-  choose: 'ARG',
+  /** Start a drag originating from a hypothesis. If `affordance` is
+   * omitted, drags a bare `prop` block carrying the hyp name. Otherwise
+   * wraps the hyp name in the tactic block corresponding to the
+   * affordance's `kind`. */
+  startHypDrag: (name: string, e: React.MouseEvent, affordance?: Affordance) => void;
+  /** Start a drag originating from the goal target. Unlike hypotheses
+   * there's no bare-drag mode here — the only drag surfaces are the
+   * affordance buttons — so `affordance` is required. */
+  startGoalDrag: (e: React.MouseEvent, affordance: Affordance) => void;
 };
 
 function useBlockly(
@@ -213,32 +208,76 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         }
       }
     },
-    startHypDrag: (name: string, e: React.MouseEvent, mode: HypDragMode = 'prop') => {
+    startHypDrag: (name: string, e: React.MouseEvent, affordance?: Affordance) => {
       startBlockDrag(e, (ws) => {
-        // Inner `prop` block carrying the hypothesis name.
-        const innerBlock = ws.newBlock('prop') as BlockSvg;
-        innerBlock.setFieldValue(name, 'PROP_NAME');
-        innerBlock.initSvg();
-        innerBlock.render();
+        // Helper: a fully-initialized `prop` block with a name field.
+        const propWithName = (propName: string): BlockSvg => {
+          const b = ws.newBlock('prop') as BlockSvg;
+          b.setFieldValue(propName, 'PROP_NAME');
+          b.initSvg();
+          b.render();
+          return b;
+        };
+        // Helper: wrap one inner prop on a named input of an outer tactic.
+        const wrapSingle = (tacticType: string, inputName: string): BlockSvg => {
+          const outer = ws.newBlock(tacticType) as BlockSvg;
+          outer.getInput(inputName)!.connection!.connect(
+            propWithName(name).outputConnection!);
+          outer.initSvg();
+          outer.render();
+          return outer;
+        };
 
-        if (mode === 'prop') return innerBlock;
+        if (!affordance) return propWithName(name);
 
-        // Wrap the prop in the corresponding tactic block on its
-        // designated input (apply/choose → ARG, rewrite → REWRITE_SOURCE).
-        const outerBlock = ws.newBlock(`tactic_${mode}`) as BlockSvg;
-        const input = outerBlock.getInput(WRAPPING_TACTIC_INPUT[mode]);
-        input!.connection!.connect(innerBlock.outputConnection!);
-        outerBlock.initSvg();
-        outerBlock.render();
-        return outerBlock;
+        switch (affordance.kind) {
+          case 'apply':   return wrapSingle('tactic_apply', 'ARG');
+          case 'rewrite': return wrapSingle('tactic_rewrite', 'REWRITE_SOURCE');
+          case 'choose': {
+            // tactic_choose has two inputs: CHOSEN (new variable names)
+            // and SOURCE (the hypothesis being destructed). Mathlib's
+            // `choose` on `h : ∃ c, P c` introduces *two* binders — the
+            // witness `c` and the proof `P c` — so we seed CHOSEN with
+            // both, using `<c> h<c>` (e.g. `c hc`) as a sensible default.
+            const v = affordance.suggestedName;
+            const outer = ws.newBlock('tactic_choose') as BlockSvg;
+            outer.getInput('CHOSEN')!.connection!.connect(
+              propWithName(`${v} h${v}`).outputConnection!);
+            outer.getInput('SOURCE')!.connection!.connect(
+              propWithName(name).outputConnection!);
+            outer.initSvg();
+            outer.render();
+            return outer;
+          }
+          case 'use':
+            // 'use' is a target-side affordance, not applicable to a hyp
+            // drag — fall through to a bare prop so we never crash if
+            // something mis-wired reaches us.
+            return propWithName(name);
+        }
       });
     },
-    startGoalDrag: (e: React.MouseEvent) => {
+    startGoalDrag: (e: React.MouseEvent, affordance: Affordance) => {
       startBlockDrag(e, (ws) => {
-        const block = ws.newBlock('tactic_use') as BlockSvg;
-        block.initSvg();
-        block.render();
-        return block;
+        switch (affordance.kind) {
+          case 'use': {
+            const block = ws.newBlock('tactic_use') as BlockSvg;
+            block.initSvg();
+            block.render();
+            return block;
+          }
+          case 'apply':
+          case 'rewrite':
+          case 'choose': {
+            // These are hyp-side affordances; they have no goal-side
+            // rendering today. Fall through to a no-op `prop` block
+            // rather than crash if something mis-wired reaches us.
+            const block = ws.newBlock('prop') as BlockSvg;
+            block.initSvg();
+            block.render();
+            return block;
+          }
+        }
       });
     },
   }), []);

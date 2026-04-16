@@ -67,7 +67,6 @@ export const singleArgTactics: TacticProps[] = [
   { name: 'intro', msg: 'intro' },
   { name: 'use', msg: 'use' },
   { name: 'specialize', msg: 'specialize' },
-  { name: 'choose', msg: 'choose' },
 ];
 
 function defineMisc() {
@@ -267,6 +266,32 @@ function defineTactics() {
       'style': 'logic_blocks',
       'tooltip': 'rewrite_at',
       'helpUrl': 'rewrite_at',
+    },
+    {
+      // `choose <var> using <hyp>` destructs an existential hypothesis.
+      // CHOSEN is the new variable name to introduce (free text — the
+      // student can type multiple names here, e.g. `c hc` to also bind
+      // the proof). SOURCE is the hypothesis with the existential.
+      'type': 'tactic_choose',
+      'message0': 'choose %1 using %2',
+      'args0': [
+        {
+          'type': 'input_value',
+          'name': 'CHOSEN',
+          'check': 'proposition',
+        },
+        {
+          'type': 'input_value',
+          'name': 'SOURCE',
+          'check': 'proposition',
+        },
+      ],
+      'inputsInline': true,
+      'previousStatement': 'tactic',
+      'nextStatement': 'tactic',
+      'style': 'logic_blocks',
+      'tooltip': 'choose',
+      'helpUrl': 'choose',
     },
     {
       'type': 'tactic_sorry',
