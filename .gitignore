@@ -28,3 +28,5 @@ cypress/videos
 *.njsproj
 *.sln
 *.sw?
+
+vendor
