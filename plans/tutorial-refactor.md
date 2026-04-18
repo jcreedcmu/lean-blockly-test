@@ -144,7 +144,7 @@ stable class names that exist for tutorial targeting:
 | `.blocklySvg` | The Blockly canvas | Blockly (built-in) |
 | `.blocklyToolbox` | Toolbox sidebar | Blockly (built-in) |
 | `.blocklyFlyout [data-id="tutorial-toolbox-apply"]` | Apply block in flyout | toolbox.ts |
-| `.tutorial-theorem-block` | The main lemma block | Blockly.tsx |
+| `.lemma-block` | The main lemma block | blocks.ts (extension) |
 | `.tutorial-tactics-category-row` | Tactics category row in toolbox | toolbox.ts |
 | `.tutorial-tactics-category-label` | Tactics category label | toolbox.ts |
 | `.tutorial-hyp-{name}` | A specific hypothesis (name is sanitized) | Hyp.tsx |

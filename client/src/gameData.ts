@@ -7,6 +7,42 @@ export type LevelPermission =
   | { t: 'allowAffordance'; affordance: 'rewrite' | 'apply' | 'use' | 'choose' }
   | { t: 'allowAllAffordances' };
 
+export type TutorialAction =
+  | { kind: 'openToolboxCategory'; category: string };
+
+export type TutorialStep = {
+  target: string;
+  spotlightTarget?: string;
+  title?: string;
+  content: string;
+  placement?: 'top' | 'right' | 'bottom' | 'left' | 'auto' | 'center';
+  offset?: number;
+  targetWaitTimeout?: number;
+  skipScroll?: boolean;
+  actions?: TutorialAction[];
+  conditions?: TutorialCondition[];
+  advanceDelayMs?: number;
+};
+
+export type TutorialBlockPattern = {
+  type: string;
+  fields?: Record<string, string>;
+  inputs?: Record<string, TutorialBlockPattern>;
+};
+
+export type TutorialCondition =
+  | {
+      kind: 'workspaceHasBlock';
+      block: TutorialBlockPattern;
+      location?: 'any' | 'topLevel' | 'theoremProof';
+    }
+  | {
+      kind: 'elementExists';
+      selector: string;
+      visible?: boolean;
+    }
+  | { kind: 'proofComplete' };
+
 export type LevelDefinition = {
   name: string;
   theoremName: string;
@@ -14,6 +50,7 @@ export type LevelDefinition = {
   permissions?: LevelPermission[];
   introduction?: string;
   conclusion?: string;
+  tutorial?: TutorialStep[];
   /** Pre-formatted multi-line rendering of the theorem signature split
    * into Objects / Assumptions / Goal sections, joined with `\n`. Used
    * as the lemma block's display override; the FieldTheoremStatement
@@ -150,19 +187,34 @@ function levelSourceToDefinition(src: LevelSource): LevelDefinition {
 // from the path) and sort by the `level` field within each world.
 
 const levelModules = import.meta.glob<{ default: LevelSource }>(
-  './levels/*/*.ts',
+  ['./levels/*/*.ts', '!./levels/*/*_tutorial.ts'],
   { eager: true },
 );
+
+// Tutorial files live alongside level files as `*_tutorial.ts`.
+// They are loaded via a second glob and matched by path convention.
+const tutorialModules = import.meta.glob<{ default: TutorialStep[] }>(
+  './levels/*/*_tutorial.ts',
+  { eager: true },
+);
+
+// Build a lookup: strip the `_tutorial` suffix to get the level path key.
+const tutorialByLevelPath: Record<string, TutorialStep[]> = {};
+for (const [path, mod] of Object.entries(tutorialModules)) {
+  const levelPath = path.replace(/_tutorial\.ts$/, '.ts');
+  if (mod.default) tutorialByLevelPath[levelPath] = mod.default;
+}
 
 const levelsByWorld: Record<string, LevelDefinition[]> = {};
 for (const [path, mod] of Object.entries(levelModules)) {
   const src = mod.default;
   if (!src) continue;
   if (!levelsByWorld[src.world]) levelsByWorld[src.world] = [];
-  // We push first and sort once below.
+  const def = levelSourceToDefinition(src);
+  // Attach tutorial from sibling *_tutorial.ts file, if one exists.
+  if (tutorialByLevelPath[path]) def.tutorial = tutorialByLevelPath[path];
   (levelsByWorld[src.world] as unknown as { src: LevelSource; def: LevelDefinition }[])
-    .push({ src, def: levelSourceToDefinition(src) } as never);
-  void path; // path is informational
+    .push({ src, def } as never);
 }
 // Sort each world's levels by their `level` number, then unwrap to
 // LevelDefinition[]. The cast above lets us carry both shapes through
@@ -185,7 +237,7 @@ function levelsFor(worldId: string): LevelDefinition[] {
 
 export const gameData: GameData = {
   worlds: [
-    { id: 'RealAnalysisStory', name: 'The Story of Real Analysis', levels: levelsFor('RealAnalysisStory'), dependsOn: [] },
+    { id: 'RealAnalysisStory', name: 'Tutorial World', levels: levelsFor('RealAnalysisStory'), dependsOn: [] },
     { id: 'L1Pset', name: 'Pset 1', levels: levelsFor('L1Pset'), dependsOn: ['RealAnalysisStory'] },
     { id: 'NewtonsCalculationOfPi', name: "Newton's Computation of π", levels: levelsFor('NewtonsCalculationOfPi'), dependsOn: ['RealAnalysisStory'] },
     { id: 'L2Pset', name: 'Pset 2', levels: levelsFor('L2Pset'), dependsOn: ['NewtonsCalculationOfPi', 'L1Pset'] },

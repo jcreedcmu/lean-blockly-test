@@ -4,12 +4,24 @@ import * as blocks from './blocks';
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
 */
 
-type BlockItem = { kind: 'block'; type: string };
-type CategoryItem = { kind: 'category'; name: string; contents: BlockItem[] };
+type BlockItem = { kind: 'block'; type: string; id?: string };
+type CategoryItem = {
+  kind: 'category';
+  name: string;
+  contents: BlockItem[];
+  cssconfig?: {
+    row?: string;
+    label?: string;
+  };
+};
 
 const LeanTacticsCategory: CategoryItem = {
   kind: 'category',
   name: 'Tactics',
+  cssconfig: {
+    row: 'blocklyToolboxCategory tutorial-tactics-category-row',
+    label: 'blocklyToolboxCategoryLabel tutorial-tactics-category-label',
+  },
   contents: [
     {
       kind: 'block',
@@ -51,7 +63,11 @@ const LeanTacticsCategory: CategoryItem = {
       kind: 'block',
       type: 'tactic_other',
     },
-    ...blocks.singleArgTactics.map(t => ({ kind: 'block' as const, type: `tactic_${t.name}` })),
+    ...blocks.singleArgTactics.map(t => ({
+      kind: 'block' as const,
+      type: `tactic_${t.name}`,
+      ...(t.name === 'apply' ? { id: 'tutorial-toolbox-apply' } : {}),
+    })),
     {
       kind: 'block',
       type: 'tactic_specialize',

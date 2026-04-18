@@ -127,6 +127,11 @@ class FieldMonospaceInput extends FieldTextInput {
 blockly.fieldRegistry.register('field_theorem_statement', FieldTheoremStatement);
 blockly.fieldRegistry.register('field_monospace_input', FieldMonospaceInput);
 
+// Register extensions (must happen exactly once, before any block definitions)
+blockly.Extensions.register('lemma_css_class', function (this: blockly.Block) {
+  (this as blockly.BlockSvg).addClass('lemma-block');
+});
+
 export function defineBlocks() {
   defineLemma();
   defineProposition();
@@ -147,7 +152,7 @@ export const singleArgTactics: TacticProps[] = [
 function defineMisc() {
   function single_arg_tactic(props: TacticProps) {
     const { name, msg } = props;
-    return {
+    const definition: Record<string, unknown> = {
       'type': `tactic_${name}`,
       'message0': `${msg} %1`,
       'args0': [
@@ -165,6 +170,10 @@ function defineMisc() {
       'tooltip': name,
       'helpUrl': name,
     };
+    if (name === 'apply') {
+      definition.classes = 'tutorial-apply-block';
+    }
+    return definition;
   }
   blockly.defineBlocksWithJsonArray(singleArgTactics.map(single_arg_tactic));
 }
@@ -173,7 +182,8 @@ function defineLemma() {
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'lemma',
-      'message0': '%1 %2 %3   %4 %5 proof: %6 %7 %8',
+      'extensions': ['lemma_css_class'],
+      'message0': '%1 %2 %3   %4 %5 Proof: %6 %7 %8',
       'args0': [
         {
           'type': 'field_label_serializable',

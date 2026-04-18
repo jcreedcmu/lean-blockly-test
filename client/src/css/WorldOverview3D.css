@@ -5,6 +5,24 @@
   overflow: hidden;
 }
 
+.world-3d-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+}
+
+.world-3d-first-world-anchor {
+  position: absolute;
+  z-index: 5;
+  width: 72px;
+  height: 72px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 .world-3d-label {
   position: fixed;
   pointer-events: none;
