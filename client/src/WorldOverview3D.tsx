@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { World } from './gameData';
+import { Modal } from './Modal';
+import { WhyRealAnalysisDialogue } from './WhyRealAnalysisDialogue';
 import { init } from './worldOverview3DScene';
 import './css/WorldOverview3D.css';
 
@@ -19,6 +21,7 @@ export function WorldOverview3D({ worlds, onSelectWorld }: Props) {
   const callbacksRef = useRef({ onSelectWorld });
   callbacksRef.current.onSelectWorld = onSelectWorld;
   const [hover, setHover] = useState<HoverInfo>(null);
+  const [showWhy, setShowWhy] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -42,6 +45,13 @@ export function WorldOverview3D({ worlds, onSelectWorld }: Props) {
 
   return (
     <div className="world-3d-container" ref={containerRef}>
+      <button
+        className="navbar-btn"
+        style={{ position: 'absolute', top: 12, left: 12, zIndex: 20 }}
+        onClick={() => setShowWhy(true)}
+      >
+        Why Real Analysis?
+      </button>
       {hover && (
         <div
           className="world-3d-label"
@@ -56,6 +66,11 @@ export function WorldOverview3D({ worlds, onSelectWorld }: Props) {
             {hover.world.levels.length === 1 ? 'level' : 'levels'}
           </div>
         </div>
+      )}
+      {showWhy && (
+        <Modal onClose={() => setShowWhy(false)}>
+          <WhyRealAnalysisDialogue />
+        </Modal>
       )}
     </div>
   );

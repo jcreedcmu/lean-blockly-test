@@ -20,6 +20,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { gameData, parseHash, navToHash, getAllowedBlocks, getAllowedAffordances } from './gameData';
 import type { NavigationState } from './gameData';
+import { Modal } from './Modal';
 import { WorldOverview3D } from './WorldOverview3D';
 
 // CSS
@@ -450,18 +451,9 @@ function App() {
       <div className="toast">Copied!</div>
     )}
     {showIntro && currentLevel.introduction && (
-      <div className="modal-backdrop" onClick={() => setShowIntro(false)}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <button
-            className="modal-close"
-            onClick={() => setShowIntro(false)}
-            title="Close"
-          >&times;</button>
-          <div className="modal-body markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{currentLevel.introduction}</ReactMarkdown>
-          </div>
-        </div>
-      </div>
+      <Modal onClose={() => setShowIntro(false)} bodyClassName="markdown-body">
+        <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{currentLevel.introduction}</ReactMarkdown>
+      </Modal>
     )}
   </div>;
 }
