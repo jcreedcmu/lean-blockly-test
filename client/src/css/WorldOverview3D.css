@@ -5,6 +5,57 @@
   overflow: hidden;
 }
 
+.world-3d-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+}
+
+.world-3d-motivation {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+}
+
+.world-3d-control-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.58);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.world-3d-why-btn {
+  width: auto;
+  min-width: 150px;
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.world-3d-control-btn:hover,
+.world-3d-control-btn:focus-visible {
+  background: rgba(30, 30, 30, 0.82);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.world-3d-first-world-anchor {
+  position: absolute;
+  z-index: 5;
+  width: 72px;
+  height: 72px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 .world-3d-label {
   position: fixed;
   pointer-events: none;
@@ -34,4 +85,19 @@
 .world-3d-label-levels {
   color: #999;
   font-size: 12px;
+}
+
+.why-dialogue-modal {
+  width: min(840px, 94vw);
+  max-width: min(840px, 94vw);
+}
+
+.why-dialogue-body {
+  padding: 28px 34px 32px;
+}
+
+@media (max-width: 760px) {
+  .why-dialogue-body {
+    padding: 24px 18px 26px;
+  }
 }

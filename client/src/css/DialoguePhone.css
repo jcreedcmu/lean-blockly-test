@@ -1,0 +1,230 @@
+.dialogue-phone-title {
+  color: #202124;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1.2;
+  margin: 0 44px 22px 0;
+}
+
+.dialogue-phone {
+  position: relative;
+  width: min(100%, 720px);
+  height: min(72vh, 820px);
+  min-height: 560px;
+  margin: 0 auto;
+  border: clamp(8px, 1.5vw, 14px) solid #151515;
+  border-radius: clamp(24px, 3.5vw, 42px);
+  background: #151515;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.dialogue-phone-speaker {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 74px;
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  background: #2b2b2b;
+  z-index: 2;
+}
+
+.dialogue-phone-screen {
+  height: 100%;
+  background: #f7f7f8;
+  border-radius: clamp(16px, 2.5vw, 30px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialogue-phone-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 16px 12px;
+  border-bottom: 1px solid #dedfe3;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.dialogue-phone-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #5f6368;
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.dialogue-phone-avatar.has-image {
+  overflow: hidden;
+  background: #d8dadd;
+}
+
+.dialogue-phone-avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dialogue-phone-name {
+  color: #202124;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.15;
+}
+
+.dialogue-phone-subtitle {
+  color: #74777d;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.dialogue-message-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: clamp(18px, 2.5vw, 28px) clamp(14px, 2.2vw, 24px) clamp(22px, 2.8vw, 32px);
+}
+
+.dialogue-message-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 14px;
+}
+
+.dialogue-message-row.mine {
+  align-items: flex-end;
+}
+
+.dialogue-message-row.theirs {
+  align-items: flex-start;
+}
+
+.dialogue-message-sender {
+  color: #777b82;
+  font-size: 11px;
+  font-weight: 650;
+  margin: 0 8px;
+}
+
+.dialogue-message-bubble {
+  max-width: min(82%, 560px);
+  padding: clamp(10px, 1.5vw, 14px) clamp(13px, 1.8vw, 18px);
+  border-radius: 18px;
+  color: #202124;
+  font-size: clamp(14px, 1.35vw, 17px);
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.dialogue-message-bubble.text p {
+  margin: 0;
+}
+
+.dialogue-message-bubble.text p + p {
+  margin-top: 0.45em;
+}
+
+.dialogue-message-bubble.text .katex-display {
+  margin: 0.05em 0 0.2em !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.dialogue-message-bubble.text .katex-display + p {
+  margin-top: 0.25em;
+}
+
+.dialogue-message-bubble.text .dialogue-image-link,
+.dialogue-message-bubble.text .dialogue-image-card {
+  margin-top: 0.65em;
+}
+
+.dialogue-message-part {
+  margin: 0 0 0.65em;
+}
+
+.dialogue-message-part:last-child {
+  margin-bottom: 0;
+}
+
+.dialogue-message-part .dialogue-image-link,
+.dialogue-message-part .dialogue-image-card {
+  margin-top: 0;
+}
+
+.dialogue-message-bubble.mine {
+  color: #fff;
+  background: #147efb;
+  border-bottom-right-radius: 5px;
+}
+
+.dialogue-message-bubble.theirs {
+  background: #e8e9ec;
+  border-bottom-left-radius: 5px;
+}
+
+.dialogue-message-bubble.image {
+  padding: 6px;
+  overflow: hidden;
+}
+
+.dialogue-image-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 14px;
+}
+
+.dialogue-image-link:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 3px;
+}
+
+.dialogue-image-link:hover .dialogue-image {
+  filter: brightness(0.92);
+}
+
+.dialogue-image-card {
+  overflow: hidden;
+  border-radius: 13px;
+}
+
+.dialogue-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(42vh, 380px);
+  object-fit: contain;
+  background: #fff;
+}
+
+.dialogue-image-caption {
+  padding: 8px 9px 6px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.dialogue-image-caption.mine {
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.dialogue-image-caption.theirs {
+  color: #202124;
+}
+
+@media (max-width: 760px) {
+  .dialogue-phone {
+    height: min(78vh, 680px);
+    min-height: 430px;
+    width: 100%;
+  }
+}
