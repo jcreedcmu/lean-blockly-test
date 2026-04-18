@@ -11,6 +11,22 @@ import type { Affordance } from './LevelEvaluator'
 
 export type BlocklyState = object;
 
+export type TheoremBlockDisplay = {
+  statement: string | null;
+  label?: string;
+  showName?: boolean;
+};
+
+const TUTORIAL_THEOREM_BLOCK_CLASS = 'tutorial-theorem-block';
+
+function markTutorialTheoremBlocks(ws: blockly.WorkspaceSvg) {
+  for (const block of ws.getAllBlocks(false)) {
+    if (block.type === 'lemma') {
+      (block as BlockSvg).addClass(TUTORIAL_THEOREM_BLOCK_CLASS);
+    }
+  }
+}
+
 // Callback type for requesting goals for a specific block
 export type GoalRequestHandler = (
   blockId: string,
@@ -28,7 +44,7 @@ export type BlocklyHandle = {
    * the key and set its THEOREM_DECLARATION field's display override.
    * The override can be a multi-line string (rendered with tspans).
    * Pass `null` to restore the original serialized declaration text. */
-  setTheoremDisplays: (displays: Map<string, string | null>) => void;
+  setTheoremDisplays: (displays: Map<string, TheoremBlockDisplay>) => void;
   /** Start a drag originating from a hypothesis. If `affordance` is
    * omitted, drags a bare `prop` block carrying the hyp name. Otherwise
    * wraps the hyp name in the tactic block corresponding to the
@@ -38,6 +54,8 @@ export type BlocklyHandle = {
    * there's no bare-drag mode here — the only drag surfaces are the
    * affordance buttons — so `affordance` is required. */
   startGoalDrag: (e: React.MouseEvent, affordance: Affordance) => void;
+  /** Select a toolbox category by display name, opening its flyout. */
+  openToolboxCategory: (name: string) => void;
 };
 
 function useBlockly(
@@ -47,9 +65,11 @@ function useBlockly(
   onBlocklyChange?: BlocklyChangeHandler,
   onRequestGoals?: GoalRequestHandler,
   allowedBlocks?: string[],
+  onWorkspaceReady?: () => void,
 ) {
   const handlerRef = useRef<BlocklyChangeHandler | undefined>(onBlocklyChange);
   const goalHandlerRef = useRef<GoalRequestHandler | undefined>(onRequestGoals);
+  const workspaceReadyRef = useRef<(() => void) | undefined>(onWorkspaceReady);
 
   useEffect(() => {
     handlerRef.current = onBlocklyChange;
@@ -58,6 +78,10 @@ function useBlockly(
   useEffect(() => {
     goalHandlerRef.current = onRequestGoals;
   }, [onRequestGoals]);
+
+  useEffect(() => {
+    workspaceReadyRef.current = onWorkspaceReady;
+  }, [onWorkspaceReady]);
 
   // Update toolbox when allowedBlocks changes
   useEffect(() => {
@@ -83,7 +107,9 @@ function useBlockly(
     wsRef.current = ws;
     if (initialData) {
       blockly.serialization.workspaces.load(initialData, ws);
+      markTutorialTheoremBlocks(ws);
     }
+    workspaceReadyRef.current?.();
 
     // DEBUGGING LOAD AND SAVE
     (window as any).workspace = ws;
@@ -170,6 +196,7 @@ export type BlocklyProps = {
   onBlocklyChange?: BlocklyChangeHandler;
   onRequestGoals?: GoalRequestHandler;
   allowedBlocks?: string[];
+  onWorkspaceReady?: () => void;
 };
 
 export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
@@ -180,6 +207,8 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
     loadWorkspace: (data: BlocklyState) => {
       if (wsRef.current) {
         blockly.serialization.workspaces.load(data, wsRef.current);
+        markTutorialTheoremBlocks(wsRef.current);
+        props.onWorkspaceReady?.();
       }
     },
     saveWorkspace: () => {
@@ -214,17 +243,22 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         }
       }
     },
-    setTheoremDisplays: (displays: Map<string, string | null>) => {
+    setTheoremDisplays: (displays: Map<string, TheoremBlockDisplay>) => {
       if (!wsRef.current) return;
+      markTutorialTheoremBlocks(wsRef.current);
       for (const block of wsRef.current.getAllBlocks(false)) {
         if (block.type !== 'lemma') continue;
         const theoremName = block.getFieldValue('THEOREM_NAME');
         if (typeof theoremName !== 'string') continue;
         if (!displays.has(theoremName)) continue;
+        const display = displays.get(theoremName)!;
+        block.getField('THEOREM_BLOCK_LABEL')?.setValue(display.label ?? 'theorem', false);
+        block.getField('THEOREM_NAME')?.setVisible(display.showName !== false);
         const field = block.getField('THEOREM_DECLARATION');
         if (field instanceof FieldTheoremStatement) {
-          field.setDisplayOverride(displays.get(theoremName) ?? null);
+          field.setDisplayOverride(display.statement);
         }
+        (block as BlockSvg).render();
       }
     },
     startHypDrag: (name: string, e: React.MouseEvent, affordance?: Affordance) => {
@@ -298,6 +332,27 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
           }
         }
       });
+    },
+    openToolboxCategory: (name: string) => {
+      const toolbox = wsRef.current?.getToolbox();
+      if (!toolbox) return;
+      const selected = toolbox.getSelectedItem() as { getName?: () => string } | null;
+      if (selected?.getName?.() === name && toolbox.getFlyout()?.isVisible()) {
+        return;
+      }
+      const toolboxWithItems = toolbox as typeof toolbox & {
+        getToolboxItems?: () => Array<{
+          isSelectable: () => boolean;
+          getName?: () => string;
+        }>;
+      };
+      const item = toolboxWithItems.getToolboxItems?.().find(candidate => {
+        if (!candidate.isSelectable()) return false;
+        return candidate.getName?.() === name;
+      });
+      if (!item) return;
+      toolbox.clearSelection();
+      toolbox.setSelectedItem(item as any);
     },
   }), []);
 
@@ -381,7 +436,15 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
     document.addEventListener('pointerup', onPointerUp);
   }
 
-  useBlockly(blocklyRef, wsRef, props.initialData, props.onBlocklyChange, props.onRequestGoals, props.allowedBlocks);
+  useBlockly(
+    blocklyRef,
+    wsRef,
+    props.initialData,
+    props.onBlocklyChange,
+    props.onRequestGoals,
+    props.allowedBlocks,
+    props.onWorkspaceReady,
+  );
 
   return <div style={props.style} ref={blocklyRef}></div>;
 });

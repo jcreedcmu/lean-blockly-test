@@ -19,12 +19,16 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { gameData, parseHash, navToHash, getAllowedBlocks, getAllowedAffordances } from './gameData';
-import type { NavigationState } from './gameData';
+import type { NavigationState, TutorialStepSource } from './gameData';
+import { tutorialAdvanceConditionMet } from './tutorialConditions';
 import { WorldOverview3D } from './WorldOverview3D';
 
 // CSS
 import './css/App.css'
 
+function tutorialStorageKey(worldId: string, levelIndex: number): string {
+  return `tutorialDone:${worldId}:${levelIndex}`;
+}
 
 function App() {
   // The single source of truth for "what does Lean say about the current proof".
@@ -44,6 +48,7 @@ function App() {
   // Onboarding tutorial state. Auto-starts on first-ever level load;
   // can also be re-triggered via the navbar button.
   const [runTutorial, setRunTutorial] = useState(false);
+  const [tutorialWorkspaceState, setTutorialWorkspaceState] = useState<BlocklyState | null>(null);
 
 
   const blocklyRef = useRef<BlocklyHandle>(null);
@@ -157,6 +162,14 @@ function App() {
   const levelStatesRef = useRef(levelStates);
   levelStatesRef.current = levelStates;
 
+  useEffect(() => {
+    if (nav.kind !== 'playing') {
+      setTutorialWorkspaceState(null);
+      return;
+    }
+    setTutorialWorkspaceState(levelStatesRef.current[nav.worldId]?.[nav.levelIndex] ?? null);
+  }, [nav]);
+
   // Handle hash changes (browser back/forward, link navigation, programmatic)
   useEffect(() => {
     function onHashChange() {
@@ -212,17 +225,25 @@ function App() {
     visitedLevelsRef.current.add(key);
     if (localStorage.getItem('noAutoInfo')) return;
     const world = gameData.worlds.find(w => w.id === nav.worldId);
-    if (world?.levels[nav.levelIndex]?.introduction) {
+    const level = world?.levels[nav.levelIndex];
+    if (level?.tutorial?.length) return;
+    if (level?.introduction) {
       setShowIntro(true);
     }
   }, [nav]);
 
-  // Auto-start the tutorial on the user's very first level load.
+  // Auto-start a level's tutorial the first time that specific level is loaded.
   useEffect(() => {
     if (nav.kind !== 'playing') return;
-    if (isTutorialDone()) return;
+    const world = gameData.worlds.find(w => w.id === nav.worldId);
+    const level = world?.levels[nav.levelIndex];
+    if (!level?.tutorial?.length) {
+      setRunTutorial(false);
+      return;
+    }
+    if (isTutorialDone(tutorialStorageKey(nav.worldId, nav.levelIndex))) return;
     setRunTutorial(true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nav]);
 
   function enterLevel(worldId: string, levelIndex: number) {
     location.hash = navToHash({ kind: 'playing', worldId, levelIndex });
@@ -245,6 +266,7 @@ function App() {
     if (!world) return;
     const initialState = world.levels[levelIndex].initial;
     blocklyRef.current?.loadWorkspace(initialState);
+    setTutorialWorkspaceState(initialState);
     setLevelStates(prev => {
       const worldStates = [...prev[worldId]];
       worldStates[levelIndex] = initialState;
@@ -269,6 +291,8 @@ function App() {
   function onBlocklyChange(result: WorkspaceToLeanResult) {
     const { leanCode, sourceInfo } = result;
     latestSourceInfoRef.current = sourceInfo;
+    const workspaceState = blocklyRef.current?.saveWorkspace();
+    if (workspaceState) setTutorialWorkspaceState(workspaceState);
 
     if (!leanCode.trim()) return;
 
@@ -326,14 +350,36 @@ function App() {
     [currentLevel?.permissions]
   );
 
-  // Push the hand-authored decomposition onto the lemma block whenever
-  // the current level changes. Clearing with null on transition ensures
-  // an old level's display doesn't leak when the new level has none.
-  useEffect(() => {
-    if (!currentLevel) return;
-    const displays = new Map<string, string | null>();
-    displays.set(currentLevel.theoremName, currentLevel.display ?? null);
+  // proofComplete: null while checking, true on success, false otherwise.
+  const proofComplete: boolean | null = evaluating
+    ? null
+    : evaluation?.complete ?? false;
+
+  const isTutorialStepComplete = useCallback((step: TutorialStepSource) => {
+    if (!step.advanceOn) return false;
+    return tutorialAdvanceConditionMet(
+      step.advanceOn,
+      tutorialWorkspaceState,
+      proofComplete === true,
+    );
+  }, [proofComplete, tutorialWorkspaceState]);
+
+  function applyTheoremDisplay(level = currentLevel) {
+    if (!level) return;
+    const displays = new Map();
+    displays.set(level.theoremName, {
+      statement: level.display ?? null,
+      label: level.theoremBlockLabel,
+      showName: level.showTheoremName,
+    });
     blocklyRef.current?.setTheoremDisplays(displays);
+  }
+
+  // Push the hand-authored decomposition onto the lemma block whenever
+  // the current level changes. Blockly also calls this after workspace
+  // reloads, so reset/reload keep the display-only theorem fields intact.
+  useEffect(() => {
+    applyTheoremDisplay();
   }, [currentLevel]);
 
   if (nav.kind === 'worldOverview' || !currentLevel) {
@@ -348,19 +394,26 @@ function App() {
     : null;
   const goalInfoMap = evaluation?.goalInfoMap ?? new Map();
   const diagnostics = evaluation?.diagnostics ?? [];
-  // proofComplete: null while checking, true on success, false otherwise.
-  const proofComplete: boolean | null = evaluating
-    ? null
-    : evaluation?.complete ?? false;
 
   return <div className="app-root">
-    <Tutorial run={runTutorial} onDone={() => setRunTutorial(false)} />
+    <Tutorial
+      run={runTutorial}
+      steps={currentLevel.tutorial ?? []}
+      storageKey={tutorialStorageKey(nav.worldId, nav.levelIndex)}
+      isStepComplete={isTutorialStepComplete}
+      onStepActive={(step) => {
+        if (step.openToolboxCategory) {
+          blocklyRef.current?.openToolboxCategory(step.openToolboxCategory);
+        }
+      }}
+      onDone={() => setRunTutorial(false)}
+    />
     <div className="navbar">
       <div className="navbar-left">
-        <button className="navbar-btn" onClick={goBack} title="Back to worlds">&#x25C0;</button>
-        <button className="navbar-btn" onClick={resetCurrentLevel} title="Reset level">&#x21BB;</button>
+        <button className="navbar-btn navbar-back-btn" onClick={goBack} title="Back to worlds">&#x25C0;</button>
+        <button className="navbar-btn navbar-reset-btn" onClick={resetCurrentLevel} title="Reset level">&#x21BB;</button>
         <button
-          className="navbar-btn"
+          className="navbar-btn navbar-info-btn"
           onClick={() => setShowIntro(true)}
           disabled={!currentLevel.introduction}
           title={currentLevel.introduction ? 'Show introduction' : 'No introduction for this level'}
@@ -371,9 +424,10 @@ function App() {
           title="Copy standalone Lean source to clipboard"
         >&#x1F41B;</button>
         <button
-          className="navbar-btn"
+          className="navbar-btn navbar-tutorial-btn"
           onClick={() => setRunTutorial(true)}
-          title="Start tutorial"
+          disabled={!currentLevel.tutorial?.length}
+          title={currentLevel.tutorial?.length ? 'Start tutorial' : 'No tutorial for this level'}
         >&#x2753;</button>
         <span className="navbar-level-label">
           {currentWorld.name} &mdash; {currentLevel.name} ({nav.levelIndex + 1}/{currentWorld.levels.length})
@@ -400,6 +454,7 @@ function App() {
         onRequestGoals={onRequestGoals}
         initialData={levelStates[nav.worldId][nav.levelIndex]}
         allowedBlocks={allowedBlocks}
+        onWorkspaceReady={applyTheoremDisplay}
       />
       {/* Tiny anchor for the tutorial spotlight — targets a small region
           in the center of the workspace instead of the entire game-area. */}

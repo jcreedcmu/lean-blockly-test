@@ -34,6 +34,10 @@ function isInaccessibleName(name: string): boolean {
   return name.includes('\u271D'); // dagger symbol
 }
 
+function tutorialHypClass(name: string): string {
+  return `tutorial-hyp-${name.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+}
+
 /**
  * Renders a single hypothesis bundle.
  * A bundle can have multiple names sharing the same type (e.g., "x y z : Nat").
@@ -45,6 +49,7 @@ export function Hyp({ hyp, affordances, allowedAffordances, onHypNameClick, onHy
     const isInaccessible = isInaccessibleName(name);
     const className =
       'hyp-name' +
+      ` ${tutorialHypClass(name)}` +
       (hyp.isInserted ? ' inserted' : '') +
       (hyp.isRemoved ? ' removed' : '') +
       (isInaccessible ? ' inaccessible' : '');
@@ -53,6 +58,7 @@ export function Hyp({ hyp, affordances, allowedAffordances, onHypNameClick, onHy
       <span
         key={i}
         className={className}
+        data-hyp-name={name}
         onClick={onHypNameClick ? () => onHypNameClick(name, hyp) : undefined}
         onMouseDown={onHypDragStart ? (e) => onHypDragStart(name, e) : undefined}
         style={{ cursor: onHypDragStart ? 'grab' : onHypNameClick ? 'pointer' : undefined }}

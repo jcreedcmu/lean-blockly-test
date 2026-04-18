@@ -115,6 +115,34 @@
   pointer-events: none;
 }
 
+.tutorial-markdown {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.tutorial-markdown p {
+  margin: 0;
+}
+
+.tutorial-markdown p + p {
+  margin-top: 0.55em;
+}
+
+.tutorial-markdown code {
+  padding: 0.08em 0.3em;
+  border-radius: 4px;
+  background: #f1f3f4;
+  color: #202124;
+  font-family: 'Droid Sans Mono', 'Consolas', 'Monaco', monospace;
+  font-size: 0.92em;
+}
+
+.tutorial-markdown .katex-display {
+  margin: 0.25em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .panel-divider {
   width: 6px;
   cursor: col-resize;
@@ -351,4 +379,3 @@
   85%  { opacity: 1; }
   100% { opacity: 0; }
 }
-

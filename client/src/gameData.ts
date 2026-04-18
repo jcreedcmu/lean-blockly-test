@@ -7,6 +7,39 @@ export type LevelPermission =
   | { t: 'allowAffordance'; affordance: 'rewrite' | 'apply' | 'use' | 'choose' }
   | { t: 'allowAllAffordances' };
 
+export type TutorialStepSource = {
+  target: string;
+  spotlightTarget?: string;
+  title?: string;
+  content: string;
+  placement?: 'top' | 'right' | 'bottom' | 'left' | 'auto' | 'center';
+  offset?: number;
+  targetWaitTimeout?: number;
+  skipScroll?: boolean;
+  openToolboxCategory?: string;
+  advanceOn?: TutorialAdvanceCondition;
+  advanceDelayMs?: number;
+};
+
+export type TutorialBlockPattern = {
+  type: string;
+  fields?: Record<string, string>;
+  inputs?: Record<string, TutorialBlockPattern>;
+};
+
+export type TutorialAdvanceCondition =
+  | {
+      kind: 'workspaceHasBlock';
+      block: TutorialBlockPattern;
+      location?: 'any' | 'topLevel' | 'theoremProof';
+    }
+  | {
+      kind: 'elementExists';
+      selector: string;
+      visible?: boolean;
+    }
+  | { kind: 'proofComplete' };
+
 export type LevelDefinition = {
   name: string;
   theoremName: string;
@@ -14,6 +47,7 @@ export type LevelDefinition = {
   permissions?: LevelPermission[];
   introduction?: string;
   conclusion?: string;
+  tutorial?: TutorialStepSource[];
   /** Pre-formatted multi-line rendering of the theorem signature split
    * into Objects / Assumptions / Goal sections, joined with `\n`. Used
    * as the lemma block's display override; the FieldTheoremStatement
@@ -83,6 +117,7 @@ export type LevelSource = {
   goal?: string;
   introduction?: string;
   conclusion?: string;
+  tutorial?: TutorialStepSource[];
   permissions?: LevelPermission[];
 };
 
@@ -139,6 +174,7 @@ function levelSourceToDefinition(src: LevelSource): LevelDefinition {
     permissions: src.permissions,
     introduction: src.introduction,
     conclusion: src.conclusion,
+    tutorial: src.tutorial,
     display: formatDisplay(src),
   };
 }
@@ -185,7 +221,7 @@ function levelsFor(worldId: string): LevelDefinition[] {
 
 export const gameData: GameData = {
   worlds: [
-    { id: 'RealAnalysisStory', name: 'The Story of Real Analysis', levels: levelsFor('RealAnalysisStory'), dependsOn: [] },
+    { id: 'RealAnalysisStory', name: 'Tutorial World', levels: levelsFor('RealAnalysisStory'), dependsOn: [] },
     { id: 'L1Pset', name: 'Pset 1', levels: levelsFor('L1Pset'), dependsOn: ['RealAnalysisStory'] },
     { id: 'NewtonsCalculationOfPi', name: "Newton's Computation of π", levels: levelsFor('NewtonsCalculationOfPi'), dependsOn: ['RealAnalysisStory'] },
     { id: 'L2Pset', name: 'Pset 2', levels: levelsFor('L2Pset'), dependsOn: ['NewtonsCalculationOfPi', 'L1Pset'] },
