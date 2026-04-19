@@ -18,7 +18,7 @@ const tutorial: TutorialStep[] = [
   {
     target: ".goals-panel",
     title: "Watch the Game Board",
-    content: "The Game Board on the right shows your current Proof State. At the start, it matches the Main Block: the same Objects, Assumptions, and Goal. As the game progresses, you'll add ever more complicated \"Tactic Blocks\" to the Main Block, and the Game Board will update after each move. Think of the analogy to chess: the Main Block records moves, like algebraic notation, `1. e4 e5 2. Nf3 Nf6`; meanwhile, the Game Board shows the actual positions those moves create. You'll soon get most of your information from the Game Board.",
+    content: "The Game Board on the right shows your current Proof State. At the start, it matches the Main Block: the same Objects, Assumptions, and Goal. As the game progresses, you'll add ever more complicated \"Tactic Blocks\" to the Main Block, and the Game Board will update after each move. Think of the analogy to chess: the Main Block records moves, like algebraic notation, `1. e4 e5 2. Nf3 Nf6`; meanwhile, the Game Board shows the actual positions those moves create. You'll soon be getting most of your information from the Game Board.",
     placement: "left",
   },
   {
@@ -36,7 +36,7 @@ const tutorial: TutorialStep[] = [
   {
     target: ".tutorial-workspace-anchor",
     title: "Drag apply into the Field",
-    content: "Drag `apply` out into the middle of the workspace, but don't snap it into the Main Block yet. First we'll fill in what apply should use. The tutorial will continue once `apply` is on the Field.",
+    content: "Drag `apply` out into the middle of the workspace, but don't snap it into the Main Block yet. First we'll fill in what `apply` should use. The tutorial will continue once `apply` is on the Field.",
     placement: "bottom",
     targetWaitTimeout: 5000,
     skipScroll: true,
@@ -50,8 +50,24 @@ const tutorial: TutorialStep[] = [
   {
     target: ".tutorial-hyp-h",
     title: "Drag out h",
-    content: "On the Game Board, find the assumption named h. Drag just the name h into the empty slot on the apply block. The tutorial will continue once apply contains h.",
+    content: "On the Game Board, find the Assumption named `h`. Drag just the name `h` out into the Field. Don't snap it into `apply` yet.",
     placement: "left",
+    conditions: [{
+      kind: "workspaceHasBlock",
+      location: "topLevel",
+      block: {
+        type: "prop",
+        fields: { PROP_NAME: "h" },
+      },
+    }],
+    advanceDelayMs: 0,
+  },
+  {
+    target: ".tutorial-workspace-anchor",
+    spotlightTarget: ".blocklySvg",
+    title: "Snap `h` into `apply`",
+    content: "Now snap the `h` block into the empty slot on the `apply` block. The tutorial will continue once `apply` contains `h`.",
+    placement: "bottom",
     conditions: [{
       kind: "workspaceHasBlock",
       block: {
@@ -68,9 +84,9 @@ const tutorial: TutorialStep[] = [
   },
   {
     target: ".tutorial-workspace-anchor",
-    spotlightTarget: ".game-area",
-    title: "Snap the proof together",
-    content: "Now snap the completed apply h block into the proof area inside the theorem block. That tells Lean to prove the goal using the matching assumption h.",
+    spotlightTarget: ".blocklySvg",
+    title: "Snap in the Proof",
+    content: "Let's go back to this Level's Goal. We're trying to prove that $x=5$, but the Assumption `h` already says exactly that. So when we command: `apply h`, the Game should say: \"Ok, great! Proof complete.\" Let's see it in action. Go ahead and snap the completed `apply h` block into the Proof area inside the Main Block.",
     placement: "bottom",
     conditions: [{
       kind: "workspaceHasBlock",
@@ -85,31 +101,37 @@ const tutorial: TutorialStep[] = [
         },
       },
     }],
+    advanceDelayMs: 0,
   },
   {
     target: ".proof-status",
-    title: "Check your proof",
-    content: "Lean is checking your blocks. When they prove the theorem, this status turns green. Click Next to continue.",
+    title: "Check your Proof",
+    content: "The Game has accepted your Proof, great job! (Ok that was pretty easy; we're just getting warmed up, of course...)",
     placement: "left",
   },
   {
     target: ".navbar-info-btn",
-    content: "The Info button reopens the lesson text for this level.",
+    content: "The Info button (re)opens the lesson text for this level.",
     placement: "bottom",
   },
   {
     target: ".navbar-reset-btn",
-    content: "Reset level clears this workspace and puts the theorem back at the start.",
-    placement: "bottom",
-  },
-  {
-    target: ".navbar-tutorial-btn",
-    content: "The question mark starts this tutorial again.",
+    content: "This Reset button clears the Field and reverts the Main Block back to its original empty state.",
     placement: "bottom",
   },
   {
     target: ".navbar-back-btn",
-    content: "Back returns to the world map.",
+    content: "The Back button returns to the World map.",
+    placement: "bottom",
+  },
+  {
+    target: ".navbar-tutorial-btn",
+    content: "The question mark re-starts this Tutorial again.",
+    placement: "bottom",
+  },
+  {
+    target: ".navbar-next-level-btn",
+    content: "When you're ready, this arrow takes you to the Next Level.",
     placement: "bottom",
   },
 ];

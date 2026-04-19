@@ -7,30 +7,27 @@ import type { LevelSource } from '../../gameData';
 const level: LevelSource = {
   world: "RealAnalysisStory",
   level: 1,
-  name: "Introduction to Lean",
+  name: "The “apply” Tactic",
   theoremName: "RealAnalysisStory_1",
   theoremBlockLabel: "Example",
   statement: "(x : ℝ) (h : x = 5) : x = 5",
-  objects: "(x : ℝ)",
-  assumptions: "(h : x = 5)",
+  objects: "x : ℝ",
+  assumptions: "h : x = 5",
   goal: "x = 5",
   permissions: [
     {t: "allowTactic", tacticName: "prop"},
     {t: "allowTactic", tacticName: "tactic_apply"},
   ],
   introduction: `
-# Theorem Prover Software
+# Your First Formal Proof
 
-In this course, we will be using a "proof assistant" called Lean. This is software that checks that our proofs prove *exactly* what we
-claim they prove. It has other really cool pedagogical features that we'll get to later.
-It will take a little while to get used to the syntax, so until we're comfortable, we'll intersperse exercises teaching Lean with exercises teaching Real Analysis. Pretty soon all the exercises will just be about Real Analysis.
+In this Tutorial World, we are learning how to build formal proofs with blocks. This first level is deliberately tiny. You are given a real number \`x\` and an assumption, called \`h\` (but we could have called it just about anything, like \`Alice\`), that \`x = 5\`. Your Goal is to prove this same fact, that \`x = 5\`.
 
+In ordinary mathematical writing, we might say: “This follows immediately from the assumption.” In this Game, we refer to assumptions by name. The tactic for "this follows immediately" is called \`apply\`.
 
-For this first exercise, we have a hypothesis that we called \`h\` (but we could've called it anything, like \`x_eq_5\`, or \`Alice\`) that says a real number \`x\` equals 5. Our goal is to prove that \`x\` equals 5.
-This shouldn't be very hard, but if you don't know
-the command, you'll be out of luck. Our goal is to
-prove the same statement as one of the hypotheses.
-To solve that goal, the syntax is to write \`apply\`, then a space, and then the name of the hypothesis which matches the goal.
+So the formal proof is simply:
+
+\`apply h\`
 `,
   conclusion: `
 Perfect! You've completed your first Lean proof involving real numbers.

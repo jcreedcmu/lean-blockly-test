@@ -90,35 +90,37 @@ export function Tutorial({
       );
     }
 
-    function checkStep(source?: string) {
-      const complete = isStepComplete?.(step);
-      console.log(`[Tutorial] checkStep(${source ?? '?'}) step=${stepIndex} complete=${complete}`);
-      if (!complete) return;
-      if (interval !== undefined) window.clearInterval(interval);
-      if (advanceTimer !== undefined) return;
-      console.log(`[Tutorial] scheduling advance, delay=${step.advanceDelayMs ?? 650}ms`);
-      advanceTimer = window.setTimeout(advance, step.advanceDelayMs ?? 650);
+    function clearAdvanceTimer() {
+      if (advanceTimer === undefined) return;
+      window.clearTimeout(advanceTimer);
+      advanceTimer = undefined;
     }
 
-    checkStep('initial');
-    interval = window.setInterval(() => checkStep('interval'), 150);
+    function checkStep() {
+      if (!isStepComplete?.(step)) {
+        clearAdvanceTimer();
+        return;
+      }
+      if (advanceTimer !== undefined) return;
+      advanceTimer = window.setTimeout(() => {
+        advanceTimer = undefined;
+        if (!isStepComplete?.(step)) return;
+        advance();
+      }, step.advanceDelayMs ?? 650);
+    }
+
+    checkStep();
+    interval = window.setInterval(checkStep, 150);
 
     // Detect DOM changes instantly (e.g. flyout opening) instead of
     // waiting for the next poll.  The interval remains as a fallback
     // for non-DOM conditions like workspaceHasBlock.
-    let mutationCount = 0;
-    const observer = new MutationObserver((mutations) => {
-      mutationCount++;
-      if (mutationCount <= 5 || mutationCount % 100 === 0) {
-        console.log(`[Tutorial] MutationObserver fired (#${mutationCount}, ${mutations.length} mutations)`);
-      }
-      checkStep('mutation');
-    });
+    const observer = new MutationObserver(() => checkStep());
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       if (interval !== undefined) window.clearInterval(interval);
-      if (advanceTimer !== undefined) window.clearTimeout(advanceTimer);
+      clearAdvanceTimer();
       observer.disconnect();
     };
   }, [finishTutorial, isStepComplete, run, stepIndex, steps]);

@@ -75,6 +75,28 @@ function workspaceContainsBlock(
   return blocks.some(block => descendantsContain(block, pattern));
 }
 
+function elementIsVisible(element: Element): boolean {
+  const rect = element.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return false;
+  if (element.getClientRects().length === 0) return false;
+
+  let current: Element | null = element;
+  while (current) {
+    const style = window.getComputedStyle(current);
+    if (
+      style.display === 'none'
+      || style.visibility === 'hidden'
+      || style.visibility === 'collapse'
+      || style.opacity === '0'
+    ) {
+      return false;
+    }
+    current = current.parentElement;
+  }
+
+  return true;
+}
+
 export function tutorialConditionMet(
   condition: TutorialCondition,
   workspace: BlocklyState | null,
@@ -87,8 +109,7 @@ export function tutorialConditionMet(
     const element = document.querySelector(condition.selector);
     if (!element) return false;
     if (!condition.visible) return true;
-    const rect = element.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
+    return elementIsVisible(element);
   }
 
   return workspaceContainsBlock(
