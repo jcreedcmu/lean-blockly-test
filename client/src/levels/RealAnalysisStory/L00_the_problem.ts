@@ -9,6 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Introduction to Lean",
   theoremName: "RealAnalysisStory_1",
+  theoremBlockLabel: "Example",
   statement: "(x : ℝ) (h : x = 5) : x = 5",
   objects: "(x : ℝ)",
   assumptions: "(h : x = 5)",

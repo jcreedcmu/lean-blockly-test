@@ -173,8 +173,13 @@ function defineLemma() {
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'lemma',
-      'message0': 'theorem %1 %2   %3 %4 proof: %5 %6 %7',
+      'message0': '%1 %2 %3   %4 %5 proof: %6 %7 %8',
       'args0': [
+        {
+          'type': 'field_label_serializable',
+          'name': 'THEOREM_BLOCK_LABEL',
+          'text': 'theorem',
+        },
         {
           'type': 'field_label_serializable',
           'name': 'THEOREM_NAME',

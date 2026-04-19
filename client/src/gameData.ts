@@ -69,6 +69,8 @@ export type LevelSource = {
   level: number;
   name: string;
   theoremName: string;
+  /** Optional display-only label for the main theorem block, e.g. "Example". */
+  theoremBlockLabel?: string;
   /** The true Lean declaration, fed to the compiler via workspaceToLean. */
   statement: string;
   /** Optional user-visible decomposition of `statement`. These are
@@ -86,7 +88,11 @@ export type LevelSource = {
 
 // ── Blockly state helper ────────────────────────────────────────────
 
-function makeLevelState(theoremName: string, declaration: string): BlocklyState {
+function makeLevelState(
+  theoremName: string,
+  declaration: string,
+  theoremBlockLabel?: string,
+): BlocklyState {
   return {
     blocks: {
       languageVersion: 0,
@@ -95,7 +101,8 @@ function makeLevelState(theoremName: string, declaration: string): BlocklyState 
         id: `lemma-${theoremName}`,
         x: 61, y: 61,
         fields: {
-          THEOREM_NAME: theoremName,
+          THEOREM_BLOCK_LABEL: theoremBlockLabel ?? 'theorem',
+          THEOREM_NAME: theoremBlockLabel ? '' : theoremName,
           THEOREM_DECLARATION: declaration,
         },
       }],
@@ -128,7 +135,7 @@ function levelSourceToDefinition(src: LevelSource): LevelDefinition {
   return {
     name: src.name,
     theoremName: src.theoremName,
-    initial: makeLevelState(src.theoremName, src.statement),
+    initial: makeLevelState(src.theoremName, src.statement, src.theoremBlockLabel),
     permissions: src.permissions,
     introduction: src.introduction,
     conclusion: src.conclusion,
