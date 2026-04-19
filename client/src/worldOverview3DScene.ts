@@ -23,6 +23,7 @@ const SPACING_Z = 5;
 export type SceneCallbacks = {
   onHover: (world: World | null, screenX: number, screenY: number) => void;
   onSelect: (worldId: string) => void;
+  onFirstWorldScreenPosition?: (screenX: number, screenY: number) => void;
 };
 
 export function init(
@@ -155,6 +156,8 @@ export function init(
       labelObjects.push(label);
     });
   });
+
+  const firstWorldGroup = worlds[0] ? worldToGroup.get(worlds[0].id) : undefined;
 
   // --- Big cube → world group map (for hover raycasting) ---
   const meshToGroup = new Map<THREE.Object3D, THREE.Group>();
@@ -393,8 +396,28 @@ export function init(
 
   // --- Animation loop ---
   const _spinQuat = new THREE.Quaternion();
+  const _firstWorldPos = new THREE.Vector3();
+  let lastFirstWorldScreenX = Number.NaN;
+  let lastFirstWorldScreenY = Number.NaN;
   let animFrameId = 0;
   let lastTime = 0;
+
+  function reportFirstWorldScreenPosition() {
+    if (!firstWorldGroup || !_callbacks.onFirstWorldScreenPosition) return;
+    firstWorldGroup.getWorldPosition(_firstWorldPos);
+    _firstWorldPos.project(camera);
+    const screenX = ((_firstWorldPos.x + 1) / 2) * container.clientWidth;
+    const screenY = ((-_firstWorldPos.y + 1) / 2) * container.clientHeight;
+    if (!Number.isFinite(screenX) || !Number.isFinite(screenY)) return;
+    if (
+      Math.abs(screenX - lastFirstWorldScreenX) < 0.5
+      && Math.abs(screenY - lastFirstWorldScreenY) < 0.5
+    ) return;
+    lastFirstWorldScreenX = screenX;
+    lastFirstWorldScreenY = screenY;
+    _callbacks.onFirstWorldScreenPosition(screenX, screenY);
+  }
+
   function animate(t: number) {
     animFrameId = requestAnimationFrame(animate);
     const dt = (t - lastTime) / 1000;
@@ -413,6 +436,7 @@ export function init(
       lbl.visible = labelsVisible;
     }
     updateHover();
+    reportFirstWorldScreenPosition();
     renderMask();
     composer.render();
     labelRenderer.render(scene, camera);

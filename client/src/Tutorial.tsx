@@ -90,11 +90,23 @@ export function Tutorial({
       );
     }
 
+    function clearAdvanceTimer() {
+      if (advanceTimer === undefined) return;
+      window.clearTimeout(advanceTimer);
+      advanceTimer = undefined;
+    }
+
     function checkStep() {
-      if (!isStepComplete?.(step)) return;
-      if (interval !== undefined) window.clearInterval(interval);
+      if (!isStepComplete?.(step)) {
+        clearAdvanceTimer();
+        return;
+      }
       if (advanceTimer !== undefined) return;
-      advanceTimer = window.setTimeout(advance, step.advanceDelayMs ?? 650);
+      advanceTimer = window.setTimeout(() => {
+        advanceTimer = undefined;
+        if (!isStepComplete?.(step)) return;
+        advance();
+      }, step.advanceDelayMs ?? 650);
     }
 
     checkStep();
@@ -102,7 +114,7 @@ export function Tutorial({
 
     return () => {
       if (interval !== undefined) window.clearInterval(interval);
-      if (advanceTimer !== undefined) window.clearTimeout(advanceTimer);
+      clearAdvanceTimer();
     };
   }, [finishTutorial, isStepComplete, run, stepIndex, steps]);
 

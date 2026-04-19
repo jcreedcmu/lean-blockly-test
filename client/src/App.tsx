@@ -435,12 +435,12 @@ function App() {
       </div>
       <div className="navbar-right">
         <button
-          className="navbar-btn"
+          className="navbar-btn navbar-prev-level-btn"
           disabled={nav.levelIndex === 0}
           onClick={() => enterLevel(nav.worldId, nav.levelIndex - 1)}
         >&#x2190;</button>
         <button
-          className="navbar-btn"
+          className="navbar-btn navbar-next-level-btn"
           disabled={nav.levelIndex === currentWorld.levels.length - 1}
           onClick={() => enterLevel(nav.worldId, nav.levelIndex + 1)}
         >&#x2192;</button>

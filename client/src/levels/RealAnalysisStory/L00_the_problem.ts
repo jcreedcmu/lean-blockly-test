@@ -7,31 +7,28 @@ import type { LevelSource } from '../../gameData';
 const level: LevelSource = {
   world: "RealAnalysisStory",
   level: 1,
-  name: "Introduction to Lean",
+  name: "The “apply” Tactic",
   theoremName: "RealAnalysisStory_1",
   theoremBlockLabel: "Example",
   showTheoremName: false,
   statement: "(x : ℝ) (h : x = 5) : x = 5",
-  objects: "(x : ℝ)",
-  assumptions: "(h : x = 5)",
+  objects: "x : ℝ",
+  assumptions: "h : x = 5",
   goal: "x = 5",
   permissions: [
     {t: "allowTactic", tacticName: "prop"},
     {t: "allowTactic", tacticName: "tactic_apply"},
   ],
   introduction: `
-# Theorem Prover Software
+# Your First Formal Proof
 
-In this course, we will be using a "proof assistant" called Lean. This is software that checks that our proofs prove *exactly* what we
-claim they prove. It has other really cool pedagogical features that we'll get to later.
-It will take a little while to get used to the syntax, so until we're comfortable, we'll intersperse exercises teaching Lean with exercises teaching Real Analysis. Pretty soon all the exercises will just be about Real Analysis.
+In this Tutorial World, we are learning how to build formal proofs with blocks. This first level is deliberately tiny. You are given a real number \`x\` and an assumption, called \`h\` (but we could have called it just about anything, like \`Alice\`), that \`x = 5\`. Your Goal is to prove this same fact, that \`x = 5\`.
 
+In ordinary mathematical writing, we might say: “This follows immediately from the assumption.” In this Game, we refer to assumptions by name. The tactic for "this follows immediately" is called \`apply\`.
 
-For this first exercise, we have a hypothesis that we called \`h\` (but we could've called it anything, like \`x_eq_5\`, or \`Alice\`) that says a real number \`x\` equals 5. Our goal is to prove that \`x\` equals 5.
-This shouldn't be very hard, but if you don't know
-the command, you'll be out of luck. Our goal is to
-prove the same statement as one of the hypotheses.
-To solve that goal, the syntax is to write \`apply\`, then a space, and then the name of the hypothesis which matches the goal.
+So the formal proof is simply:
+
+\`apply h\`
 `,
   tutorial: [
     {
@@ -51,7 +48,7 @@ To solve that goal, the syntax is to write \`apply\`, then a space, and then the
     {
       target: ".goals-panel",
       title: "Watch the Game Board",
-      content: "The Game Board on the right shows your current Proof State. At the start, it matches the Main Block: the same Objects, Assumptions, and Goal. As the game progresses, you’ll add ever more complicated \"Tactic Blocks\" to the Main Block, and the Game Board will update after each move. Think of the analogy to chess: the Main Block records moves, like algebraic notation, `1. e4 e5 2. Nf3 Nf6`; meanwhile, the Game Board shows the actual positions those moves create. You’ll soon get most of your information from the Game Board.",
+      content: "The Game Board on the right shows your current Proof State. At the start, it matches the Main Block: the same Objects, Assumptions, and Goal. As the game progresses, you’ll add ever more complicated \"Tactic Blocks\" to the Main Block, and the Game Board will update after each move. Think of the analogy to chess: the Main Block records moves, like algebraic notation, `1. e4 e5 2. Nf3 Nf6`; meanwhile, the Game Board shows the actual positions those moves create. You’ll soon be getting most of your information from the Game Board.",
       placement: "left",
     },
     {
@@ -64,12 +61,12 @@ To solve that goal, the syntax is to write \`apply\`, then a space, and then the
         selector: ".blocklyFlyout [data-id=\"tutorial-toolbox-apply\"]",
         visible: true,
       },
-      advanceDelayMs: 900,
+      advanceDelayMs: 100,
     },
     {
       target: ".blocklyFlyout [data-id=\"tutorial-toolbox-apply\"]",
       title: "Drag apply into the Field",
-      content: "Drag `apply` out into the middle of the workspace, but don't snap it into the Main Block yet. First we'll fill in what apply should use. The tutorial will continue once `apply` is on the Field.",
+      content: "Drag `apply` out into the middle of the workspace, but don't snap it into the Main Block yet. First we'll fill in what `apply` should use. The tutorial will continue once `apply` is on the Field.",
       placement: "right",
       targetWaitTimeout: 5000,
       skipScroll: true,
@@ -82,8 +79,23 @@ To solve that goal, the syntax is to write \`apply\`, then a space, and then the
     {
       target: ".tutorial-hyp-h",
       title: "Drag out h",
-      content: "On the Game Board, find the assumption named h. Drag just the name h into the empty slot on the apply block. The tutorial will continue once apply contains h.",
+      content: "On the Game Board, find the Assumption named `h`. Drag just the name `h` out into the Field. Don't snap it into `apply` yet.",
       placement: "left",
+      advanceOn: {
+        kind: "workspaceHasBlock",
+        location: "topLevel",
+        block: {
+          type: "prop",
+          fields: { PROP_NAME: "h" },
+        },
+      },
+    },
+    {
+      target: ".tutorial-workspace-anchor",
+      spotlightTarget: ".blocklySvg",
+      title: "Snap `h` into `apply`",
+      content: "Now snap the `h` block into the empty slot on the `apply` block. The tutorial will continue once `apply` contains `h`.",
+      placement: "bottom",
       advanceOn: {
         kind: "workspaceHasBlock",
         block: {
@@ -99,9 +111,9 @@ To solve that goal, the syntax is to write \`apply\`, then a space, and then the
     },
     {
       target: ".tutorial-workspace-anchor",
-      spotlightTarget: ".game-area",
-      title: "Snap the proof together",
-      content: "Now snap the completed apply h block into the proof area inside the theorem block. That tells Lean to prove the goal using the matching assumption h.",
+      spotlightTarget: ".blocklySvg",
+      title: "Snap in the Proof",
+      content: "Let's go back to this Level's Goal. We're trying to prove that $x=5$, but the Assumption `h` already says exactly that. So when we command: `apply h`, the Game should say: \"Ok, great! Proof complete.\" Let's see it in action. Go ahead and snap the completed `apply h` block into the Proof area inside the Main Block.",
       placement: "bottom",
       advanceOn: {
         kind: "workspaceHasBlock",
@@ -119,29 +131,33 @@ To solve that goal, the syntax is to write \`apply\`, then a space, and then the
     },
     {
       target: ".proof-status",
-      title: "Check your proof",
-      content: "Lean is checking your blocks. When they prove the theorem, this status turns green and the tutorial will continue.",
+      title: "Check your Proof",
+      content: "The Game has accepted your Proof, great job! (Ok that was pretty easy; we're just getting warmed up, of course...)",
       placement: "left",
-      advanceOn: { kind: "proofComplete" },
     },
     {
       target: ".navbar-info-btn",
-      content: "The Info button reopens the lesson text for this level.",
+      content: "The Info button (re)opens the lesson text for this level.",
       placement: "bottom",
     },
     {
       target: ".navbar-reset-btn",
-      content: "Reset level clears this workspace and puts the theorem back at the start.",
-      placement: "bottom",
-    },
-    {
-      target: ".navbar-tutorial-btn",
-      content: "The question mark starts this tutorial again.",
+      content: "This Reset button clears the Field and reverts the Main Block back to its original empty state.",
       placement: "bottom",
     },
     {
       target: ".navbar-back-btn",
-      content: "Back returns to the world map.",
+      content: "The Back button returns to the World map.",
+      placement: "bottom",
+    },
+    {
+      target: ".navbar-tutorial-btn",
+      content: "The question mark re-starts this Tutorial again.",
+      placement: "bottom",
+    },
+    {
+      target: ".navbar-next-level-btn",
+      content: "When you're ready, this arrow takes you to the Next Level.",
       placement: "bottom",
     },
   ],
