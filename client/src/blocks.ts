@@ -1,5 +1,6 @@
 import * as blockly from 'blockly';
 import { FieldLabelSerializable, FieldTextInput, FieldConfig } from 'blockly';
+import { attachAbbreviationRewriter } from './abbreviations';
 import './FieldProofStatus';
 
 /*
@@ -105,9 +106,15 @@ class FieldMonospaceInput extends FieldTextInput {
 
   initView(): void {
     super.initView();
-    // Add custom CSS class to the text element
     if (this.textElement_) {
       blockly.utils.dom.addClass(this.textElement_, 'blocklyMonospace');
+    }
+  }
+
+  protected override showEditor_(e?: Event, quietInput?: boolean): void {
+    super.showEditor_(e, quietInput);
+    if (this.htmlInput_ instanceof HTMLInputElement) {
+      attachAbbreviationRewriter(this.htmlInput_);
     }
   }
 
