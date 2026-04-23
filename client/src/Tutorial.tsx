@@ -123,7 +123,7 @@ export function Tutorial({
           skipBeacon: true,
           overlayClickAction: false as const,
           content: <TutorialContent markdown={content} />,
-          ...(step.conditions?.length ? { buttons: ['back', 'close'] as const } : {}),
+          ...(step.conditions?.length ? { buttons: ['back', 'close'] as const, spotlightClicks: true } : {}),
           ...joyrideStep,
         };
       }) as any}

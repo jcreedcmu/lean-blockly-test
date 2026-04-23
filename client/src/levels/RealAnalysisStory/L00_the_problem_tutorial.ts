@@ -34,10 +34,11 @@ const tutorial: TutorialStep[] = [
     advanceDelayMs: 900,
   },
   {
-    target: ".blocklyFlyout [data-id=\"tutorial-toolbox-apply\"]",
+    target: ".tutorial-workspace-anchor",
+    spotlightTarget: ".blocklyFlyout [data-id=\"tutorial-toolbox-apply\"]",
     title: "Drag apply into the Field",
     content: "Drag `apply` out into the middle of the workspace, but don't snap it into the Main Block yet. First we'll fill in what apply should use. The tutorial will continue once `apply` is on the Field.",
-    placement: "right",
+    placement: "bottom",
     targetWaitTimeout: 5000,
     skipScroll: true,
     actions: [{ kind: 'openToolboxCategory', category: 'Tactics' }],
