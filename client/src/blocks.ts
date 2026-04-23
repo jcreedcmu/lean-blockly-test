@@ -128,8 +128,11 @@ blockly.fieldRegistry.register('field_theorem_statement', FieldTheoremStatement)
 blockly.fieldRegistry.register('field_monospace_input', FieldMonospaceInput);
 
 // Register extensions (must happen exactly once, before any block definitions)
-blockly.Extensions.register('lemma_css_class', function (this: blockly.Block) {
+blockly.Extensions.register('lemma_init', function (this: blockly.Block) {
   (this as blockly.BlockSvg).addClass('lemma-block');
+  // THEOREM_NAME is used by codegen but not displayed; the user-visible
+  // label is THEOREM_BLOCK_LABEL (e.g. "theorem foo" or "Example").
+  this.getField('THEOREM_NAME')?.setVisible(false);
 });
 
 export function defineBlocks() {
@@ -182,7 +185,7 @@ function defineLemma() {
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'lemma',
-      'extensions': ['lemma_css_class'],
+      'extensions': ['lemma_init'],
       'message0': '%1 %2 %3   %4 %5 Proof: %6 %7 %8',
       'args0': [
         {

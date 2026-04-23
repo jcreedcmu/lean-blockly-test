@@ -138,8 +138,8 @@ function makeLevelState(
         id: `lemma-${theoremName}`,
         x: 61, y: 61,
         fields: {
-          THEOREM_BLOCK_LABEL: theoremBlockLabel ?? 'theorem',
-          THEOREM_NAME: theoremBlockLabel ? '' : theoremName,
+          THEOREM_BLOCK_LABEL: theoremBlockLabel ?? `theorem ${theoremName}`,
+          THEOREM_NAME: theoremName,
           THEOREM_DECLARATION: declaration,
         },
       }],
