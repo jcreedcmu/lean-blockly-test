@@ -262,8 +262,10 @@ function App() {
   function onBlocklyChange(result: WorkspaceToLeanResult) {
     const { leanCode, sourceInfo } = result;
     latestSourceInfoRef.current = sourceInfo;
-    const workspaceState = blocklyRef.current?.saveWorkspace();
-    if (workspaceState) tutorial.updateWorkspace(workspaceState);
+    if (!blocklyRef.current?.isDragging()) {
+      const workspaceState = blocklyRef.current?.saveWorkspace();
+      if (workspaceState) tutorial.updateWorkspace(workspaceState);
+    }
 
     if (!leanCode.trim()) return;
 

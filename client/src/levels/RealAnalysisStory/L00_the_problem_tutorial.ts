@@ -31,11 +31,10 @@ const tutorial: TutorialStep[] = [
       selector: ".blocklyFlyout [data-id=\"tutorial-toolbox-apply\"]",
       visible: true,
     }],
-    advanceDelayMs: 900,
+    advanceDelayMs: 0,
   },
   {
     target: ".tutorial-workspace-anchor",
-    spotlightTarget: ".blocklyFlyout [data-id=\"tutorial-toolbox-apply\"]",
     title: "Drag apply into the Field",
     content: "Drag `apply` out into the middle of the workspace, but don't snap it into the Main Block yet. First we'll fill in what apply should use. The tutorial will continue once `apply` is on the Field.",
     placement: "bottom",
@@ -46,6 +45,7 @@ const tutorial: TutorialStep[] = [
       kind: "workspaceHasBlock",
       block: { type: "tactic_apply" },
     }],
+    advanceDelayMs: 0,
   },
   {
     target: ".tutorial-hyp-h",
@@ -64,6 +64,7 @@ const tutorial: TutorialStep[] = [
         },
       },
     }],
+    advanceDelayMs: 0,
   },
   {
     target: ".tutorial-workspace-anchor",
@@ -88,9 +89,8 @@ const tutorial: TutorialStep[] = [
   {
     target: ".proof-status",
     title: "Check your proof",
-    content: "Lean is checking your blocks. When they prove the theorem, this status turns green and the tutorial will continue.",
+    content: "Lean is checking your blocks. When they prove the theorem, this status turns green. Click Next to continue.",
     placement: "left",
-    conditions: [{ kind: "proofComplete" }],
   },
   {
     target: ".navbar-info-btn",

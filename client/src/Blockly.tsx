@@ -40,6 +40,8 @@ export type BlocklyHandle = {
    * there's no bare-drag mode here — the only drag surfaces are the
    * affordance buttons — so `affordance` is required. */
   startGoalDrag: (e: React.MouseEvent, affordance: Affordance) => void;
+  /** True if the user is currently dragging a block. */
+  isDragging: () => boolean;
   /** Select a toolbox category by display name, opening its flyout. */
   openToolboxCategory: (name: string) => void;
 };
@@ -303,6 +305,7 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         }
       });
     },
+    isDragging: () => wsRef.current?.isDragging() ?? false,
     openToolboxCategory: (name: string) => {
       const toolbox = wsRef.current?.getToolbox();
       if (!toolbox) return;

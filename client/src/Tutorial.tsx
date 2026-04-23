@@ -90,19 +90,36 @@ export function Tutorial({
       );
     }
 
-    function checkStep() {
-      if (!isStepComplete?.(step)) return;
+    function checkStep(source?: string) {
+      const complete = isStepComplete?.(step);
+      console.log(`[Tutorial] checkStep(${source ?? '?'}) step=${stepIndex} complete=${complete}`);
+      if (!complete) return;
       if (interval !== undefined) window.clearInterval(interval);
       if (advanceTimer !== undefined) return;
+      console.log(`[Tutorial] scheduling advance, delay=${step.advanceDelayMs ?? 650}ms`);
       advanceTimer = window.setTimeout(advance, step.advanceDelayMs ?? 650);
     }
 
-    checkStep();
-    interval = window.setInterval(checkStep, 150);
+    checkStep('initial');
+    interval = window.setInterval(() => checkStep('interval'), 150);
+
+    // Detect DOM changes instantly (e.g. flyout opening) instead of
+    // waiting for the next poll.  The interval remains as a fallback
+    // for non-DOM conditions like workspaceHasBlock.
+    let mutationCount = 0;
+    const observer = new MutationObserver((mutations) => {
+      mutationCount++;
+      if (mutationCount <= 5 || mutationCount % 100 === 0) {
+        console.log(`[Tutorial] MutationObserver fired (#${mutationCount}, ${mutations.length} mutations)`);
+      }
+      checkStep('mutation');
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       if (interval !== undefined) window.clearInterval(interval);
       if (advanceTimer !== undefined) window.clearTimeout(advanceTimer);
+      observer.disconnect();
     };
   }, [finishTutorial, isStepComplete, run, stepIndex, steps]);
 
@@ -123,7 +140,7 @@ export function Tutorial({
           skipBeacon: true,
           overlayClickAction: false as const,
           content: <TutorialContent markdown={content} />,
-          ...(step.conditions?.length ? { buttons: ['back', 'close'] as const, spotlightClicks: true } : {}),
+          ...(step.conditions?.length ? { buttons: ['back', 'close'] as const, hideOverlay: true } : {}),
           ...joyrideStep,
         };
       }) as any}
