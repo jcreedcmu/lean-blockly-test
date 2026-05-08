@@ -120,30 +120,32 @@ The fork starts from the 18 definition-oriented files in
 
 `GameServer` becomes `LeanBlocksGame` throughout.
 
-### Add `BlocklyInfo` structure (EnvExtensions.lean)
+### Add Blockly-specific fields to `GameLevel` (EnvExtensions.lean)
+
+Add fields to `GameLevel` for tracking block/affordance permissions
+during elaboration:
 
 ```lean
-structure BlocklyInfo where
-  /-- Blockly block type names allowed in this level (e.g. "tactic_apply") -/
+  /-- Blockly block type names allowed in this level -/
   allowedBlocks : Array String := #[]
   /-- Affordances allowed: "apply", "rewrite", "use", "choose" -/
   allowedAffordances : Array String := #[]
   /-- If true, all affordances are allowed -/
   allAffordances : Bool := false
-  /-- Decomposed statement: the non-Prop binders (e.g. "(x : R)") -/
-  objects : String := ""
-  /-- Decomposed statement: the Prop binders (e.g. "(h : x > 0)") -/
-  assumptions : String := ""
-  /-- Decomposed statement: the target type (e.g. "x > 0") -/
-  goal : String := ""
-  /-- Optional label override for the theorem block (e.g. "Example").
-      Default is derived from the statement name by the ingestion script. -/
+  /-- Optional label override for the theorem block (e.g. "Example") -/
   theoremBlockLabel : Option String := none
-deriving ToJson, FromJson, Repr, Inhabited
 ```
 
-Add `blocklyInfo : BlocklyInfo := default` to `GameLevel`.
-Add corresponding fields to `LevelInfo` for JSON serialization.
+These are internal to the build. `MakeGame` resolves them (including
+cumulative unlocking) and emits the final JSON in the `LevelDefinition`
+shape — `permissions` as the discriminated-union array, plus
+`theoremStatement`, `objects`, `assumptions`, `goal`, etc. as
+top-level fields. The `objects`/`assumptions`/`goal` decomposition is
+computed from the elaborated type in the `Statement` command and
+stored on `GameLevel` as well.
+
+Replace `LevelInfo` (the JSON-serializable structure) with one that
+matches `LevelDefinition` exactly.
 
 ### Add Blockly DSL commands (Commands.lean)
 
@@ -240,50 +242,46 @@ This is intentionally close to the existing Lean4Game format. An author
 familiar with Lean4Game needs to learn only the `AllowBlock`,
 `AllowAffordance`, `AllowAllAffordances`, and `TheoremBlockLabel` commands.
 
-## Prerequisite: LevelDefinition Refactor
-
-See `plans/level-definition-refactor.md` (includes a detailed glossary
-of all name-like fields with examples). Before or alongside this work,
-`LevelDefinition` should be refactored to hold abstract theorem data
-(theoremStatement, theoremName, objects, assumptions, goal, theoremBlockLabel,
-permissions) rather than a pre-built `BlocklyState`. After that refactor,
-`LevelDefinition` and the JSON output from `MakeGame` share essentially
-the same shape.
-
 ## Client Integration
 
 The client reads `.lake/gamedata/` JSON directly via Vite's
-`import.meta.glob`. After the LevelDefinition refactor, the per-level
-JSON maps nearly 1:1 to `LevelDefinition`:
+`import.meta.glob`. The per-level JSON is 1:1 with `LevelDefinition`:
 
-### Per-level field mapping
+### Per-level JSON format
 
-| JSON field (`level__*__*.json`) | `LevelDefinition` field |
-|-|-|
-| `title` | `name` |
-| `index` | (used for ordering) |
-| `introduction` | `introduction` |
-| `conclusion` | `conclusion` |
-| `descrFormat` (strip keyword + `:= by`) | `theoremStatement` |
-| `statementName` (or `WorldId_N` fallback) | `theoremName` |
-| `blocklyInfo.objects` | `objects` |
-| `blocklyInfo.assumptions` | `assumptions` |
-| `blocklyInfo.goal` | `goal` |
-| `blocklyInfo.theoremBlockLabel` | `theoremBlockLabel` |
-| `blocklyInfo.allowedBlocks` | `permissions` (`allowTactic` entries) |
-| `blocklyInfo.allowedAffordances` | `permissions` (`allowAffordance` entries) |
-| `blocklyInfo.allAffordances` | `permissions` (`allowAllAffordances`) |
+`MakeGame` emits each level's JSON in exactly the `LevelDefinition`
+shape, so the client can consume it with no conversion. The per-level
+file (`level__<World>__<N>.json`) contains:
 
-The only non-trivial mappings are:
-- `descrFormat` needs the keyword (`theorem`/`def`/`example`) and
-  trailing `:= by` stripped.
-- `blocklyInfo.allowed*` fields are converted to the `LevelPermission`
-  discriminated union format.
+```json
+{
+  "name": "The rfl tactic",
+  "theoremName": "RealAnalysisStory_2",
+  "theoremStatement": "(x y : ℝ) : x ^ 2 + 2 * y = x ^ 2 + 2 * y",
+  "theoremBlockLabel": null,
+  "objects": "(x y : ℝ)",
+  "assumptions": null,
+  "goal": "x ^ 2 + 2 * y = x ^ 2 + 2 * y",
+  "permissions": [
+    { "t": "allowTactic", "tacticName": "prop" },
+    { "t": "allowTactic", "tacticName": "tactic_refl" }
+  ],
+  "introduction": "# When things are identical...",
+  "conclusion": "Excellent! You've learned..."
+}
+```
 
-These could potentially be eliminated entirely by having `MakeGame`
-emit the JSON in exactly the `LevelDefinition` shape (with `theoremStatement`
-pre-stripped and `permissions` pre-formatted). This is a design choice:
-keeping the JSON format "neutral" vs. making it client-native.
+This means `MakeGame` is responsible for:
+- Emitting `theoremStatement` as the bare signature (no `theorem`
+  keyword, no name, no `:= by`).
+- Emitting `theoremName` as the Lean declaration name (from the
+  `Statement` command's optional name, or a synthetic `WorldId_N`
+  fallback).
+- Computing `objects`/`assumptions`/`goal` from the elaborated type
+  at build time.
+- Assembling the `permissions` array in the `LevelPermission`
+  discriminated-union format from the cumulative `AllowBlock`,
+  `AllowAffordance`, and `AllowAllAffordances` state.
 
 ### Game-level field mapping
 
@@ -300,36 +298,109 @@ merged in for worlds that have been ported to the DSL.
 
 ## Lean Toolchain
 
-All Lean packages in the project use **leanprover/lean4:v4.28.0**. This
-matches `vendor/RealAnalysisGame` and `vendor/lean4game/server/`, so
-the fork into `LeanBlocksGame` and the porting of level files from
-vendor require no toolchain-related adjustments.
+`LeanBlocksGame` and `RealAnalysisGame` use **leanprover/lean4:v4.28.0**,
+matching `vendor/RealAnalysisGame` and `vendor/lean4game/server/`.
 
-`Projects/MathlibDemo` (the runtime `lake serve` target) currently uses
-v4.25.0-rc2 and will be bumped to v4.28.0 to match. This requires
-updating its mathlib dependency to a compatible revision and verifying
-that `Preamble.lean` and the other library modules still compile.
+## Implementation Milestones
 
-## Migration Strategy
+The migration is smooth and incremental. Both the existing `.ts` level
+definitions and JSON-loaded levels coexist throughout, so we can
+compare outputs and catch regressions at each step. The goal is to get
+a single level working end-to-end as quickly as possible, then widen
+scope incrementally.
 
-1. Both systems coexist: hand-authored TypeScript levels and DSL-generated
-   levels can live side by side in `client/src/levels/`.
-2. Port one world at a time from hand-authored to DSL-generated.
-3. Validate each ported world by comparing the generated TypeScript against
-   the hand-authored version.
-4. Once all worlds are ported, remove the hand-authored files.
-5. Tutorials (`*_tutorial.ts`) remain hand-authored for now; they're loaded
-   separately and matched by filename convention.
+### Coexistence mechanism
 
-## MVP Scope
+`gameData.ts` loads levels from two sources:
 
-The minimum viable product validates the full pipeline end-to-end:
+1. **Existing**: `import.meta.glob('./levels/*/*.ts')` — the current
+   hand-authored TypeScript files.
+2. **New**: `import.meta.glob('../../RealAnalysisGame/.lake/gamedata/level__*__*.json')`
+   — JSON emitted by `MakeGame`.
 
-1. `LeanBlocksGame/` compiles with `lake build`.
-2. `RealAnalysisGame/` with one world (RealAnalysisStory, ~9 levels)
-   compiles and produces `.lake/gamedata/` JSON with Blockly fields.
-3. `gameData.ts` loads the JSON and converts it to `LevelDefinition`s.
-4. The app loads and the tutorial world works identically.
+Both produce `LevelDefinition` objects. For a given world, the JSON
+source takes precedence if present; otherwise the TypeScript source is
+used. This means:
+
+- Porting a single level or world to the DSL doesn't require touching
+  any other levels.
+- The hand-authored `.ts` file can be kept alongside the JSON version
+  for comparison/testing, then deleted once validated.
+- Tutorials (`*_tutorial.ts`) remain as TypeScript files throughout,
+  matched by filename convention as today.
+
+### Milestone 1: LeanBlocksGame compiles
+
+Fork the 18 definition-oriented files from
+`vendor/lean4game/server/GameServer/` into `LeanBlocksGame/`. Remove
+`I18n`, `RpcHandlers` import. Rename namespace to `LeanBlocksGame`.
+Add `BlocklyInfo` fields to `GameLevel`. Add `AllowBlock`,
+`AllowAffordance`, `AllowAllAffordances`, `TheoremBlockLabel`
+commands. Stub out the statement decomposition and `MakeGame` JSON
+output changes (can emit placeholder values for now).
+
+**Done when**: `cd LeanBlocksGame && lake build` succeeds.
+
+### Milestone 2: RealAnalysisGame with one level emits JSON
+
+Create `RealAnalysisGame/` with `lakefile.toml`, `lean-toolchain`,
+`Game/Metadata.lean`, one world file, and one level file
+(e.g. `L00_the_problem.lean`). Write `Game.lean` with one `Dependency`
+and `MakeGame`. The level file uses the DSL commands including
+`AllowBlock`.
+
+**Done when**: `cd RealAnalysisGame && lake build` succeeds and
+`.lake/gamedata/level__RealAnalysisStory__1.json` exists with the
+correct `LevelDefinition`-shaped content.
+
+### Milestone 3: Client loads one JSON level alongside .ts levels
+
+Add the JSON glob to `gameData.ts`. The single DSL-authored level
+loads alongside the existing `.ts` levels. Compare the resulting
+`LevelDefinition` against the hand-authored `.ts` version — all
+fields should match (name, theoremName, theoremStatement, objects,
+assumptions, goal, permissions, theoremBlockLabel, introduction,
+conclusion). Verify the level plays identically in the app.
+
+**Done when**: `npm run dev` loads the JSON-authored level and it
+behaves identically to its hand-authored `.ts` counterpart.
+
+### Milestone 4: Statement decomposition works
+
+Implement the `forallTelescope`/`isProp` decomposition in the
+`Statement` elaborator so that `objects`, `assumptions`, `goal` are
+computed automatically from the Lean type. Remove the need to
+hand-author these fields.
+
+**Done when**: The JSON for the test level has correct `objects`,
+`assumptions`, `goal` values matching the hand-authored `.ts` file,
+without any manual specification in the `.lean` source.
+
+### Milestone 5: Cumulative permissions work
+
+Implement cumulative block/affordance unlocking in `MakeGame` — the
+same pattern as the upstream tactic unlocking, extended to
+`AllowBlock`/`AllowAffordance`/`AllowAllAffordances`. The resolved
+`permissions` array appears in each level's JSON.
+
+**Done when**: A multi-level world correctly inherits permissions
+from earlier levels, matching the hand-authored `.ts` equivalents.
+
+### Milestone 6: One full world ported
+
+Port all ~9 levels of `RealAnalysisStory` to the DSL. Validate each
+against the existing `.ts` version. The `.ts` files for this world
+can be deleted once confirmed.
+
+**Done when**: The RealAnalysisStory world loads entirely from JSON
+and plays identically to before.
+
+### Milestone 7+: Incremental expansion
+
+Port additional worlds one at a time, validating each. The
+hand-authored `.ts` files for unported worlds continue to work
+unchanged. Once all worlds are ported, remove the TypeScript level
+files and the first glob from `gameData.ts`.
 
 ## Deferred Work
 
@@ -340,4 +411,6 @@ The minimum viable product validates the full pipeline end-to-end:
 - **Hints**: The DSL retains `Hint` and `Branch` tactics from upstream.
   Building a client-side hint display is separate.
 - **Tutorials**: Remain as TypeScript files; not represented in the DSL.
-- **Full game port**: After MVP, port remaining ~35 worlds.
+- **Toolchain bump**: `Projects/MathlibDemo` currently uses
+  v4.25.0-rc2 and will need to be bumped to v4.28.0 to match. This
+  is independent of the DSL work and can happen in parallel.
