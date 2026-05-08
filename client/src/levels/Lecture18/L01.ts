@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Absolute Convergence Implies Convergence",
   theoremName: "Lecture18_1",
-  statement: "Conv_of_AbsSeriesConv {a : ℕ → ℝ} (ha : AbsSeriesConv a) : SeriesConv a",
+  theoremStatement: "Conv_of_AbsSeriesConv {a : ℕ → ℝ} (ha : AbsSeriesConv a) : SeriesConv a",
   objects: "{a : ℕ → ℝ} (ha : AbsSeriesConv a)",
   goal: "SeriesConv a",
   introduction: `

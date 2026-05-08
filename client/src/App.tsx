@@ -18,7 +18,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { gameData, parseHash, navToHash, getAllowedBlocks, getAllowedAffordances } from './gameData';
+import { gameData, parseHash, navToHash, getAllowedBlocks, getAllowedAffordances, makeLevelState, formatDisplay } from './gameData';
 import type { NavigationState } from './gameData';
 import { Modal } from './Modal';
 import { useLevelTutorial } from './useLevelTutorial';
@@ -50,7 +50,7 @@ function App() {
   navRef.current = nav;
   const [levelStates, setLevelStates] = useState<Record<string, BlocklyState[]>>(
     () => Object.fromEntries(
-      gameData.worlds.map(w => [w.id, w.levels.map(l => l.initial)])
+      gameData.worlds.map(w => [w.id, w.levels.map(l => makeLevelState(l))])
     )
   );
 
@@ -235,7 +235,7 @@ function App() {
     const { worldId, levelIndex } = nav;
     const world = gameData.worlds.find(w => w.id === worldId);
     if (!world) return;
-    const initialState = world.levels[levelIndex].initial;
+    const initialState = makeLevelState(world.levels[levelIndex]);
     blocklyRef.current?.loadWorkspace(initialState);
     tutorial.resetWorkspace(initialState);
     setLevelStates(prev => {
@@ -336,7 +336,7 @@ function App() {
   useEffect(() => {
     if (!currentLevel) return;
     const displays = new Map<string, string | null>();
-    displays.set(currentLevel.theoremName, currentLevel.display ?? null);
+    displays.set(currentLevel.theoremName, formatDisplay(currentLevel) ?? null);
     blocklyRef.current?.setTheoremDisplays(displays);
   }, [currentLevel]);
 

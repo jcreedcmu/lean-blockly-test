@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 7,
   name: "The specialize tactic",
   theoremName: "RealAnalysisStory_7",
-  statement: "(t : ℝ) (t_pos : t > 0) (f : ℝ → ℝ) (hf : ∀ x > 0, f (x) = x^2) : f (t) = t^2",
+  theoremStatement: "(t : ℝ) (t_pos : t > 0) (f : ℝ → ℝ) (hf : ∀ x > 0, f (x) = x^2) : f (t) = t^2",
   objects: "(t : ℝ) (f : ℝ → ℝ)",
   assumptions: "(t_pos : t > 0) (hf : ∀ x > 0, f (x) = x^2)",
   goal: "f (t) = t^2",

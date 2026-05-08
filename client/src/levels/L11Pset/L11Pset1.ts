@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Problem 1",
   theoremName: "L11Pset_1",
-  statement: `(a : ℕ → ℝ) (ha : ∀ n, a n = n)
+  theoremStatement: `(a : ℕ → ℝ) (ha : ∀ n, a n = n)
       : ¬ ∃ σ, Subseq σ ∧ SeqConv (a ∘ σ)`,
   objects: "(a : ℕ → ℝ)",
   assumptions: "(ha : ∀ n, a n = n)",

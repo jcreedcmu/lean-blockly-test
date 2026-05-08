@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Problem 3",
   theoremName: "L6Pset_3",
-  statement: `(a : ℕ → ℝ) (ha : SeqLim a 5)
+  theoremStatement: `(a : ℕ → ℝ) (ha : SeqLim a 5)
   : ∃ N, ∀ n ≥ N, 0 < a n`,
   objects: "(a : ℕ → ℝ)",
   assumptions: "(ha : SeqLim a 5)",

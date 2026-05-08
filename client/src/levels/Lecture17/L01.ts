@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Leibniz Series",
   theoremName: "Lecture17_1",
-  statement: `LeibnizSeriesFinite {a : ℕ → ℝ} (ha : ∀ n, a n = 1 / ((n + 1) * (n + 2))) :
+  theoremStatement: `LeibnizSeriesFinite {a : ℕ → ℝ} (ha : ∀ n, a n = 1 / ((n + 1) * (n + 2))) :
 ∀ n, ∑ k ∈ range n, a k = 1 - 1 / (n + 1)`,
   objects: "{a : ℕ → ℝ}",
   assumptions: "(ha : ∀ n, a n = 1 / ((n + 1) * (n + 2)))",

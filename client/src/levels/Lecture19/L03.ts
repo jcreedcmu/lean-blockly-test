@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "**Big Boss**: Rearrangement Theorem",
   theoremName: "Lecture19_3",
-  statement: `RearrangementThm {a : ℕ → ℝ} (ha : AbsSeriesConv a) :
+  theoremStatement: `RearrangementThm {a : ℕ → ℝ} (ha : AbsSeriesConv a) :
   ∃ L, ∀ (σ : ℕ → ℕ) (_ : Rearrangement σ), SeriesLim (a ∘ σ) L`,
   objects: "{a : ℕ → ℝ} (ha : AbsSeriesConv a)",
   goal: "∃ L, ∀ (σ : ℕ → ℕ) (_ : Rearrangement σ), SeriesLim (a ∘ σ) L",

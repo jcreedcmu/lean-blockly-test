@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Problem 3",
   theoremName: "L7Pset_3",
-  statement: `(x y : ℝ) :
+  theoremStatement: `(x y : ℝ) :
   |(|x| - |y|)| ≤ |x - y|`,
   objects: "(x y : ℝ)",
   goal: "|(|x| - |y|)| ≤ |x - y|",

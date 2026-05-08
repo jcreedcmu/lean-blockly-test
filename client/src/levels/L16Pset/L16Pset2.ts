@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Problem 2",
   theoremName: "L16Pset_2",
-  statement: "(a b : ℕ → ℝ) (c : ℝ) (hb : ∀ n, b n = c * a n) : ∀ n, Series b n = c * Series a n",
+  theoremStatement: "(a b : ℕ → ℝ) (c : ℝ) (hb : ∀ n, b n = c * a n) : ∀ n, Series b n = c * Series a n",
   objects: "(a b : ℕ → ℝ) (c : ℝ)",
   assumptions: "(hb : ∀ n, b n = c * a n)",
   goal: "∀ n, Series b n = c * Series a n",

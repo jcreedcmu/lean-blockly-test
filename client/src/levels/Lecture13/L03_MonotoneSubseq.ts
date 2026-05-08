@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Monotone Subsequence",
   theoremName: "Lecture13_1",
-  statement: "MonotoneSubseq_of_BddPeaks {X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X] (a : ℕ → X) (ha : ¬ UnBddPeaks a) : ∃ σ, Subseq σ ∧ Monotone (a ∘ σ)",
+  theoremStatement: "MonotoneSubseq_of_BddPeaks {X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X] (a : ℕ → X) (ha : ¬ UnBddPeaks a) : ∃ σ, Subseq σ ∧ Monotone (a ∘ σ)",
   objects: "{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X] (a : ℕ → X)",
   assumptions: "(ha : ¬ UnBddPeaks a)",
   goal: "∃ σ, Subseq σ ∧ Monotone (a ∘ σ)",

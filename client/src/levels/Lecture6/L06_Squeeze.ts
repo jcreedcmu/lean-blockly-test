@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 7,
   name: "Big Boss : Squeeze Theorem",
   theoremName: "Lecture6_7",
-  statement: `(a b c : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L)
+  theoremStatement: `(a b c : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L)
 (cToL : SeqLim c L) (aLeb : ∀ n, a n ≤ b n) (bLec : ∀ n, b n ≤ c n) :
   SeqLim b L`,
   objects: "(a b c : ℕ → ℝ) (L : ℝ)",

@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Problem 2",
   theoremName: "L8Pset_2",
-  statement: ": ∃ N, ∀ n, (n + N) ^ 2 ≤ 2 ^ (n + N)",
+  theoremStatement: ": ∃ N, ∀ n, (n + N) ^ 2 ≤ 2 ^ (n + N)",
   goal: "∃ N, ∀ n, (n + N) ^ 2 ≤ 2 ^ (n + N)",
   introduction: `# Problem 2
 

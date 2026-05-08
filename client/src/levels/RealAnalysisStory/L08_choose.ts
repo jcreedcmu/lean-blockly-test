@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 8,
   name: "The choose tactic",
   theoremName: "RealAnalysisStory_8",
-  statement: "(f : ℝ → ℝ) (h : ∃ c : ℝ, f c = 2) : ∃ x : ℝ, (f x) ^ 2 = 4",
+  theoremStatement: "(f : ℝ → ℝ) (h : ∃ c : ℝ, f c = 2) : ∃ x : ℝ, (f x) ^ 2 = 4",
   objects: "(f : ℝ → ℝ)",
   assumptions: "(h : ∃ c : ℝ, f c = 2)",
   goal: "∃ x : ℝ, (f x) ^ 2 = 4",

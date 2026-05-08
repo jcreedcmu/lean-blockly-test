@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Monotonicity of Series",
   theoremName: "L17Pset_1",
-  statement: "Monotone_of_NonNegSeries {a : ℕ → ℝ} (ha : ∀ n, 0 ≤ a n) : Monotone (Series a)",
+  theoremStatement: "Monotone_of_NonNegSeries {a : ℕ → ℝ} (ha : ∀ n, 0 ≤ a n) : Monotone (Series a)",
   objects: "{a : ℕ → ℝ}",
   assumptions: "(ha : ∀ n, 0 ≤ a n)",
   goal: "Monotone (Series a)",

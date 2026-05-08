@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "DiffOfSeries",
   theoremName: "L18Pset_1",
-  statement: `(a : ℕ → ℝ) {n m : ℕ} (hmn : n ≤ m) :
+  theoremStatement: `(a : ℕ → ℝ) {n m : ℕ} (hmn : n ≤ m) :
   Series a m - Series a n = ∑ k ∈ Ico n m, a k`,
   objects: "(a : ℕ → ℝ) {n m : ℕ}",
   assumptions: "(hmn : n ≤ m)",

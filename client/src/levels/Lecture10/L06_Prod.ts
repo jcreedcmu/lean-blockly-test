@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Big Boss : Product of Sequences",
   theoremName: "Lecture10_1",
-  statement: `(a b c : ℕ → ℝ) (L M : ℝ) (hL : L ≠ 0) (hM : M ≠ 0) (ha : SeqLim a L)
+  theoremStatement: `(a b c : ℕ → ℝ) (L M : ℝ) (hL : L ≠ 0) (hM : M ≠ 0) (ha : SeqLim a L)
     (hb : SeqLim b M) (hc : ∀ n, c n = a n * b n):
     SeqLim c (L * M)`,
   objects: "(a b c : ℕ → ℝ) (L M : ℝ)",

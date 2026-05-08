@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Problem 1",
   theoremName: "L6Pset_1",
-  statement: `(x y z : ℝ) (hx : x = 2) (hy : y = 3) (hz : z = 4)
+  theoremStatement: `(x y z : ℝ) (hx : x = 2) (hy : y = 3) (hz : z = 4)
   : x = 2 ∧ y = 3 ∧ z = 4`,
   objects: "(x y z : ℝ)",
   assumptions: "(hx : x = 2) (hy : y = 3) (hz : z = 4)",

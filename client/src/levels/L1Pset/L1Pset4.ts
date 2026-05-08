@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Problem 4",
   theoremName: "L1Pset_4",
-  statement: `(g : ℝ → ℝ) (h1 : ∀ x, g (x + 1) = g (x) + 3)
+  theoremStatement: `(g : ℝ → ℝ) (h1 : ∀ x, g (x + 1) = g (x) + 3)
  (h2 : g (0) = 5)
  :
   g (2) = 11`,

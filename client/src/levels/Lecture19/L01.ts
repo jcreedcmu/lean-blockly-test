@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "More Flexible Cauchy",
   theoremName: "Lecture19_1",
-  statement: `StrongCauchy_of_AbsSeriesConv
+  theoremStatement: `StrongCauchy_of_AbsSeriesConv
     {a : ℕ → ℝ} (ha : AbsSeriesConv a) {ε : ℝ} (hε : ε > 0) :
     ∃ N, ∀ (S : Finset ℕ), (∀ k ∈ S, k ≥ N) → ∑ k ∈ S, |a k| < ε`,
   objects: "{a : ℕ → ℝ} (ha : AbsSeriesConv a) {ε : ℝ}",

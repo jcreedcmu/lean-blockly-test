@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "NonConvergence",
   theoremName: "Lecture4_1",
-  statement: `(a : ℕ → ℝ) (ha : ∀ n, a n = (-1) ^ n) :
+  theoremStatement: `(a : ℕ → ℝ) (ha : ∀ n, a n = (-1) ^ n) :
   ¬ SeqConv a`,
   objects: "(a : ℕ → ℝ)",
   assumptions: "(ha : ∀ n, a n = (-1) ^ n)",

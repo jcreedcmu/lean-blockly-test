@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Limits of Functions",
   theoremName: "Lecture20_1",
-  statement: `:
+  theoremStatement: `:
     ∃ L, FunLimAt (fun x ↦ (x^2 - 1)/(x - 1)) L 1`,
   goal: "∃ L, FunLimAt (fun x ↦ (x^2 - 1)/(x - 1)) L 1",
   introduction: `

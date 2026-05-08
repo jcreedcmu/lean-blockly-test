@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Bounded Near Limit",
   theoremName: "L20Pset_4",
-  statement: `(f : ℝ → ℝ) (c L : ℝ) (hf : FunLimAt f L c) :
+  theoremStatement: `(f : ℝ → ℝ) (c L : ℝ) (hf : FunLimAt f L c) :
   ∃ M > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x| < M`,
   objects: "(f : ℝ → ℝ) (c L : ℝ)",
   assumptions: "(hf : FunLimAt f L c)",

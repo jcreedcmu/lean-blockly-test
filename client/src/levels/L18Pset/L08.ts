@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 8,
   name: "BddSeriesEven",
   theoremName: "L18Pset_8",
-  statement: "{a : ℕ → ℝ} (ha : Antitone a) (apos : ∀ n, 0 ≤ a n) (n : ℕ) : ∑ k ∈ range (2 * n), (-1)^k * a k ≤ a 0",
+  theoremStatement: "{a : ℕ → ℝ} (ha : Antitone a) (apos : ∀ n, 0 ≤ a n) (n : ℕ) : ∑ k ∈ range (2 * n), (-1)^k * a k ≤ a 0",
   objects: "{a : ℕ → ℝ} (n : ℕ)",
   assumptions: "(ha : Antitone a) (apos : ∀ n, 0 ≤ a n)",
   goal: "∑ k ∈ range (2 * n), (-1)^k * a k ≤ a 0",

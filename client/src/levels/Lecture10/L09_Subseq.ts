@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Subsequence Example",
   theoremName: "Lecture10_4",
-  statement: `(a : ℕ → ℝ) (ha : ∀ n, a n = (-1) ^ n) :
+  theoremStatement: `(a : ℕ → ℝ) (ha : ∀ n, a n = (-1) ^ n) :
     ∃ σ L, Subseq σ ∧ SeqLim (a ∘ σ) L`,
   objects: "(a : ℕ → ℝ)",
   assumptions: "(ha : ∀ n, a n = (-1) ^ n)",

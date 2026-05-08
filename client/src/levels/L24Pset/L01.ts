@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Lipschitz implies Uniformly Continuous",
   theoremName: "L24Pset_1",
-  statement: `(f : ℝ → ℝ) (K : ℝ) (hK : K > 0) (hf : ∀ x y : ℝ, |f y - f x| ≤ K * |y - x|) (a b : ℝ) :
+  theoremStatement: `(f : ℝ → ℝ) (K : ℝ) (hK : K > 0) (hf : ∀ x y : ℝ, |f y - f x| ≤ K * |y - x|) (a b : ℝ) :
   UnifContOn f (Icc a b)`,
   objects: "(f : ℝ → ℝ) (K : ℝ) (a b : ℝ)",
   assumptions: "(hK : K > 0) (hf : ∀ x y : ℝ, |f y - f x| ≤ K * |y - x|)",

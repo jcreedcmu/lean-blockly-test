@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Dot Notation",
   theoremName: "Lecture6_4",
-  statement: `(x y : ℝ) (h : x = 2 ∧ y = 3) :
+  theoremStatement: `(x y : ℝ) (h : x = 2 ∧ y = 3) :
     y = 3`,
   objects: "(x y : ℝ)",
   assumptions: "(h : x = 2 ∧ y = 3)",

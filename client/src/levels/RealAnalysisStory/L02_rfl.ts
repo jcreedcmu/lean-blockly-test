@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "The rfl tactic",
   theoremName: "RealAnalysisStory_2",
-  statement: "(x y : ℝ) : x ^ 2 + 2 * y = x ^ 2 + 2 * y",
+  theoremStatement: "(x y : ℝ) : x ^ 2 + 2 * y = x ^ 2 + 2 * y",
   objects: "(x y : ℝ)",
   goal: "x ^ 2 + 2 * y = x ^ 2 + 2 * y",
   permissions: [

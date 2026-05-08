@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Problem 1",
   theoremName: "L1Pset_1",
-  statement: `(f : ℝ → ℝ) (h : ∀ u, f (u) = 2 * u + 1) :
+  theoremStatement: `(f : ℝ → ℝ) (h : ∀ u, f (u) = 2 * u + 1) :
   ∃ a, f (3) = a`,
   objects: "(f : ℝ → ℝ)",
   assumptions: "(h : ∀ u, f (u) = 2 * u + 1)",

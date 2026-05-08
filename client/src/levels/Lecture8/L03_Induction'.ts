@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "NotEven",
   theoremName: "Lecture8_1",
-  statement: "(n : ℕ) : n < 2 ^ n",
+  theoremStatement: "(n : ℕ) : n < 2 ^ n",
   objects: "(n : ℕ)",
   goal: "n < 2 ^ n",
   introduction: `

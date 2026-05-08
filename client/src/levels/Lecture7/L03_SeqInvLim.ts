@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "SeqInvLim",
   theoremName: "Lecture7_4",
-  statement: `(a : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L) (LneZero : L ≠ 0) (b : ℕ →
+  theoremStatement: `(a : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L) (LneZero : L ≠ 0) (b : ℕ →
 ℝ) (bEqInva : ∀ n, b n = 1 / a n) :
     SeqLim b (1 / L)`,
   objects: "(a : ℕ → ℝ) (L : ℝ) (b : ℕ → ℝ)",

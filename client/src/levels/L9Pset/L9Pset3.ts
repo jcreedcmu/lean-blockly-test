@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Problem 3",
   theoremName: "L9Pset_3",
-  statement: `(N : ℕ) :
+  theoremStatement: `(N : ℕ) :
     2 * ∑ k ∈ range N, (k + 1) = N * (N + 1)`,
   objects: "(N : ℕ)",
   goal: "2 * ∑ k ∈ range N, (k + 1) = N * (N + 1)",

@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Heine-Borel Theorem: Part 2a",
   theoremName: "Lecture24_4",
-  statement: "IsCompact_of_ClosedInterval {a b : ℝ} (hab : a < b) : IsCompact (Icc a b)",
+  theoremStatement: "IsCompact_of_ClosedInterval {a b : ℝ} (hab : a < b) : IsCompact (Icc a b)",
   objects: "{a b : ℝ}",
   assumptions: "(hab : a < b)",
   goal: "IsCompact (Icc a b)",

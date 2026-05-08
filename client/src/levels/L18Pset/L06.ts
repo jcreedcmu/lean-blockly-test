@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 6,
   name: "MonotoneSeriesEven",
   theoremName: "L18Pset_6",
-  statement: `{a : ℕ → ℝ} (ha : Antitone a) (apos : ∀ n, 0 ≤ a n) :
+  theoremStatement: `{a : ℕ → ℝ} (ha : Antitone a) (apos : ∀ n, 0 ≤ a n) :
   Monotone (fun n ↦ ∑ k ∈ range (2 * n), (-1)^k * a k)`,
   objects: "{a : ℕ → ℝ}",
   assumptions: "(ha : Antitone a) (apos : ∀ n, 0 ≤ a n)",

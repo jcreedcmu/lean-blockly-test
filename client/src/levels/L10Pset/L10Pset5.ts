@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Problem 4",
   theoremName: "L10Pset_4",
-  statement: ": ∃ a, SeqLim a 0 ∧ ∀ n, 0 < a n",
+  theoremStatement: ": ∃ a, SeqLim a 0 ∧ ∀ n, 0 < a n",
   goal: "∃ a, SeqLim a 0 ∧ ∀ n, 0 < a n",
   introduction: `
 # Problem 4:

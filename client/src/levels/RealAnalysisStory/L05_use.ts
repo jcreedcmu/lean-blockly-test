@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 5,
   name: "The use tactic",
   theoremName: "RealAnalysisStory_5",
-  statement: "(x y : ℝ) : ∃ (c : ℝ), (x + y)^4 = x^4 + 4*x^3*y + c*x^2*y^2 + 4*x*y^3 + y^4",
+  theoremStatement: "(x y : ℝ) : ∃ (c : ℝ), (x + y)^4 = x^4 + 4*x^3*y + c*x^2*y^2 + 4*x*y^3 + y^4",
   objects: "(x y : ℝ)",
   goal: "∃ (c : ℝ), (x + y)^4 = x^4 + 4*x^3*y + c*x^2*y^2 + 4*x*y^3 + y^4",
   permissions: [

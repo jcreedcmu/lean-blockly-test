@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 6,
   name: "Problem 6",
   theoremName: "L10Pset_6",
-  statement: `(a : ℕ → ℝ) (σ τ : ℕ → ℕ)
+  theoremStatement: `(a : ℕ → ℝ) (σ τ : ℕ → ℕ)
     (σsub : Subseq σ) (τsub : Subseq τ) (L M : ℝ)
     (hσ : SeqLim (a ∘ σ) L) (hτ : SeqLim (a ∘ τ) M) (hLM : L ≠ M)
     : ¬ SeqConv a`,

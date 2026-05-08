@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Differentiability Exercise",
   theoremName: "L22Pset_3",
-  statement: `: ∃ g : ℝ → ℝ,
+  theoremStatement: `: ∃ g : ℝ → ℝ,
   FunDeriv (fun x ↦ x ^ 3) g`,
   goal: "∃ g : ℝ → ℝ, FunDeriv (fun x ↦ x ^ 3) g",
   introduction: `

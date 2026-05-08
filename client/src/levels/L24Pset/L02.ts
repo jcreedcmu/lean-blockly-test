@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Open Balls are Open",
   theoremName: "L24Pset_2",
-  statement: ": True",
+  theoremStatement: ": True",
   goal: "True",
   introduction: `
 # Level 2: Open Balls are Open

@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 7,
   name: "AntitoneSeriesOdd",
   theoremName: "L18Pset_7",
-  statement: "{a : ℕ → ℝ} (ha : Antitone a) (apos : ∀ n, 0 ≤ a n) : Antitone (fun n ↦ ∑ k ∈ range (2 * n + 1), (-1)^k * a k)",
+  theoremStatement: "{a : ℕ → ℝ} (ha : Antitone a) (apos : ∀ n, 0 ≤ a n) : Antitone (fun n ↦ ∑ k ∈ range (2 * n + 1), (-1)^k * a k)",
   objects: "{a : ℕ → ℝ}",
   assumptions: "(ha : Antitone a) (apos : ∀ n, 0 ≤ a n)",
   goal: "Antitone (fun n ↦ ∑ k ∈ range (2 * n + 1), (-1)^k * a k)",

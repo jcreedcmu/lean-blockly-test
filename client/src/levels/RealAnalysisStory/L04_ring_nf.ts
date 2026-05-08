@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "The ring_nf tactic",
   theoremName: "RealAnalysisStory_4",
-  statement: "(x y : ℝ) : (x + y)^3 = x^3 + 3*x^2*y + 3*x*y^2 + y^3",
+  theoremStatement: "(x y : ℝ) : (x + y)^3 = x^3 + 3*x^2*y + 3*x*y^2 + y^3",
   objects: "(x y : ℝ)",
   goal: "(x + y)^3 = x^3 + 3*x^2*y + 3*x*y^2 + y^3",
   permissions: [

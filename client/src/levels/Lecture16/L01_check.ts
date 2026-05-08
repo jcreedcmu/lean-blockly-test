@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Series",
   theoremName: "Lecture16_1",
-  statement: "(a : ℕ → ℝ) (ha : SeriesConv a) : SeqLim a 0",
+  theoremStatement: "(a : ℕ → ℝ) (ha : SeriesConv a) : SeqLim a 0",
   objects: "(a : ℕ → ℝ) (ha : SeriesConv a)",
   goal: "SeqLim a 0",
   introduction: `

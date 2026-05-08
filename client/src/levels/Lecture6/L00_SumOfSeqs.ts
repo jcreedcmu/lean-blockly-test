@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Big Boss: The Sum of Convergent Sequences",
   theoremName: "Lecture6_1",
-  statement: `(a b c : ℕ → ℝ) (L M : ℝ)
+  theoremStatement: `(a b c : ℕ → ℝ) (L M : ℝ)
     (ha : SeqLim a L) (hb : SeqLim b M) (hc : ∀ n, c n = a n + b n) :
     SeqLim c (L + M)`,
   objects: "(a b c : ℕ → ℝ) (L M : ℝ)",

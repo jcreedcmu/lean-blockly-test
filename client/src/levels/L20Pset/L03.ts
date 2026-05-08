@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Const Times Limit",
   theoremName: "L20Pset_3",
-  statement: `(f : ℝ → ℝ) (c L k : ℝ) (hf : FunLimAt f L c) :
+  theoremStatement: `(f : ℝ → ℝ) (c L k : ℝ) (hf : FunLimAt f L c) :
   FunLimAt (fun x ↦ k * f x) (k * L) c`,
   objects: "(f : ℝ → ℝ) (c L k : ℝ)",
   assumptions: "(hf : FunLimAt f L c)",

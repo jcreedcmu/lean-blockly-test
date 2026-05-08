@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Problem 4",
   theoremName: "L3Pset_4",
-  statement: `(a : ℕ → ℝ) (ha : ∀ n, a n = (3 * n + 8) / (2 * n + 5)) :
+  theoremStatement: `(a : ℕ → ℝ) (ha : ∀ n, a n = (3 * n + 8) / (2 * n + 5)) :
     ∃ L, SeqLim a L`,
   objects: "(a : ℕ → ℝ)",
   assumptions: "(ha : ∀ n, a n = (3 * n + 8) / (2 * n + 5))",

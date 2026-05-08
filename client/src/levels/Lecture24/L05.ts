@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 5,
   name: "Heine-Borel Theorem: Part 2b",
   theoremName: "Lecture24_5",
-  statement: "IsCompact_of_ClosedSubset {S T : Set ℝ} (hST : S ⊆ T) (hT : IsCompact T) (hS : IsClosed S) : IsCompact S",
+  theoremStatement: "IsCompact_of_ClosedSubset {S T : Set ℝ} (hST : S ⊆ T) (hT : IsCompact T) (hS : IsClosed S) : IsCompact S",
   objects: "{S T : Set ℝ}",
   assumptions: "(hST : S ⊆ T) (hT : IsCompact T) (hS : IsClosed S)",
   goal: "IsCompact S",

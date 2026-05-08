@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Bounded",
   theoremName: "Lecture9_2",
-  statement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) (hL : L ≠ 0) :
+  theoremStatement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) (hL : L ≠ 0) :
     SeqBdd a`,
   objects: "(a : ℕ → ℝ) (L : ℝ)",
   assumptions: "(ha : SeqLim a L) (hL : L ≠ 0)",

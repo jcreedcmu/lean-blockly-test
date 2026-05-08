@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 9,
   name: "Big Boss: The Ultimate Tactic Challenge",
   theoremName: "RealAnalysisStory_9",
-  statement: `(f : ℝ → ℝ) (h_existential : ∃ (a : ℝ), f (a) = 3) (h_universal : ∀ x > 0, f (x + 1) = f (x) + 9) :
+  theoremStatement: `(f : ℝ → ℝ) (h_existential : ∃ (a : ℝ), f (a) = 3) (h_universal : ∀ x > 0, f (x + 1) = f (x) + 9) :
   ∃ (b : ℝ), ∀ y > 0, f (y + 1)^2 = (f (y) + (f b)^2)^2`,
   objects: "(f : ℝ → ℝ)",
   assumptions: "(h_existential : ∃ (a : ℝ), f (a) = 3) (h_universal : ∀ x > 0, f (x + 1) = f (x) + 9)",

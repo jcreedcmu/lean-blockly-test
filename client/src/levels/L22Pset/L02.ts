@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Continuity Exercise",
   theoremName: "L22Pset_2",
-  statement: ": FunCont (fun x ↦ x ^ 3)",
+  theoremStatement: ": FunCont (fun x ↦ x ^ 3)",
   goal: "FunCont (fun x ↦ x ^ 3)",
   introduction: `
 # Level 2: Continuity Exercise
