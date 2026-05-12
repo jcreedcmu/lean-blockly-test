@@ -4,7 +4,17 @@ import * as blocks from './blocks';
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
 */
 
-type BlockItem = { kind: 'block'; type: string; id?: string };
+type ShadowBlock = {
+  type: string;
+  fields?: Record<string, string>;
+};
+
+type BlockItem = {
+  kind: 'block';
+  type: string;
+  id?: string;
+  inputs?: Record<string, { shadow: ShadowBlock }>;
+};
 type CategoryItem = {
   kind: 'category';
   name: string;
@@ -67,6 +77,20 @@ const LeanTacticsCategory: CategoryItem = {
       kind: 'block' as const,
       type: `tactic_${t.name}`,
       ...(t.name === 'apply' ? { id: 'tutorial-toolbox-apply' } : {}),
+      ...(t.name === 'intro'
+        ? {
+            inputs: {
+              ARG: {
+                shadow: {
+                  type: 'prop',
+                  fields: {
+                    PROP_NAME: 'h',
+                  },
+                },
+              },
+            },
+          }
+        : {}),
     })),
     {
       kind: 'block',
@@ -127,3 +151,4 @@ export function filterToolbox(allowedBlocks: string[]): blockly.utils.toolbox.To
     contents: filteredCategories,
   };
 }
+
