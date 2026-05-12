@@ -45,6 +45,10 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
+      type: 'tactic_transform',
+    },
+    {
+      kind: 'block',
       type: 'tactic_constructor',
     },
     {
