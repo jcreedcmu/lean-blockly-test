@@ -263,6 +263,32 @@ function multiArgTacticInit(this: blockly.Block) {
 function defineMisc() {
   function single_arg_tactic(props: TacticProps) {
     const { name, msg } = props;
+    if (name === 'intro') {
+      return {
+        'type': 'tactic_intro',
+        'message0': `${msg} %1 %2`,
+        'args0': [
+          {
+            'type': 'input_value',
+            'name': 'ARG',
+            'check': 'proposition',
+            'align': 'LEFT',
+          },
+          {
+            'type': 'input_dummy',
+            'name': 'CONTROLS',
+          },
+        ],
+        'inputsInline': true,
+        'previousStatement': 'tactic',
+        'nextStatement': 'tactic',
+        'style': 'logic_blocks',
+        'tooltip': name,
+        'helpUrl': name,
+        'mutator': 'multi_arg_buttons',
+      };
+    }
+
     const definition: Record<string, unknown> = {
       'type': `tactic_${name}`,
       'message0': `${msg} %1`,
@@ -287,6 +313,14 @@ function defineMisc() {
     return definition;
   }
   blockly.defineBlocksWithJsonArray(singleArgTactics.map(single_arg_tactic));
+
+  if (!blockly.Extensions.isRegistered('multi_arg_buttons')) {
+    blockly.Extensions.registerMutator(
+      'multi_arg_buttons',
+      MULTI_ARG_TACTIC_MIXIN,
+      multiArgTacticInit,
+    );
+  }
 }
 
 function defineLemma() {

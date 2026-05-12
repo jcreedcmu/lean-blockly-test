@@ -11,7 +11,7 @@ interface SerializedBlock {
   x?: number;
   y?: number;
   fields?: Record<string, string>;
-  inputs?: Record<string, { block?: SerializedBlock }>;
+  inputs?: Record<string, { block?: SerializedBlock; shadow?: SerializedBlock }>;
   next?: { block?: SerializedBlock };
   data?: string;
 }
@@ -49,6 +49,10 @@ function chunk(text: string, blockId?: string): CodeChunk {
 // Helper to create chunks without block ID (plain text)
 function text(t: string): CodeChunk {
   return { text: t };
+}
+
+function inputBlock(input: { block?: SerializedBlock; shadow?: SerializedBlock } | undefined): SerializedBlock | undefined {
+  return input?.block ?? input?.shadow;
 }
 
 /**
@@ -93,7 +97,7 @@ function blockToChunks(
     case 'lemma': {
       const name = fields['THEOREM_NAME'] ?? 'unnamed';
       const declaration = fields['THEOREM_DECLARATION'] ?? '';
-      const proofChunks = blockToChunks(inputs['LEMMA_PROOF']?.block, indent + '  ');
+      const proofChunks = blockToChunks(inputBlock(inputs['LEMMA_PROOF']), indent + '  ');
       // THEOREM_DECLARATION should contain the full signature, e.g. "(a b : ℕ) : a + b = b + a"
       chunks = [
         chunk(`theorem ${name} ${declaration} := by\n`, blockId),
@@ -165,7 +169,6 @@ function blockToChunks(
       break;
     }
 
-    case 'tactic_intro':
     case 'tactic_exact':
     case 'tactic_apply':
     case 'tactic_use':
@@ -174,7 +177,7 @@ function blockToChunks(
     case 'tactic_induction':
     case 'tactic_obtain': {
       const tacticName = tp.replace('tactic_', '');
-      const argChunks = blockToChunks(inputs['ARG']?.block, '');
+      const argChunks = blockToChunks(inputBlock(inputs['ARG']), '');
       chunks = [
         ...indentChunk,
         chunk(`${tacticName} `, blockId),
@@ -184,9 +187,32 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_intro': {
+      const argChunks: CodeChunk[] = [];
+      const appendArg = (inputName: string) => {
+        const inputChunks = blockToChunks(inputBlock(inputs[inputName]), '');
+        if (inputChunks.every(c => c.text.length === 0)) return;
+        if (argChunks.length > 0) argChunks.push(text(' '));
+        argChunks.push(...inputChunks);
+      };
+
+      appendArg('ARG');
+      for (let i = 1; inputs[`ARG${i}`]; i++) {
+        appendArg(`ARG${i}`);
+      }
+
+      chunks = [
+        ...indentChunk,
+        chunk('intro', blockId),
+        ...(argChunks.length > 0 ? [chunk(' ', blockId), ...argChunks] : []),
+        chunk(`\n`, blockId),
+      ];
+      break;
+    }
+
     case 'tactic_choose': {
-      const chosenChunks = blockToChunks(inputs['CHOSEN']?.block, '');
-      const sourceChunks = blockToChunks(inputs['SOURCE']?.block, '');
+      const chosenChunks = blockToChunks(inputBlock(inputs['CHOSEN']), '');
+      const sourceChunks = blockToChunks(inputBlock(inputs['SOURCE']), '');
       chunks = [
         ...indentChunk,
         chunk(`choose `, blockId),
@@ -200,10 +226,10 @@ function blockToChunks(
 
     // `specialize <HYP> <ARG> <ARG1> …`
     case 'tactic_specialize': {
-      const hypChunks = blockToChunks(inputs['HYP']?.block, '');
+      const hypChunks = blockToChunks(inputBlock(inputs['HYP']), '');
       const argChunks: CodeChunk[] = [];
       const emitArg = (key: string) => {
-        const argBlock = inputs[key]?.block;
+        const argBlock = inputBlock(inputs[key]);
         if (!argBlock) return;
         argChunks.push(text(' ('));
         argChunks.push(...blockToChunks(argBlock, ''));
@@ -263,7 +289,7 @@ function blockToChunks(
     case 'tactic_have': {
       const name = fields['NAME'] ?? 'h';
       const type = fields['TYPE'] ?? 'True';
-      const proofChunks = blockToChunks(inputs['PROOF']?.block, indent + '  ');
+      const proofChunks = blockToChunks(inputBlock(inputs['PROOF']), indent + '  ');
       chunks = [
         ...indentChunk,
         chunk(`have ${name} : ${type} := by\n`, blockId),
@@ -275,7 +301,7 @@ function blockToChunks(
     case 'tactic_rewrite': {
       const buildEntry = (dirKey: string, srcKey: string): CodeChunk[] => {
         const arrow = fields[dirKey] === 'LEFT' ? '← ' : '';
-        const src = blockToChunks(inputs[srcKey]?.block, indent + '  ', true);
+        const src = blockToChunks(inputBlock(inputs[srcKey]), indent + '  ', true);
         return arrow ? [chunk(arrow, blockId), ...src] : src;
       };
       const entries: CodeChunk[][] = [buildEntry('DIRECTION_TYPE', 'REWRITE_SOURCE')];
@@ -297,8 +323,8 @@ function blockToChunks(
     }
 
     case 'tactic_rewrite_at': {
-      const sourceChunks = blockToChunks(inputs['REWRITE_SOURCE']?.block, indent + '  ', true);
-      const targetChunks = blockToChunks(inputs['REWRITE_TARGET']?.block, indent + '  ', true);
+      const sourceChunks = blockToChunks(inputBlock(inputs['REWRITE_SOURCE']), indent + '  ', true);
+      const targetChunks = blockToChunks(inputBlock(inputs['REWRITE_TARGET']), indent + '  ', true);
       chunks = [
         ...indentChunk,
         chunk(`rewrite [`, blockId),
@@ -311,8 +337,8 @@ function blockToChunks(
     }
 
     case 'tactic_constructor': {
-      const body1Chunks = blockToChunks(inputs['BODY1']?.block, indent + '  ');
-      const body2Chunks = blockToChunks(inputs['BODY2']?.block, indent + '  ');
+      const body1Chunks = blockToChunks(inputBlock(inputs['BODY1']), indent + '  ');
+      const body2Chunks = blockToChunks(inputBlock(inputs['BODY2']), indent + '  ');
 
       // Replace first indent with bullet for each body. If a branch is
       // entirely empty, emit `· skip` so it parses and produces an
@@ -337,8 +363,8 @@ function blockToChunks(
     }
 
     case 'tactic_show': {
-      const goalChunks = blockToChunks(inputs['GOAL']?.block, '');
-      const proofChunks = blockToChunks(inputs['PROOF']?.block, indent + '  ');
+      const goalChunks = blockToChunks(inputBlock(inputs['GOAL']), '');
+      const proofChunks = blockToChunks(inputBlock(inputs['PROOF']), indent + '  ');
 
       // Remove trailing newline from proof
       const trimmedProofChunks = trimTrailingNewline(
