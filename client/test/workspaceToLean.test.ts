@@ -14,7 +14,7 @@ type Block = {
   type: string;
   id?: string;
   fields?: Record<string, string>;
-  inputs?: Record<string, { block?: Block }>;
+  inputs?: Record<string, { block?: Block; shadow?: Block }>;
   next?: { block?: Block };
 };
 
@@ -33,6 +33,14 @@ function lemma(name: string, declaration: string, proofBlock?: Block): Block {
 
 function tactic(type: string, fields: Record<string, string> = {}): Block {
   return { type, id: `${type}-1`, fields };
+}
+
+function prop(name: string): Block {
+  return {
+    type: 'prop',
+    id: `prop-${name}`,
+    fields: { PROP_NAME: name },
+  };
 }
 
 function have(name: string, type: string, proofBlock?: Block): Block {
@@ -188,6 +196,29 @@ describe('workspaceToLean', () => {
       expect(leanCode).toBe(
         'theorem rewrite_at_example (x y : ℝ) (h : x = y) (h2 : x = x) : x = x := by\n' +
         '  rewrite [h] at h2\n'
+      );
+    });
+
+    test('intro emits multiple argument bubbles, including shadows', () => {
+      const ws = workspace(
+        lemma(
+          'intro_many',
+          '(p q r : Prop) : p → q → r → p',
+          {
+            type: 'tactic_intro',
+            id: 'intro-many',
+            inputs: {
+              ARG: { block: prop('hp') },
+              ARG1: { shadow: prop('hq') },
+              ARG2: { shadow: prop('hr') },
+            },
+          },
+        ),
+      );
+      const { leanCode } = workspaceToLean(ws);
+      expect(leanCode).toBe(
+        'theorem intro_many (p q r : Prop) : p → q → r → p := by\n' +
+        '  intro hp hq hr\n'
       );
     });
   });
