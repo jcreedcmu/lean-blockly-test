@@ -35,11 +35,22 @@ const LeanTacticsCategory: CategoryItem = {
   contents: [
     {
       kind: 'block',
-      type: 'lemma',
+      type: 'tactic_intro',
+      inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
     },
     {
       kind: 'block',
-      type: 'tactic_refl',
+      type: 'tactic_use',
+      inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
+    },
+    {
+      kind: 'block',
+      type: 'tactic_apply',
+      id: 'tutorial-toolbox-apply',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_specialize',
     },
     {
       kind: 'block',
@@ -48,6 +59,14 @@ const LeanTacticsCategory: CategoryItem = {
     {
       kind: 'block',
       type: 'tactic_simp',
+    },
+    {
+      kind: 'block',
+      type: 'lemma',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_refl',
     },
     {
       kind: 'block',
@@ -77,29 +96,9 @@ const LeanTacticsCategory: CategoryItem = {
       kind: 'block',
       type: 'tactic_other',
     },
-    ...blocks.singleArgTactics.map(t => ({
-      kind: 'block' as const,
-      type: `tactic_${t.name}`,
-      ...(t.name === 'apply' ? { id: 'tutorial-toolbox-apply' } : {}),
-      ...(t.name === 'intro' || t.name === 'use'
-        ? {
-            inputs: {
-              ARG: {
-                shadow: {
-                  type: 'prop',
-                  fields: {
-                    PROP_NAME: 'h',
-                  },
-                },
-              },
-            },
-          }
-        : {}),
-    })),
-    {
-      kind: 'block',
-      type: 'tactic_specialize',
-    },
+    ...blocks.singleArgTactics
+      .filter(t => !['intro', 'use', 'apply'].includes(t.name))
+      .map(t => ({ kind: 'block' as const, type: `tactic_${t.name}` })),
   ],
 };
 

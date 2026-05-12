@@ -14,7 +14,7 @@ const level: LevelSource = {
   objects: "(f : ℝ → ℝ) (c : ℝ)",
   assumptions: "(hf : ∀ x, f (x) = c)",
   goal: "∀ x, FunLimAt f c x",
-  introduction: "# Prove that the constant function $f(x) = c$ has limit $c$ at every point.",
+  introduction: "# Problem 1: Prove that the constant function $f(x) = c$ has limit $c$ at every point.",
   conclusion: "Done.",
 };
 
