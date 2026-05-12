@@ -588,6 +588,42 @@ function defineTactics() {
       "style": "text_blocks",
     },
     {
+      "type": "tactic_transform",
+      "tooltip": "Rewrite the goal by proving X = Y",
+      "helpUrl": "tactic_transform",
+      "message0": "transform %1 to %2 %3 by %4 %5 %6",
+      "args0": [
+        {
+          "type": "field_monospace_input",
+          "name": "FROM",
+          "text": "X"
+        },
+        {
+          "type": "field_monospace_input",
+          "name": "TO",
+          "text": "Y"
+        },
+        {
+          "type": "input_dummy"
+        },
+        {
+          "type": "input_statement",
+          "name": "PROOF",
+          "check": "tactic"
+        },
+        {
+          "type": "field_proof_status",
+          "name": "PROOF_STATUS"
+        },
+        {
+          "type": "input_dummy"
+        }
+      ],
+      "previousStatement": "tactic",
+      "nextStatement": "tactic",
+      "style": "logic_blocks"
+    },
+    {
       "type": "tactic_have",
       "tooltip": "Introduce a local lemma",
       "helpUrl": "have",

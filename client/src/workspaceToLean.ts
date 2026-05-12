@@ -246,6 +246,22 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_transform': {
+      const from = fields['FROM'] ?? 'X';
+      const to = fields['TO'] ?? 'Y';
+      const proofChunks = blockToChunks(inputBlock(inputs['PROOF']), indent + '  ');
+      const trimmedProofChunks = trimTrailingNewline(
+        bodyOrSkip(proofChunks, indent + '  '),
+      );
+      chunks = [
+        ...indentChunk,
+        chunk(`rewrite [show ${from} = ${to} by\n`, blockId),
+        ...trimmedProofChunks,
+        chunk(`]\n`, blockId),
+      ];
+      break;
+    }
+
     case 'tactic_have': {
       const name = fields['NAME'] ?? 'h';
       const type = fields['TYPE'] ?? 'True';
