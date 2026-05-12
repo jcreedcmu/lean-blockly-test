@@ -221,6 +221,29 @@ describe('workspaceToLean', () => {
         '  intro hp hq hr\n'
       );
     });
+
+    test('use emits multiple argument bubbles separated by commas', () => {
+      const ws = workspace(
+        lemma(
+          'use_many',
+          ': ∃ x : ℝ, ∃ y : ℝ, x = y',
+          {
+            type: 'tactic_use',
+            id: 'use-many',
+            inputs: {
+              ARG: { block: prop('a') },
+              ARG1: { shadow: prop('b') },
+              ARG2: { shadow: prop('c') },
+            },
+          },
+        ),
+      );
+      const { leanCode } = workspaceToLean(ws);
+      expect(leanCode).toBe(
+        'theorem use_many : ∃ x : ℝ, ∃ y : ℝ, x = y := by\n' +
+        '  use a, b, c\n'
+      );
+    });
   });
 
   // ── Ported from the previous client/test/test-workspaceToLean.ts ────

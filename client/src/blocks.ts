@@ -163,8 +163,8 @@ function setDefaultPropShadow(block: blockly.Block, inputName: string) {
   });
 }
 
-function appendIntroArgInput(
-  block: blockly.Block & { introArgCount_: number },
+function appendMultiArgInput(
+  block: blockly.Block & { extraArgCount_: number },
   i: number,
 ) {
   const inputName = `ARG${i}`;
@@ -173,12 +173,12 @@ function appendIntroArgInput(
   setDefaultPropShadow(block, inputName);
 }
 
-const INTRO_MIXIN = {
-  saveExtraState: function(this: { introArgCount_: number }) {
-    return { argCount: this.introArgCount_ };
+const MULTI_ARG_TACTIC_MIXIN = {
+  saveExtraState: function(this: { extraArgCount_: number }) {
+    return { argCount: this.extraArgCount_ };
   },
   loadExtraState: function(
-    this: blockly.Block & { introArgCount_: number },
+    this: blockly.Block & { extraArgCount_: number },
     state: unknown,
   ) {
     const rawTarget =
@@ -189,37 +189,37 @@ const INTRO_MIXIN = {
       ? Math.max(0, Math.floor(rawTarget))
       : 0;
 
-    while (this.introArgCount_ < target) {
-      const nextIndex = this.introArgCount_ + 1;
-      appendIntroArgInput(this, nextIndex);
-      this.introArgCount_ = nextIndex;
+    while (this.extraArgCount_ < target) {
+      const nextIndex = this.extraArgCount_ + 1;
+      appendMultiArgInput(this, nextIndex);
+      this.extraArgCount_ = nextIndex;
     }
-    while (this.introArgCount_ > target) {
-      this.removeInput(`ARG${this.introArgCount_}`);
-      this.introArgCount_ -= 1;
+    while (this.extraArgCount_ > target) {
+      this.removeInput(`ARG${this.extraArgCount_}`);
+      this.extraArgCount_ -= 1;
     }
   },
 };
 
-function introInit(this: blockly.Block) {
-  const self = this as blockly.Block & { introArgCount_: number };
-  self.introArgCount_ = 0;
+function multiArgTacticInit(this: blockly.Block) {
+  const self = this as blockly.Block & { extraArgCount_: number };
+  self.extraArgCount_ = 0;
   setDefaultPropShadow(self, 'ARG');
 
   const plusBtn = new blockly.FieldImage(
     PLUS_ICON_URI, 14, 14, '+',
     () => {
-      const nextIndex = self.introArgCount_ + 1;
-      appendIntroArgInput(self, nextIndex);
-      self.introArgCount_ = nextIndex;
+      const nextIndex = self.extraArgCount_ + 1;
+      appendMultiArgInput(self, nextIndex);
+      self.extraArgCount_ = nextIndex;
     },
   );
   const minusBtn = new blockly.FieldImage(
     MINUS_ICON_URI, 14, 14, '−',
     () => {
-      if (self.introArgCount_ > 0) {
-        self.removeInput(`ARG${self.introArgCount_}`);
-        self.introArgCount_ -= 1;
+      if (self.extraArgCount_ > 0) {
+        self.removeInput(`ARG${self.extraArgCount_}`);
+        self.extraArgCount_ -= 1;
       }
     },
   );
@@ -231,9 +231,9 @@ function introInit(this: blockly.Block) {
 function defineMisc() {
   function single_arg_tactic(props: TacticProps) {
     const { name, msg } = props;
-    if (name === 'intro') {
+    if (name === 'intro' || name === 'use') {
       return {
-        'type': 'tactic_intro',
+        'type': `tactic_${name}`,
         'message0': `${msg} %1 %2`,
         'args0': [
           {
@@ -253,7 +253,7 @@ function defineMisc() {
         'style': 'logic_blocks',
         'tooltip': name,
         'helpUrl': name,
-        'mutator': 'intro_buttons',
+        'mutator': 'multi_arg_tactic_buttons',
       };
     }
 
@@ -282,11 +282,11 @@ function defineMisc() {
   }
   blockly.defineBlocksWithJsonArray(singleArgTactics.map(single_arg_tactic));
 
-  if (!blockly.Extensions.isRegistered('intro_buttons')) {
+  if (!blockly.Extensions.isRegistered('multi_arg_tactic_buttons')) {
     blockly.Extensions.registerMutator(
-      'intro_buttons',
-      INTRO_MIXIN,
-      introInit,
+      'multi_arg_tactic_buttons',
+      MULTI_ARG_TACTIC_MIXIN,
+      multiArgTacticInit,
     );
   }
 }

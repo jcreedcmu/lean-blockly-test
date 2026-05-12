@@ -55,6 +55,27 @@ function inputBlock(input: { block?: SerializedBlock; shadow?: SerializedBlock }
   return input?.block ?? input?.shadow;
 }
 
+function collectSequentialInputs(
+  inputs: Record<string, { block?: SerializedBlock; shadow?: SerializedBlock }>,
+  firstInputName: string,
+  nextInputPrefix: string,
+  separator: string,
+): CodeChunk[] {
+  const chunks: CodeChunk[] = [];
+  const appendArg = (inputName: string) => {
+    const inputChunks = blockToChunks(inputBlock(inputs[inputName]), '');
+    if (inputChunks.every(c => c.text.length === 0)) return;
+    if (chunks.length > 0) chunks.push(text(separator));
+    chunks.push(...inputChunks);
+  };
+
+  appendArg(firstInputName);
+  for (let i = 1; inputs[`${nextInputPrefix}${i}`]; i++) {
+    appendArg(`${nextInputPrefix}${i}`);
+  }
+  return chunks;
+}
+
 /**
  * If a tactic-body slot is empty, fill it with `skip` so the resulting
  * Lean still parses and elaborates as a real proof attempt with an
@@ -147,7 +168,6 @@ function blockToChunks(
 
     case 'tactic_exact':
     case 'tactic_apply':
-    case 'tactic_use':
     case 'tactic_unfold':
     case 'tactic_cases':
     case 'tactic_induction':
@@ -164,22 +184,23 @@ function blockToChunks(
     }
 
     case 'tactic_intro': {
-      const argChunks: CodeChunk[] = [];
-      const appendArg = (inputName: string) => {
-        const inputChunks = blockToChunks(inputBlock(inputs[inputName]), '');
-        if (inputChunks.every(c => c.text.length === 0)) return;
-        if (argChunks.length > 0) argChunks.push(text(' '));
-        argChunks.push(...inputChunks);
-      };
-
-      appendArg('ARG');
-      for (let i = 1; inputs[`ARG${i}`]; i++) {
-        appendArg(`ARG${i}`);
-      }
+      const argChunks = collectSequentialInputs(inputs, 'ARG', 'ARG', ' ');
 
       chunks = [
         ...indentChunk,
         chunk('intro', blockId),
+        ...(argChunks.length > 0 ? [chunk(' ', blockId), ...argChunks] : []),
+        chunk(`\n`, blockId),
+      ];
+      break;
+    }
+
+    case 'tactic_use': {
+      const argChunks = collectSequentialInputs(inputs, 'ARG', 'ARG', ', ');
+
+      chunks = [
+        ...indentChunk,
+        chunk('use', blockId),
         ...(argChunks.length > 0 ? [chunk(' ', blockId), ...argChunks] : []),
         chunk(`\n`, blockId),
       ];

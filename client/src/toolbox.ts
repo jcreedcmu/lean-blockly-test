@@ -77,7 +77,7 @@ const LeanTacticsCategory: CategoryItem = {
       kind: 'block' as const,
       type: `tactic_${t.name}`,
       ...(t.name === 'apply' ? { id: 'tutorial-toolbox-apply' } : {}),
-      ...(t.name === 'intro'
+      ...(t.name === 'intro' || t.name === 'use'
         ? {
             inputs: {
               ARG: {
@@ -151,4 +151,3 @@ export function filterToolbox(allowedBlocks: string[]): blockly.utils.toolbox.To
     contents: filteredCategories,
   };
 }
-

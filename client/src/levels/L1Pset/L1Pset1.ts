@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Problem 1",
   theoremName: "LimConstFun",
-  statement: `(f : ℝ → ℝ) (c : ℝ) (hf : ∀ x, f (x) = c) :
+  theoremStatement: `(f : ℝ → ℝ) (c : ℝ) (hf : ∀ x, f (x) = c) :
   ∀ x, FunLimAt f c x`,
   objects: "(f : ℝ → ℝ) (c : ℝ)",
   assumptions: "(hf : ∀ x, f (x) = c)",
