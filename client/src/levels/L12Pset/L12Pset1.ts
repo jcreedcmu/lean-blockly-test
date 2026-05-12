@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Problem 1",
   theoremName: "L12Pset_1",
-  statement: `{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X]
+  theoremStatement: `{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X]
     {a : ℕ → X} {M : X} (ha : Antitone a) (hM : ∀ n, M ≤ a n)
     : IsCauchy a`,
   objects: "{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X] {a : ℕ → X} {M : X}",

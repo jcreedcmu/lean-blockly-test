@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Monotone and Bounded Implies Cauchy",
   theoremName: "Lecture12_3",
-  statement: `IsCauchy_of_MonotoneBdd {X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X]
+  theoremStatement: `IsCauchy_of_MonotoneBdd {X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X]
   [FloorSemiring X] {a : ℕ → X} {M : X} (ha : Monotone a) (hM : ∀ n, a n ≤ M)
   : IsCauchy a`,
   objects: "{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] [FloorSemiring X] {a : ℕ → X} {M : X}",

@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Problem 2",
   theoremName: "L1Pset_2",
-  statement: `:
+  theoremStatement: `:
  ∃ c, ∀ x y : ℝ, x ^ 2 + y ^ 2 = 2 → x * y = 1 → (x + y) ^ 2 = c`,
   goal: "∃ c, ∀ x y : ℝ, x ^ 2 + y ^ 2 = 2 → x * y = 1 → (x + y) ^ 2 = c",
   introduction: `

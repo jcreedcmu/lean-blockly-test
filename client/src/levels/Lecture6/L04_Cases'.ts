@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 5,
   name: "Cases'",
   theoremName: "Lecture6_5",
-  statement: `(x y : ℝ) (h : x = 2 ∨ y = 3) :
+  theoremStatement: `(x y : ℝ) (h : x = 2 ∨ y = 3) :
     (x - 2) * (y - 3) = 0`,
   objects: "(x y : ℝ)",
   assumptions: "(h : x = 2 ∨ y = 3)",

@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Completeness",
   theoremName: "Lecture15_1",
-  statement: `(q : ℕ → ℕ → ℚ) (x : ℕ → ℝ) (hq : ∀ n, IsCauchy (q n))
+  theoremStatement: `(q : ℕ → ℕ → ℚ) (x : ℕ → ℝ) (hq : ∀ n, IsCauchy (q n))
   (hx : ∀ n, x n = Real_of_CauSeq (hq n))
   (hxCau : IsCauchy x) :
   ∃ (y : ℕ → ℚ) (hy : IsCauchy y), SeqLim x (Real_of_CauSeq hy)`,

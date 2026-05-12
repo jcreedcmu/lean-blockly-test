@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Problem 1",
   theoremName: "L2Pset_1",
-  statement: `:
+  theoremStatement: `:
    ∃ c, ∀ (x : ℝ),
    (1 + x / 2 - x ^ 2 / 8 + x ^ 3 / 16
    - 5 * x ^ 4 / 128 + c * x ^ 5) ^ 2

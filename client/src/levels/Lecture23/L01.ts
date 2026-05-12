@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Riemann Sum Refinement",
   theoremName: "Lecture23_1",
-  statement: `(f : ℝ → ℝ) {a b : ℝ} (hab : a < b) {n k : ℕ}
+  theoremStatement: `(f : ℝ → ℝ) {a b : ℝ} (hab : a < b) {n k : ℕ}
     (hn : n ≠ 0) (hk : k ≠ 0)
     {ε δ : ℝ} (hε : ε > 0) (hδ : δ > 0)
     (hunif : ∀ x ∈ Icc a b, ∀ y ∈ Icc a b, |y - x| < δ → |f y - f x| < ε)

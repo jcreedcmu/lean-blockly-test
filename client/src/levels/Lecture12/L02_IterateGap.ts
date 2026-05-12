@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Iterated Gaps",
   theoremName: "Lecture12_4",
-  statement: `{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] (a : ℕ → X) (ha : Monotone a) (ε : X)
+  theoremStatement: `{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] (a : ℕ → X) (ha : Monotone a) (ε : X)
   (εpos : ε > 0)
   (τ : ℕ → ℕ) (hτ : ∀ n, τ n ≥ n)
   (σ : ℕ → ℕ) (hσ : ∀ n, σ n ≥ τ n)

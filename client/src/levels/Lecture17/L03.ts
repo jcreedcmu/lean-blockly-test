@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Series Order Theorem",
   theoremName: "Lecture17_3",
-  statement: "SeriesOrderThm {a b : ℕ → ℝ} (hab : ∀ n, a n ≤ b n) : ∀ n, Series a n ≤ Series b n",
+  theoremStatement: "SeriesOrderThm {a b : ℕ → ℝ} (hab : ∀ n, a n ≤ b n) : ∀ n, Series a n ≤ Series b n",
   objects: "{a b : ℕ → ℝ}",
   assumptions: "(hab : ∀ n, a n ≤ b n)",
   goal: "∀ n, Series a n ≤ Series b n",

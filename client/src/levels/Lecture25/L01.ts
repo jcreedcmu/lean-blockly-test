@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Uniform Convergence Implies Integrability",
   theoremName: "Lecture25_1",
-  statement: `Integrable_of_UnifConv {f : ℕ → ℝ → ℝ} {F : ℝ → ℝ}
+  theoremStatement: `Integrable_of_UnifConv {f : ℕ → ℝ → ℝ} {F : ℝ → ℝ}
     {a b : ℝ} (hab : a < b)
     {ℓ : ℕ → ℝ}
     (hfint : ∀ n, HasIntegral (f n) a b (ℓ n))

@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Series_abs_add",
   theoremName: "L18Pset_2",
-  statement: `(a : ℕ → ℝ) {n m : ℕ} (hmn : n ≤ m) :
+  theoremStatement: `(a : ℕ → ℝ) {n m : ℕ} (hmn : n ≤ m) :
   |∑ k ∈ Ico n m, a k| ≤ ∑ k ∈ Ico n m, |a k|`,
   objects: "(a : ℕ → ℝ) {n m : ℕ}",
   assumptions: "(hmn : n ≤ m)",

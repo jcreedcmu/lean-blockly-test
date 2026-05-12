@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Rearrangements",
   theoremName: "Lecture19_2",
-  statement: `EventuallyCovers_of_Rearrangement
+  theoremStatement: `EventuallyCovers_of_Rearrangement
     {σ : ℕ → ℕ} (hσ : Rearrangement σ) (M : ℕ) :
     ∃ N, ∀ n ≥ N, (range M) ⊆ image σ (range n)`,
   objects: "{σ : ℕ → ℕ} (M : ℕ)",

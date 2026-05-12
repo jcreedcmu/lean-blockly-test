@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Doubling a Convergent Sequence",
   theoremName: "Lecture5_1",
-  statement: `(a b : ℕ → ℝ) (L : ℝ)
+  theoremStatement: `(a b : ℕ → ℝ) (L : ℝ)
     (h : SeqLim a L) (b_scaled : ∀ n, b n = 2 * a n) :
     SeqLim b (2 * L)`,
   objects: "(a b : ℕ → ℝ) (L : ℝ)",

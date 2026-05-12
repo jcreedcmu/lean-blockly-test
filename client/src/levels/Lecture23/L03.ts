@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Compactness",
   theoremName: "Lecture23_3",
-  statement: "(f : ℝ → ℝ) (hf : FunCont f) (S : Set ℝ) (hS : IsCompact S) : UnifContOn f S",
+  theoremStatement: "(f : ℝ → ℝ) (hf : FunCont f) (S : Set ℝ) (hS : IsCompact S) : UnifContOn f S",
   objects: "(f : ℝ → ℝ) (S : Set ℝ)",
   assumptions: "(hf : FunCont f) (hS : IsCompact S)",
   goal: "UnifContOn f S",

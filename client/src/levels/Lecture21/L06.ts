@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Computing a Derivative",
   theoremName: "Lecture21_2",
-  statement: `:
+  theoremStatement: `:
     FunDerivAt (fun x ↦ x^2 - 1) 4 2`,
   goal: "FunDerivAt (fun x ↦ x^2 - 1) 4 2",
   introduction: `

@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Continuous Functions",
   theoremName: "Lecture20_2",
-  statement: `:
+  theoremStatement: `:
     FunContAt (fun x ↦ x^2 - 1) 2`,
   goal: "FunContAt (fun x ↦ x^2 - 1) 2",
   introduction: `

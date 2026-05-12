@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Continuity Everywhere",
   theoremName: "Lecture21_4",
-  statement: `:
+  theoremStatement: `:
     FunCont (fun x ↦ x^2 - 1)`,
   goal: "FunCont (fun x ↦ x^2 - 1)",
   introduction: `

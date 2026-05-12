@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Sequential Criterion for Limits (Forward Direction)",
   theoremName: "Lecture20_4",
-  statement: `SeqLim_of_FunLimAt {f : ℝ → ℝ} {L c : ℝ}
+  theoremStatement: `SeqLim_of_FunLimAt {f : ℝ → ℝ} {L c : ℝ}
     (hf : FunLimAt f L c) :
     ∀ x : ℕ → ℝ, (∀ n, x n ≠ c) → SeqLim x c → SeqLim (fun n ↦ f (x n)) L`,
   objects: "{f : ℝ → ℝ} {L c : ℝ}",

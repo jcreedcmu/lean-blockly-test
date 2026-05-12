@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 5,
   name: "Problem 5",
   theoremName: "L10Pset_5",
-  statement: "(a : ℕ → ℝ) (ha : ∀ n, a n = n) : ¬ SeqBdd a",
+  theoremStatement: "(a : ℕ → ℝ) (ha : ∀ n, a n = n) : ¬ SeqBdd a",
   objects: "(a : ℕ → ℝ)",
   assumptions: "(ha : ∀ n, a n = n)",
   goal: "¬ SeqBdd a",

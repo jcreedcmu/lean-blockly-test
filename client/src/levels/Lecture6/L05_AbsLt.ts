@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 6,
   name: "AbsLe",
   theoremName: "Lecture6_6",
-  statement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) :
+  theoremStatement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) :
   ∃ N, ∀ n ≥ N, a n ≥ L - 1`,
   objects: "(a : ℕ → ℝ) (L : ℝ)",
   assumptions: "(ha : SeqLim a L)",

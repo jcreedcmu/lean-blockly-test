@@ -44,19 +44,33 @@ export type TutorialCondition =
   | { kind: 'proofComplete' };
 
 export type LevelDefinition = {
+  /** Human-readable level title, e.g. "Archimedean Property". */
   name: string;
+  /** Lean identifier for codegen. Used as the declaration name in
+   *  `theorem <theoremName> <theoremStatement> := by ...`.
+   *  Example: "Lecture3_1" or "ArchProp". */
   theoremName: string;
-  initial: BlocklyState;
+  /** The Lean declaration signature: binders + `: returnType`.
+   *  Does NOT include the theorem keyword, name, or `:= by`.
+   *  Example: "{ε : ℝ} (hε : 0 < ε) : ∃ (N : ℕ), 1 / ε < N" */
+  theoremStatement: string;
+  /** Label shown on the lemma block. If absent, defaults to
+   *  "theorem <theoremName>".
+   *  Example: "Example", or "theorem ArchProp". */
+  theoremBlockLabel?: string;
+  /** Non-Prop binders for structured display. Example: "{ε : ℝ}" */
+  objects?: string;
+  /** Prop binders for structured display. Example: "(hε : 0 < ε)" */
+  assumptions?: string;
+  /** Target type for structured display.
+   *  Example: "∃ (N : ℕ), 1 / ε < N" */
+  goal?: string;
   permissions?: LevelPermission[];
+  /** Markdown introduction shown before the level. */
   introduction?: string;
+  /** Markdown conclusion shown after completing the level. */
   conclusion?: string;
   tutorial?: TutorialStep[];
-  /** Pre-formatted multi-line rendering of the theorem signature split
-   * into Objects / Assumptions / Goal sections, joined with `\n`. Used
-   * as the lemma block's display override; the FieldTheoremStatement
-   * renders `\n`s as actual line breaks via `<tspan>`s. Absent when the
-   * level supplies none of the three structured fields. */
-  display?: string;
 };
 
 /** Extract the list of allowed block types from permissions, or undefined if unrestricted. */
@@ -106,15 +120,9 @@ export type LevelSource = {
   level: number;
   name: string;
   theoremName: string;
-  /** Optional display-only label for the main theorem block, e.g. "Example". */
   theoremBlockLabel?: string;
-  /** The true Lean declaration, fed to the compiler via workspaceToLean. */
-  statement: string;
-  /** Optional user-visible decomposition of `statement`. These are
-   * hand-authored today; a future publish step could generate them from
-   * Lean itself (see `getDeclSignature` sketch). When any of the three
-   * is present, the lemma block shows a multi-line Objects / Assumptions
-   * / Goal view instead of the raw `statement` string. */
+  /** The Lean declaration signature, fed to the compiler via workspaceToLean. */
+  theoremStatement: string;
   objects?: string;
   assumptions?: string;
   goal?: string;
@@ -125,22 +133,20 @@ export type LevelSource = {
 
 // ── Blockly state helper ────────────────────────────────────────────
 
-function makeLevelState(
-  theoremName: string,
-  declaration: string,
-  theoremBlockLabel?: string,
-): BlocklyState {
+/** Build a BlocklyState from a level's abstract theorem data. Called at
+ * the point of consumption (workspace init / reset), not at data load time. */
+export function makeLevelState(level: LevelDefinition): BlocklyState {
   return {
     blocks: {
       languageVersion: 0,
       blocks: [{
         type: 'lemma',
-        id: `lemma-${theoremName}`,
+        id: `lemma-${level.theoremName}`,
         x: 61, y: 61,
         fields: {
-          THEOREM_BLOCK_LABEL: theoremBlockLabel ?? `theorem ${theoremName}`,
-          THEOREM_NAME: theoremName,
-          THEOREM_DECLARATION: declaration,
+          THEOREM_BLOCK_LABEL: level.theoremBlockLabel ?? `theorem ${level.theoremName}`,
+          THEOREM_NAME: level.theoremName,
+          THEOREM_DECLARATION: level.theoremStatement,
         },
       }],
     },
@@ -157,14 +163,14 @@ function makeLevelState(
  *     Goal:
  *       x^2 - 1 = …
  *
- * Returns undefined if the source supplied none of the three sections.
+ * Returns undefined if the level supplied none of the three sections.
  */
-function formatDisplay(src: LevelSource): string | undefined {
-  if (!src.objects && !src.assumptions && !src.goal) return undefined;
+export function formatDisplay(level: LevelDefinition): string | undefined {
+  if (!level.objects && !level.assumptions && !level.goal) return undefined;
   const lines: string[] = [];
-  if (src.objects)     lines.push('Objects:',     `  ${src.objects}`);
-  if (src.assumptions) lines.push('Assumptions:', `  ${src.assumptions}`);
-  if (src.goal)        lines.push('Goal:',        `  ${src.goal}`);
+  if (level.objects)     lines.push('Objects:',     `  ${level.objects}`);
+  if (level.assumptions) lines.push('Assumptions:', `  ${level.assumptions}`);
+  if (level.goal)        lines.push('Goal:',        `  ${level.goal}`);
   return lines.join('\n');
 }
 
@@ -172,11 +178,14 @@ function levelSourceToDefinition(src: LevelSource): LevelDefinition {
   return {
     name: src.name,
     theoremName: src.theoremName,
-    initial: makeLevelState(src.theoremName, src.statement, src.theoremBlockLabel),
+    theoremStatement: src.theoremStatement,
+    theoremBlockLabel: src.theoremBlockLabel,
+    objects: src.objects,
+    assumptions: src.assumptions,
+    goal: src.goal,
     permissions: src.permissions,
     introduction: src.introduction,
     conclusion: src.conclusion,
-    display: formatDisplay(src),
   };
 }
 

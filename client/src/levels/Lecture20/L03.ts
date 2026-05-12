@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Sum of Continuous Functions",
   theoremName: "Lecture20_3",
-  statement: `FunContAtAdd {f g : ℝ → ℝ} {c : ℝ}
+  theoremStatement: `FunContAtAdd {f g : ℝ → ℝ} {c : ℝ}
     (hf : FunContAt f c) (hg : FunContAt g c) :
     FunContAt (fun x ↦ f x + g x) c`,
   objects: "{f g : ℝ → ℝ} {c : ℝ}",

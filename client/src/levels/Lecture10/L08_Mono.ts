@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Subsequences",
   theoremName: "Lecture10_3",
-  statement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) (σ : ℕ → ℕ) (hσ : Subseq σ) :
+  theoremStatement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) (σ : ℕ → ℕ) (hσ : Subseq σ) :
     SeqLim (a ∘ σ) L`,
   objects: "(a : ℕ → ℝ) (L : ℝ) (σ : ℕ → ℕ)",
   assumptions: "(ha : SeqLim a L) (hσ : Subseq σ)",

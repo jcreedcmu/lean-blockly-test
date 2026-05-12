@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Problem 1",
   theoremName: "L15Pset_1",
-  statement: "(a b : ℕ → ℚ) (ha : ∀ n, a n = 1 - 1 / 2 ^ n) (hb : ∀ n, b n = 1) : ∀ ε > 0, ∃ N, ∀ n ≥ N, |a n - b n| < ε",
+  theoremStatement: "(a b : ℕ → ℚ) (ha : ∀ n, a n = 1 - 1 / 2 ^ n) (hb : ∀ n, b n = 1) : ∀ ε > 0, ∃ N, ∀ n ≥ N, |a n - b n| < ε",
   objects: "(a b : ℕ → ℚ)",
   assumptions: "(ha : ∀ n, a n = 1 - 1 / 2 ^ n) (hb : ∀ n, b n = 1)",
   goal: "∀ ε > 0, ∃ N, ∀ n ≥ N, |a n - b n| < ε",

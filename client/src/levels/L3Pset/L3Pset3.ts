@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Problem 3",
   theoremName: "L3Pset_3",
-  statement: `(a : ℕ → ℝ) (ha : ∀ n, a n = 1 / n ^ 2) :
+  theoremStatement: `(a : ℕ → ℝ) (ha : ∀ n, a n = 1 / n ^ 2) :
     ∃ L, SeqLim a L`,
   objects: "(a : ℕ → ℝ)",
   assumptions: "(ha : ∀ n, a n = 1 / n ^ 2)",

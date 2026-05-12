@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 5,
   name: "SeqEvenOdd",
   theoremName: "L18Pset_5",
-  statement: `{a : ℕ → ℝ} {L : ℝ} (ha2n : SeqLim (fun n ↦ a (2 * n)) L)
+  theoremStatement: `{a : ℕ → ℝ} {L : ℝ} (ha2n : SeqLim (fun n ↦ a (2 * n)) L)
 (ha2np1 : SeqLim (fun n ↦ a (2 * n + 1)) L) : SeqLim a L`,
   objects: "{a : ℕ → ℝ} {L : ℝ}",
   assumptions: "(ha2n : SeqLim (fun n ↦ a (2 * n)) L) (ha2np1 : SeqLim (fun n ↦ a (2 * n + 1)) L)",

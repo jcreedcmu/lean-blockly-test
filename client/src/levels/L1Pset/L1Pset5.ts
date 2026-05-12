@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 5,
   name: "Problem 5",
   theoremName: "L1Pset_5",
-  statement: `(p : ℝ → ℝ) (x : ℝ) (h1 : ∀ t, p (t) = t ^ 2 + 2 * t)
+  theoremStatement: `(p : ℝ → ℝ) (x : ℝ) (h1 : ∀ t, p (t) = t ^ 2 + 2 * t)
  (h2 : p (x) = 15)
  :
   ∃ b, x ^ 2 + 2 * x = b`,

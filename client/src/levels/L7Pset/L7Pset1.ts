@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Problem 1",
   theoremName: "L7Pset_1",
-  statement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) (hL : L ≠ 0) :
+  theoremStatement: `(a : ℕ → ℝ) (L : ℝ) (ha : SeqLim a L) (hL : L ≠ 0) :
   ∃ N, ∀ n ≥ N, |a n| ≤ 2 * |L|`,
   objects: "(a : ℕ → ℝ) (L : ℝ)",
   assumptions: "(ha : SeqLim a L) (hL : L ≠ 0)",

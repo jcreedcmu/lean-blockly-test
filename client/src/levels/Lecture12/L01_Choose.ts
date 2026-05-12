@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Enhanced Choose",
   theoremName: "Lecture12_2",
-  statement: `(p : ℕ → Prop) (h : ∀ N, ∃ n > N, p n) :
+  theoremStatement: `(p : ℕ → Prop) (h : ∀ N, ∃ n > N, p n) :
   ∃ σ, Subseq σ ∧ ∀ n, p (σ n)`,
   objects: "(p : ℕ → Prop)",
   assumptions: "(h : ∀ N, ∃ n > N, p n)",

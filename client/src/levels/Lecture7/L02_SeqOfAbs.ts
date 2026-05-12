@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 3,
   name: "Sequences of Absolute Values",
   theoremName: "Lecture7_3",
-  statement: `(a : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L) (b : ℕ →
+  theoremStatement: `(a : ℕ → ℝ) (L : ℝ) (aToL : SeqLim a L) (b : ℕ →
 ℝ) (bEqAbsa : ∀ n, b n = |a n|) :
     SeqLim b |L|`,
   objects: "(a : ℕ → ℝ) (L : ℝ) (b : ℕ → ℝ)",

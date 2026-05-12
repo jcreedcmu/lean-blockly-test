@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Leibniz Series",
   theoremName: "Lecture17_2",
-  statement: "(a : ℕ → ℝ) (ha : ∀ n, a n = 1 / ((n + 1) * (n + 2))) : SeriesConv a",
+  theoremStatement: "(a : ℕ → ℝ) (ha : ∀ n, a n = 1 / ((n + 1) * (n + 2))) : SeriesConv a",
   objects: "(a : ℕ → ℝ)",
   assumptions: "(ha : ∀ n, a n = 1 / ((n + 1) * (n + 2)))",
   goal: "SeriesConv a",

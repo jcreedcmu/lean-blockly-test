@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Big Boss : Limits are Cauchy",
   theoremName: "Lecture11_1",
-  statement: `IsCauchy_of_SeqConv {a : ℕ → ℝ} (ha : SeqConv a)
+  theoremStatement: `IsCauchy_of_SeqConv {a : ℕ → ℝ} (ha : SeqConv a)
     : IsCauchy a`,
   objects: "{a : ℕ → ℝ}",
   assumptions: "(ha : SeqConv a)",

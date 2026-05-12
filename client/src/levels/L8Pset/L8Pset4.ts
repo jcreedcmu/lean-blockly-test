@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 4,
   name: "Problem 4",
   theoremName: "L8Pset_4",
-  statement: "SubseqGe {σ : ℕ → ℕ} (hσ : ∀ i j, i < j → σ (i) < σ (j)) : ∀ n, n ≤ σ (n)",
+  theoremStatement: "SubseqGe {σ : ℕ → ℕ} (hσ : ∀ i j, i < j → σ (i) < σ (j)) : ∀ n, n ≤ σ (n)",
   objects: "{σ : ℕ → ℕ}",
   assumptions: "(hσ : ∀ i j, i < j → σ (i) < σ (j))",
   goal: "∀ n, n ≤ σ (n)",

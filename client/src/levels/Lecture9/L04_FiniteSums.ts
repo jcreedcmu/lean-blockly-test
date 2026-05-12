@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 1,
   name: "Finite Sums",
   theoremName: "Lecture9_1",
-  statement: `TermLeSum {X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] (a : ℕ → X) (N : ℕ) :
+  theoremStatement: `TermLeSum {X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] (a : ℕ → X) (N : ℕ) :
     ∀ n < N, |a n| ≤ ∑ k ∈ range N, |a k|`,
   objects: "{X : Type*} [NormedField X] [LinearOrder X] [IsStrictOrderedRing X] (a : ℕ → X) (N : ℕ)",
   goal: "∀ n < N, |a n| ≤ ∑ k ∈ range N, |a k|",

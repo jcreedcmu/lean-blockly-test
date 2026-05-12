@@ -9,7 +9,7 @@ const level: LevelSource = {
   level: 2,
   name: "Problem 2",
   theoremName: "L7Pset_2",
-  statement: `(a b : ℕ → ℝ) (L M : ℝ) (ha : SeqLim a L) (hb : SeqLim b M) (hLM : L < M) :
+  theoremStatement: `(a b : ℕ → ℝ) (L M : ℝ) (ha : SeqLim a L) (hb : SeqLim b M) (hLM : L < M) :
   ∃ N, ∀ n ≥ N, a n < b n`,
   objects: "(a b : ℕ → ℝ) (L M : ℝ)",
   assumptions: "(ha : SeqLim a L) (hb : SeqLim b M) (hLM : L < M)",
