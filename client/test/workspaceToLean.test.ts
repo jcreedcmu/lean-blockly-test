@@ -120,6 +120,17 @@ describe('workspaceToLean', () => {
       );
     });
 
+    test('simp tactic emits simp', () => {
+      const ws = workspace(
+        lemma('simp_example', '(x : ℝ) : x = x', tactic('tactic_simp')),
+      );
+      const { leanCode } = workspaceToLean(ws);
+      expect(leanCode).toBe(
+        'theorem simp_example (x : ℝ) : x = x := by\n' +
+        '  simp\n'
+      );
+    });
+
     test('source info is produced for the lemma block', () => {
       const ws = workspace(lemma('the_problem', '(x : ℝ) (h : x = 5) : x = 5'));
       const { sourceInfo } = workspaceToLean(ws);

@@ -307,6 +307,15 @@ function defineTactics() {
       'style': 'logic_blocks',
     },
     {
+      'type': 'tactic_simp',
+      'message0': 'simp',
+      'previousStatement': 'tactic',
+      'nextStatement': 'tactic',
+      'tooltip': 'simp simplifies using definitions and rewrite lemmas.',
+      'helpUrl': 'simp',
+      'style': 'logic_blocks',
+    },
+    {
       'type': 'tactic_rewrite',
       'message0': 'rewrite %1 %2',
       'args0': [

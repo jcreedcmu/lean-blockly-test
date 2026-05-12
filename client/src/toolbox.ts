@@ -37,6 +37,10 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
+      type: 'tactic_simp',
+    },
+    {
+      kind: 'block',
       type: 'tactic_rewrite',
     },
     {

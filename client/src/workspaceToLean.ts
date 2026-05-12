@@ -135,6 +135,11 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_simp': {
+      chunks = [...indentChunk, chunk(`simp\n`, blockId)];
+      break;
+    }
+
     case 'tactic_other': {
       const name = fields['PROP_NAME'] ?? '';
       chunks = [...indentChunk, chunk(`${name}\n`, blockId)];
