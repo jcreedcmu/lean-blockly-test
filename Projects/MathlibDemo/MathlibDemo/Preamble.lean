@@ -56,6 +56,7 @@ inductive Affordance where
   | choose (suggestedName : String)
   | use
   | intro
+  | specialize
   deriving Inhabited
 
 open Lean Server Widget Elab in
@@ -67,6 +68,7 @@ instance : ToJson Affordance where
                                    ("suggestedName", Json.str name)]
     | .use          => Json.mkObj [("kind", Json.str "use")]
     | .intro        => Json.mkObj [("kind", Json.str "intro")]
+    | .specialize   => Json.mkObj [("kind", Json.str "specialize")]
 
 open Lean Server Widget Elab in
 instance : FromJson Affordance where
@@ -79,8 +81,9 @@ instance : FromJson Affordance where
         let name ← j.getObjValAs? String "suggestedName"
         pure (.choose name)
     | "use"     => pure .use
-    | "intro"   => pure .intro
-    | k         => throw s!"unknown affordance kind: {k}"
+    | "intro"       => pure .intro
+    | "specialize"  => pure .specialize
+    | k             => throw s!"unknown affordance kind: {k}"
 
 open Lean Server Widget Elab in
 structure HypInfo where
@@ -150,6 +153,8 @@ def getGoalInfo (p : GoalInfoParams) :
               affordances := affordances.push .rewrite
             if hypType.isAppOf ``Exists then
               affordances := affordances.push (.choose (existsBinderName? hypType))
+            if hypType.isForall then
+              affordances := affordances.push .specialize
           hyps := hyps.push {
             fvarId := toString decl.fvarId.name
             isAssumption

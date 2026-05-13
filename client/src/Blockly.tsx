@@ -256,7 +256,8 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         if (!affordance) return propWithName(name);
 
         switch (affordance.kind) {
-          case 'apply':   return wrapSingle('tactic_apply', 'ARG');
+          case 'apply':       return wrapSingle('tactic_apply', 'ARG');
+          case 'specialize':  return wrapSingle('tactic_specialize', 'HYP');
           case 'rewrite': return wrapSingle('tactic_rewrite', 'REWRITE_SOURCE');
           case 'choose': {
             // tactic_choose has two inputs: CHOSEN (new variable names)
