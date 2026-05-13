@@ -50,6 +50,22 @@ attribute [grind =] Mathlib.Tactic.Rify.ratCast_le._simp_1
 attribute [grind =] Int.cast_natCast
 attribute [grind =] Rat.cast_natCast
 
+tactic_extension (name := conclude) tactic
+  | \`(tactic| conclude) => do
+    let closers : Array (TacticM Unit) := #[
+      evalTactic (← \`(tactic| assumption)),
+      evalTactic (← \`(tactic| norm_num [*])),
+      evalTactic (← \`(tactic| linarith [*])),
+      evalTactic (← \`(tactic| nlinarith (config := .{ maxDegree := 2 }) [*])),
+      evalTactic (← \`(tactic| gcongr <;> (first | assumption | linarith [*] | norm_num [*] | positivity))),
+      evalTactic (← \`(tactic| rel [*])),
+      evalTactic (← \`(tactic| positivity)),
+      evalTactic (← \`(tactic| push_neg; linarith [*]))
+    ]
+    for c in closers do
+      try c; return catch _ => pure ()
+    throwError "conclude: no closing tactic succeeded"
+
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ y ≠ c, |y - c| < δ → |f y - L| < ε
 
