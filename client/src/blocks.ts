@@ -622,9 +622,9 @@ function defineTactics() {
       "message0": "at %1 %2",
       "args0": [
         {
-          "type": "field_monospace_input",
+          "type": "input_value",
           "name": "HYP",
-          "text": "h"
+          "check": "proposition"
         },
         {
           "type": "input_statement",

@@ -265,7 +265,8 @@ function blockToChunks(
     }
 
     case 'tactic_at': {
-      const hyp = fields['HYP'] ?? 'h';
+      const hypChunks = blockToChunks(inputBlock(inputs['HYP']), '');
+      const hyp = hypChunks.map(c => c.text).join('');
       const bodyBlock = inputBlock(inputs['BODY']);
       // Strip next chain so only the first tactic is processed
       const firstBlock = bodyBlock ? { ...bodyBlock, next: undefined } : undefined;
