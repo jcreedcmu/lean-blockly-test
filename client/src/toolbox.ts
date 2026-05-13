@@ -103,10 +103,6 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'lemma',
-    },
-    {
-      kind: 'block',
       type: 'tactic_sorry',
     },
     {
