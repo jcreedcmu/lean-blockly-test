@@ -1052,7 +1052,7 @@ function defineCalc() {
 
   function appendConcludeBubble(block: CalcBlock, stepIdx: number, bubbleIdx: number) {
     block.appendValueInput(`CONCLUDE_${stepIdx}_${bubbleIdx}`).setCheck('proposition');
-    const anchor = stepIdx === 0 ? 'STEP_CONTROLS' : `END_ROW_STEP_${stepIdx}`;
+    const anchor = stepIdx === 0 ? 'END_ROW_BASE' : `END_ROW_STEP_${stepIdx}`;
     block.moveInputBefore(`CONCLUDE_${stepIdx}_${bubbleIdx}`, anchor);
   }
 
@@ -1075,18 +1075,22 @@ function defineCalc() {
     return { plusBtn, minusBtn };
   }
 
-  function appendCalcStep(block: CalcBlock, stepIdx: number, extraBubbles = 1) {
+  function appendCalcStep(block: CalcBlock, stepIdx: number, extraBubbles = 0) {
     block.appendDummyInput(`STEP_${stepIdx}`)
       .appendField(new blockly.FieldLabel('_'))
       .appendField(new blockly.FieldDropdown(REL_OPTIONS), `REL_${stepIdx}`)
       .appendField(new FieldMonospaceInput('b'), `RHS_${stepIdx}`)
       .appendField(new blockly.FieldLabel('with'));
+    block.moveInputBefore(`STEP_${stepIdx}`, 'STEP_CONTROLS');
     const { plusBtn, minusBtn } = makeBubbleButtons(block, stepIdx);
     block.appendDummyInput(`BUBBLE_CONTROLS_${stepIdx}`)
       .appendField(plusBtn, `PLUS_BUBBLE_${stepIdx}`)
       .appendField(minusBtn, `MINUS_BUBBLE_${stepIdx}`);
+    block.moveInputBefore(`BUBBLE_CONTROLS_${stepIdx}`, 'STEP_CONTROLS');
     block.appendValueInput(`CONCLUDE_${stepIdx}_0`).setCheck('proposition');
+    block.moveInputBefore(`CONCLUDE_${stepIdx}_0`, 'STEP_CONTROLS');
     block.appendEndRowInput(`END_ROW_STEP_${stepIdx}`);
+    block.moveInputBefore(`END_ROW_STEP_${stepIdx}`, 'STEP_CONTROLS');
     block.stepBubbleCounts_[stepIdx] = 0;
     for (let j = 1; j <= extraBubbles; j++) {
       appendConcludeBubble(block, stepIdx, j);
@@ -1107,7 +1111,7 @@ function defineCalc() {
 
   blockly.defineBlocksWithJsonArray([{
     'type': 'tactic_calc',
-    'message0': 'calc %1 : %2 %3 %4 with %5 %6 %7',
+    'message0': 'calc %1 : %2 %3 %4 with %5 %6',
     'args0': [
       { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },
       { 'type': 'field_monospace_input', 'name': 'LHS', 'text': 'a' },
@@ -1115,7 +1119,6 @@ function defineCalc() {
       { 'type': 'field_monospace_input', 'name': 'RHS_0', 'text': 'b' },
       { 'type': 'input_dummy', 'name': 'BUBBLE_CONTROLS_0' },
       { 'type': 'input_value', 'name': 'CONCLUDE_0_0', 'check': 'proposition' },
-      { 'type': 'input_dummy', 'name': 'STEP_CONTROLS' },
     ],
     'inputsInline': true,
     'previousStatement': 'tactic',
@@ -1137,9 +1140,9 @@ function defineCalc() {
           const savedCounts: number[] =
             state && typeof state === 'object' && 'bubbleCounts' in state
               ? (state as { bubbleCounts: number[] }).bubbleCounts
-              : [1];
+              : [0];
           // Reconcile step 0 bubbles
-          const target0 = Math.max(0, savedCounts[0] ?? 1);
+          const target0 = Math.max(0, savedCounts[0] ?? 0);
           while (this.stepBubbleCounts_[0] < target0) {
             appendConcludeBubble(this, 0, this.stepBubbleCounts_[0] + 1);
             this.stepBubbleCounts_[0] += 1;
@@ -1156,7 +1159,7 @@ function defineCalc() {
           }
           while (this.extraStepCount_ < targetStepCount) {
             const nextStep = this.extraStepCount_ + 1;
-            appendCalcStep(this, nextStep, savedCounts[nextStep] ?? 1);
+            appendCalcStep(this, nextStep, savedCounts[nextStep] ?? 0);
             this.extraStepCount_ = nextStep;
           }
         },
@@ -1169,7 +1172,8 @@ function defineCalc() {
         self.getInput('BUBBLE_CONTROLS_0')!
           .appendField(plusBubble0, 'PLUS_BUBBLE_0')
           .appendField(minusBubble0, 'MINUS_BUBBLE_0');
-        self.getInput('STEP_CONTROLS')!
+        self.appendEndRowInput('END_ROW_BASE');
+        self.appendDummyInput('STEP_CONTROLS')
           .appendField(new blockly.FieldImage(PLUS_ICON_URI, 14, 14, '+', () => {
             const nextStep = self.extraStepCount_ + 1;
             appendCalcStep(self, nextStep);
@@ -1181,9 +1185,6 @@ function defineCalc() {
               self.extraStepCount_ -= 1;
             }
           }), 'MINUS_STEP');
-        self.appendEndRowInput('END_ROW_BASE');
-        appendConcludeBubble(self, 0, 1);
-        self.stepBubbleCounts_[0] = 1;
       },
     );
   }
