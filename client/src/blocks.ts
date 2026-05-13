@@ -440,27 +440,22 @@ function defineTactics() {
     },
     {
       'type': 'tactic_rewrite',
-      'message0': 'rewrite %1 %2',
+      'message0': 'rewrite %1 %2 %3',
       'args0': [
         {
           'type': 'field_dropdown',
           'name': 'DIRECTION_TYPE',
-          'options': [
-            [
-              '→',
-              'RIGHT',
-            ],
-            [
-              '←',
-              'LEFT',
-            ],
-          ],
+          'options': [['→', 'RIGHT'], ['←', 'LEFT']],
         },
         {
           'type': 'input_value',
           'name': 'REWRITE_SOURCE',
           'check': 'proposition',
           'align': 'CENTRE',
+        },
+        {
+          'type': 'input_dummy',
+          'name': 'CONTROLS',
         },
       ],
       'inputsInline': false,
@@ -469,6 +464,7 @@ function defineTactics() {
       'style': 'logic_blocks',
       'tooltip': 'rewrite',
       'helpUrl': 'rewrite',
+      'mutator': 'rewrite_arg_buttons',
     },
     {
       'type': 'tactic_rewrite_at',
@@ -673,6 +669,75 @@ function defineTactics() {
       "style": "procedure_blocks"
     }
   ]);
+
+  function appendRewriteArgInput(
+    block: blockly.Block & { extraArgCount_: number },
+    i: number,
+  ) {
+    block.appendValueInput(`REWRITE_SOURCE_${i}`)
+      .appendField(
+        new blockly.FieldDropdown([['→', 'RIGHT'], ['←', 'LEFT']]),
+        `DIRECTION_TYPE_${i}`,
+      )
+      .setCheck('proposition');
+    block.moveInputBefore(`REWRITE_SOURCE_${i}`, 'CONTROLS');
+  }
+
+  if (!blockly.Extensions.isRegistered('rewrite_arg_buttons')) {
+    blockly.Extensions.registerMutator(
+      'rewrite_arg_buttons',
+      {
+        saveExtraState: function(this: { extraArgCount_: number }) {
+          return { argCount: this.extraArgCount_ };
+        },
+        loadExtraState: function(
+          this: blockly.Block & { extraArgCount_: number },
+          state: unknown,
+        ) {
+          const rawTarget =
+            state && typeof state === 'object' && 'argCount' in state
+              ? Number((state as { argCount?: number }).argCount ?? 0)
+              : 0;
+          const target = Number.isFinite(rawTarget)
+            ? Math.max(0, Math.floor(rawTarget))
+            : 0;
+          while (this.extraArgCount_ < target) {
+            const nextIndex = this.extraArgCount_ + 1;
+            appendRewriteArgInput(this, nextIndex);
+            this.extraArgCount_ = nextIndex;
+          }
+          while (this.extraArgCount_ > target) {
+            this.removeInput(`REWRITE_SOURCE_${this.extraArgCount_}`);
+            this.extraArgCount_ -= 1;
+          }
+        },
+      },
+      function(this: blockly.Block) {
+        const self = this as blockly.Block & { extraArgCount_: number };
+        self.extraArgCount_ = 0;
+        const plusBtn = new blockly.FieldImage(
+          PLUS_ICON_URI, 14, 14, '+',
+          () => {
+            const nextIndex = self.extraArgCount_ + 1;
+            appendRewriteArgInput(self, nextIndex);
+            self.extraArgCount_ = nextIndex;
+          },
+        );
+        const minusBtn = new blockly.FieldImage(
+          MINUS_ICON_URI, 14, 14, '−',
+          () => {
+            if (self.extraArgCount_ > 0) {
+              self.removeInput(`REWRITE_SOURCE_${self.extraArgCount_}`);
+              self.extraArgCount_ -= 1;
+            }
+          },
+        );
+        self.getInput('CONTROLS')!
+          .appendField(plusBtn, 'PLUS')
+          .appendField(minusBtn, 'MINUS');
+      },
+    );
+  }
 }
 
 function defineSpecialize() {
