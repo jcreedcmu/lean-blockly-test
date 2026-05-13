@@ -62,7 +62,7 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'lemma',
+      type: 'tactic_transform',
     },
     {
       kind: 'block',
@@ -78,10 +78,6 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'tactic_transform',
-    },
-    {
-      kind: 'block',
       type: 'tactic_constructor',
     },
     {
@@ -91,6 +87,10 @@ const LeanTacticsCategory: CategoryItem = {
     {
       kind: 'block',
       type: 'tactic_have',
+    },
+    {
+      kind: 'block',
+      type: 'lemma',
     },
     {
       kind: 'block',
