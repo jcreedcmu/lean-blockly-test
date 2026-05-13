@@ -235,7 +235,6 @@ const MINUS_ICON_URI = 'data:image/svg+xml;utf8,' + encodeURIComponent(
 function multiArgTacticInit(this: blockly.Block) {
   const self = this as blockly.Block & { extraArgCount_: number };
   self.extraArgCount_ = 0;
-  setDefaultPropShadow(self, 'ARG');
 
   const plusBtn = new blockly.FieldImage(
     PLUS_ICON_URI, 14, 14, '+',
