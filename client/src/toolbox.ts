@@ -1,5 +1,5 @@
 import * as blockly from 'blockly';
-import * as blocks from './blocks';
+
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
 */
@@ -35,11 +35,24 @@ const LeanTacticsCategory: CategoryItem = {
   contents: [
     {
       kind: 'block',
+      type: 'tactic_unfold',
+      inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
+    },
+    {
+      kind: 'block',
+      type: 'tactic_calc',
+    },
+    {
+      kind: 'block',
       type: 'tactic_intro',
     },
     {
       kind: 'block',
       type: 'tactic_use',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_rewrite',
     },
     {
       kind: 'block',
@@ -56,27 +69,6 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'tactic_conclude',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_transform',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_unfold',
-      inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
-    },
-    {
-      kind: 'block',
-      type: 'tactic_rewrite',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_rewrite_at',
-    },
-    {
-      kind: 'block',
       type: 'tactic_at',
     },
     {
@@ -85,15 +77,11 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'tactic_show',
-    },
-    {
-      kind: 'block',
       type: 'tactic_have',
     },
     {
       kind: 'block',
-      type: 'tactic_calc',
+      type: 'tactic_show',
     },
     {
       kind: 'block',
@@ -103,9 +91,6 @@ const LeanTacticsCategory: CategoryItem = {
       kind: 'block',
       type: 'tactic_other',
     },
-    ...blocks.singleArgTactics
-      .filter(t => !['intro', 'use', 'apply', 'unfold'].includes(t.name))
-      .map(t => ({ kind: 'block' as const, type: `tactic_${t.name}` })),
   ],
 };
 
