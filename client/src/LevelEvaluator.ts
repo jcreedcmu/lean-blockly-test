@@ -42,6 +42,14 @@ const DEFAULT_URI = 'file:///blockly/Blockly.lean';
 // live here.
 const DEFAULT_PRELUDE = `import MathlibDemo.Preamble
 
+attribute [grind .] inv_lt_of_inv_lt₀
+attribute [grind =] one_mul
+attribute [grind =] Mathlib.Tactic.Zify.natCast_le._simp_1
+attribute [grind =] Mathlib.Tactic.Qify.intCast_le._simp_1
+attribute [grind =] Mathlib.Tactic.Rify.ratCast_le._simp_1
+attribute [grind =] Int.cast_natCast
+attribute [grind =] Rat.cast_natCast
+
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ y ≠ c, |y - c| < δ → |f y - L| < ε
 
