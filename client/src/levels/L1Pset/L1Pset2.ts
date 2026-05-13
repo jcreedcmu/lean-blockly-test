@@ -15,7 +15,7 @@ const level: LevelSource = {
   assumptions: "(hf : FunCont f) (hg : FunCont g)",
   goal: "FunCont (f ∘ g)",
   introduction: `
-# Problem 2: Prove that if $f$ and $g$ are continuous functions, then the composition $f \circ g$ is also continuous.`,
+# Problem 2: Prove that if $f$ and $g$ are continuous functions, then the composition $f$ ∘ $g$ is also continuous.`,
   conclusion: `Did you end up using \`huv\`?
 And then \`specialize\`ing it with \`u\` and \`v\` replaced, respectively, by \`x\` and \`y\`?
 Or did you think of going via the more direct route:
