@@ -291,6 +291,12 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
             block.render();
             return block;
           }
+          case 'intro': {
+            const block = ws.newBlock('tactic_intro') as BlockSvg;
+            block.initSvg();
+            block.render();
+            return block;
+          }
           case 'apply':
           case 'rewrite':
           case 'choose': {

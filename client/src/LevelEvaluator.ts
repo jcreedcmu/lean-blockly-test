@@ -58,7 +58,8 @@ export type Affordance =
   | { kind: 'apply' }
   | { kind: 'rewrite' }
   | { kind: 'choose'; suggestedName: string }
-  | { kind: 'use' };
+  | { kind: 'use' }
+  | { kind: 'intro' };
 
 /** Per-hypothesis info extracted server-side from the Lean `Expr` AST.
  * `affordances` is the list of drag-and-drop affordances the Lean side

@@ -165,7 +165,7 @@ export function Goal({
             <InteractiveCode fmt={goal.type} onSubexprClick={interactionProps.onSubexprClick} />
           </span>
           {interactionProps.onGoalDragStart && goalInfo?.target.affordances.map((a) => {
-            if (a.kind !== 'use') return null;
+            if (a.kind !== 'use' && a.kind !== 'intro') return null;
             if (interactionProps.allowedAffordances &&
                 !interactionProps.allowedAffordances.has(a.kind)) return null;
             return (

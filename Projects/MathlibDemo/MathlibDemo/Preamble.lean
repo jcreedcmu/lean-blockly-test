@@ -55,6 +55,7 @@ inductive Affordance where
   | rewrite
   | choose (suggestedName : String)
   | use
+  | intro
   deriving Inhabited
 
 open Lean Server Widget Elab in
@@ -65,6 +66,7 @@ instance : ToJson Affordance where
     | .choose name  => Json.mkObj [("kind", Json.str "choose"),
                                    ("suggestedName", Json.str name)]
     | .use          => Json.mkObj [("kind", Json.str "use")]
+    | .intro        => Json.mkObj [("kind", Json.str "intro")]
 
 open Lean Server Widget Elab in
 instance : FromJson Affordance where
@@ -77,6 +79,7 @@ instance : FromJson Affordance where
         let name ← j.getObjValAs? String "suggestedName"
         pure (.choose name)
     | "use"     => pure .use
+    | "intro"   => pure .intro
     | k         => throw s!"unknown affordance kind: {k}"
 
 open Lean Server Widget Elab in
@@ -156,6 +159,8 @@ def getGoalInfo (p : GoalInfoParams) :
         let mut targetAffordances : Array Affordance := #[]
         if target.isAppOf ``Exists then
           targetAffordances := targetAffordances.push .use
+        if target.isForall then
+          targetAffordances := targetAffordances.push .intro
         return {
           mvarId := p.mvarId
           hyps
