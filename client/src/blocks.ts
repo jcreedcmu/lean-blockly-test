@@ -715,6 +715,7 @@ function defineTactics() {
           "check": "tactic"
         }
       ],
+      "inputsInline": true,
       "previousStatement": "tactic",
       "nextStatement": "tactic",
       "style": "text_blocks"
@@ -795,7 +796,7 @@ function defineTactics() {
 
   if (!blockly.Extensions.isRegistered('choose_name_buttons')) {
     const appendChosenField = (block: blockly.Block, index: number) =>
-      block.getInput('CHOSEN_NAMES')!.appendField(new FieldMonospaceInput('x'), `CHOSEN_NAME_${index}`);
+      block.getInput('CHOSEN_NAMES')!.appendField(new FieldMonospaceInput(index === 1 ? 'hx' : 'x'), `CHOSEN_NAME_${index}`);
     const removeChosenField = (block: blockly.Block, index: number) =>
       block.getInput('CHOSEN_NAMES')!.removeField(`CHOSEN_NAME_${index}`);
 
@@ -837,6 +838,8 @@ function defineTactics() {
               self.extraArgCount_ -= 1;
             }
           }), 'MINUS');
+        appendChosenField(self, 1);
+        self.extraArgCount_ = 1;
       },
     );
   }
