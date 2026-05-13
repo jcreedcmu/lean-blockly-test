@@ -51,7 +51,7 @@ def FunCont (f : ℝ → ℝ) : Prop :=
 def SeqLim (a : ℕ → ℝ) (L : ℝ) : Prop :=
   ∀ ε > 0, ∃ N, ∀ n > N, |a n - L| < ε
 
-theorem ArchProp : ∀ ε > (0 : ℝ), ∃ N > (0 : ℕ), 1 / (N : ℝ) < ε := by sorry
+theorem ArchProp {ε : ℝ} (hε : ε > 0) : ∃ N > (0 : ℕ), 1 / (N : ℝ) < ε := by sorry
 `;
 
 // ── Public types ─────────────────────────────────────────────────────

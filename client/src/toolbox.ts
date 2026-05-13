@@ -137,10 +137,22 @@ const LeanValueCategory: CategoryItem = {
   ],
 };
 
+const LeanTheoremsCategory: CategoryItem = {
+  kind: 'category',
+  name: 'Theorems',
+  contents: [
+    {
+      kind: 'block',
+      type: 'term_archprop',
+    },
+  ],
+};
+
 const allCategories: CategoryItem[] = [
   LeanTacticsCategory,
   LeanVariableCategory,
   LeanValueCategory,
+  LeanTheoremsCategory,
 ];
 
 export const toolbox: blockly.utils.toolbox.ToolboxDefinition = {

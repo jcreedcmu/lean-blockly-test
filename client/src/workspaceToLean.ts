@@ -255,6 +255,15 @@ function blockToChunks(
       break;
     }
 
+    case 'term_archprop': {
+      const argChunks = blockToChunks(inputBlock(inputs['ARG']), '');
+      chunks = [
+        chunk('ArchProp', blockId),
+        ...(argChunks.length > 0 ? [text(' '), ...argChunks] : []),
+      ];
+      break;
+    }
+
     case 'tactic_at': {
       const hyp = fields['HYP'] ?? 'h';
       const bodyBlock = inputBlock(inputs['BODY']);
