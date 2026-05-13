@@ -597,6 +597,27 @@ function defineTactics() {
       "style": "text_blocks",
     },
     {
+      "type": "tactic_at",
+      "tooltip": "Apply a tactic at a hypothesis",
+      "helpUrl": "tactic_at",
+      "message0": "at %1 %2",
+      "args0": [
+        {
+          "type": "field_monospace_input",
+          "name": "HYP",
+          "text": "h"
+        },
+        {
+          "type": "input_statement",
+          "name": "BODY",
+          "check": "tactic"
+        }
+      ],
+      "previousStatement": "tactic",
+      "nextStatement": "tactic",
+      "colour": 165
+    },
+    {
       "type": "tactic_transform",
       "tooltip": "Rewrite the goal by proving X = Y",
       "helpUrl": "tactic_transform",

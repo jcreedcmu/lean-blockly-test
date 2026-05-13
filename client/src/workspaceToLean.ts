@@ -248,6 +248,18 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_at': {
+      const hyp = fields['HYP'] ?? 'h';
+      const bodyBlock = inputBlock(inputs['BODY']);
+      // Strip next chain so only the first tactic is processed
+      const firstBlock = bodyBlock ? { ...bodyBlock, next: undefined } : undefined;
+      const tacticChunks = trimTrailingNewline(blockToChunks(firstBlock, indent));
+      chunks = tacticChunks.length > 0
+        ? [...tacticChunks, chunk(` at ${hyp}\n`, blockId)]
+        : [...indentChunk, chunk(`skip at ${hyp}\n`, blockId)];
+      break;
+    }
+
     case 'tactic_transform': {
       const from = fields['FROM'] ?? 'X';
       const to = fields['TO'] ?? 'Y';
