@@ -281,8 +281,8 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
     intro hy
     intro hy2
     simp
-    rewrite [away y hy]
-    rewrite [show y + 1 - 2 = y - 1 by
+    rewrite [(away y hy)]
+    rewrite [show (y + 1 - 2 = y - 1) by
         grind]
     exact hy2
 `;
