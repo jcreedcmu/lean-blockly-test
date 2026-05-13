@@ -55,6 +55,19 @@ function inputBlock(input: { block?: SerializedBlock; shadow?: SerializedBlock }
   return input?.block ?? input?.shadow;
 }
 
+function collectSequentialFields(
+  fields: Record<string, string>,
+  firstName: string,
+  nextPrefix: string,
+): string[] {
+  const names: string[] = [];
+  if (firstName in fields) names.push(fields[firstName]);
+  for (let i = 1; `${nextPrefix}${i}` in fields; i++) {
+    names.push(fields[`${nextPrefix}${i}`]);
+  }
+  return names;
+}
+
 function collectSequentialInputs(
   inputs: Record<string, { block?: SerializedBlock; shadow?: SerializedBlock }>,
   firstInputName: string,
@@ -190,13 +203,11 @@ function blockToChunks(
     }
 
     case 'tactic_intro': {
-      const argChunks = collectSequentialInputs(inputs, 'ARG', 'ARG', ' ');
-
+      const names = collectSequentialFields(fields, 'NAME', 'NAME_');
+      const nameStr = names.join(' ');
       chunks = [
         ...indentChunk,
-        chunk('intro', blockId),
-        ...(argChunks.length > 0 ? [chunk(' ', blockId), ...argChunks] : []),
-        chunk(`\n`, blockId),
+        chunk(nameStr ? `intro ${nameStr}\n` : `intro\n`, blockId),
       ];
       break;
     }
@@ -214,19 +225,11 @@ function blockToChunks(
     }
 
     case 'tactic_choose': {
-      const allChosenChunks: CodeChunk[] = [
-        ...blockToChunks(inputBlock(inputs['CHOSEN']), ''),
-      ];
-      for (let i = 1; inputs[`CHOSEN_${i}`]; i++) {
-        allChosenChunks.push(text(' '));
-        allChosenChunks.push(...blockToChunks(inputBlock(inputs[`CHOSEN_${i}`]), ''));
-      }
+      const chosenNames = collectSequentialFields(fields, 'CHOSEN_NAME', 'CHOSEN_NAME_');
       const sourceChunks = blockToChunks(inputBlock(inputs['SOURCE']), '');
       chunks = [
         ...indentChunk,
-        chunk(`choose `, blockId),
-        ...allChosenChunks,
-        chunk(` using `, blockId),
+        chunk(`choose ${chosenNames.join(' ')} using `, blockId),
         ...sourceChunks,
         chunk(`\n`, blockId),
       ];

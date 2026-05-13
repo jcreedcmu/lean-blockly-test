@@ -36,7 +36,6 @@ const LeanTacticsCategory: CategoryItem = {
     {
       kind: 'block',
       type: 'tactic_intro',
-      inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
     },
     {
       kind: 'block',

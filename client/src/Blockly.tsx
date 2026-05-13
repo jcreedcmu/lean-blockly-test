@@ -261,15 +261,11 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
           case 'rewrite': return wrapSingle('tactic_rewrite', 'REWRITE_SOURCE');
           case 'choose': {
             const v = affordance.suggestedName;
-            const outer = ws.newBlock('tactic_choose') as BlockSvg & { extraArgCount_: number };
-            // CHOSEN gets the witness; a second slot gets the proof name.
-            outer.getInput('CHOSEN')!.connection!.connect(
-              propWithName(v).outputConnection!);
-            outer.appendValueInput('CHOSEN_1').setCheck('proposition');
-            outer.moveInputBefore('CHOSEN_1', 'CONTROLS');
-            outer.extraArgCount_ = 1;
-            outer.getInput('CHOSEN_1')!.connection!.connect(
-              propWithName(`h${v}`).outputConnection!);
+            const outer = ws.newBlock('tactic_choose') as BlockSvg;
+            // Use loadExtraState to add the second name slot, then set field values.
+            (outer as any).loadExtraState({ argCount: 1 });
+            outer.setFieldValue(v, 'CHOSEN_NAME');
+            outer.setFieldValue(`h${v}`, 'CHOSEN_NAME_1');
             outer.getInput('SOURCE')!.connection!.connect(
               propWithName(name).outputConnection!);
             outer.initSvg();
