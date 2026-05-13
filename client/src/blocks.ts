@@ -1080,7 +1080,7 @@ function defineCalc() {
       .appendField(new blockly.FieldLabel('_'))
       .appendField(new blockly.FieldDropdown(REL_OPTIONS), `REL_${stepIdx}`)
       .appendField(new FieldMonospaceInput('b'), `RHS_${stepIdx}`)
-      .appendField(new blockly.FieldLabel('with'));
+      .appendField(new blockly.FieldLabel('using'));
     block.moveInputBefore(`STEP_${stepIdx}`, 'STEP_CONTROLS');
     const { plusBtn, minusBtn } = makeBubbleButtons(block, stepIdx);
     block.appendDummyInput(`BUBBLE_CONTROLS_${stepIdx}`)
@@ -1111,7 +1111,7 @@ function defineCalc() {
 
   blockly.defineBlocksWithJsonArray([{
     'type': 'tactic_calc',
-    'message0': 'calc %1 : %2 %3 %4 with %5 %6',
+    'message0': 'calc %1 : %2 %3 %4 using %5 %6',
     'args0': [
       { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },
       { 'type': 'field_monospace_input', 'name': 'LHS', 'text': 'a' },
