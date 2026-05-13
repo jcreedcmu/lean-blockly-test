@@ -13,6 +13,7 @@ type BlockItem = {
   kind: 'block';
   type: string;
   id?: string;
+  fields?: Record<string, string>;
   inputs?: Record<string, { shadow: ShadowBlock }>;
 };
 type CategoryItem = {
@@ -116,6 +117,16 @@ const LeanValueCategory: CategoryItem = {
   ],
 };
 
+const LeanDefinitionsCategory: CategoryItem = {
+  kind: 'category',
+  name: 'Definitions',
+  contents: [
+    { kind: 'block', type: 'prop', fields: { PROP_NAME: 'FunLimAt' } },
+    { kind: 'block', type: 'prop', fields: { PROP_NAME: 'FunCont' } },
+    { kind: 'block', type: 'prop', fields: { PROP_NAME: 'SeqLim' } },
+  ],
+};
+
 const LeanTheoremsCategory: CategoryItem = {
   kind: 'category',
   name: 'Theorems',
@@ -130,6 +141,7 @@ const LeanTheoremsCategory: CategoryItem = {
 const allCategories: CategoryItem[] = [
   LeanTacticsCategory,
   LeanTheoremsCategory,
+  LeanDefinitionsCategory,
   LeanVariableCategory,
   LeanValueCategory,
 ];
