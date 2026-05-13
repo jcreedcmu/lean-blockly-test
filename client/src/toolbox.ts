@@ -57,14 +57,6 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'tactic_ring_nf',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_simp',
-    },
-    {
-      kind: 'block',
       type: 'tactic_conclude',
     },
     {
@@ -75,10 +67,6 @@ const LeanTacticsCategory: CategoryItem = {
       kind: 'block',
       type: 'tactic_unfold',
       inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
-    },
-    {
-      kind: 'block',
-      type: 'tactic_refl',
     },
     {
       kind: 'block',

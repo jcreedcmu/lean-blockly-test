@@ -44,27 +44,20 @@ const DEFAULT_PRELUDE = `import MathlibDemo.Preamble
 
 attribute [grind .] inv_lt_of_inv_lt₀
 attribute [grind =] one_mul
-attribute [grind =] Mathlib.Tactic.Zify.natCast_le._simp_1
+attribute [grind =] Nat.cast_le._simp_1
 attribute [grind =] Mathlib.Tactic.Qify.intCast_le._simp_1
 attribute [grind =] Mathlib.Tactic.Rify.ratCast_le._simp_1
 attribute [grind =] Int.cast_natCast
 attribute [grind =] Rat.cast_natCast
 
-tactic_extension (name := conclude) tactic
-  | \`(tactic| conclude) => do
-    let closers : Array (TacticM Unit) := #[
-      evalTactic (← \`(tactic| assumption)),
-      evalTactic (← \`(tactic| norm_num [*])),
-      evalTactic (← \`(tactic| linarith [*])),
-      evalTactic (← \`(tactic| nlinarith (config := .{ maxDegree := 2 }) [*])),
-      evalTactic (← \`(tactic| gcongr <;> (first | assumption | linarith [*] | norm_num [*] | positivity))),
-      evalTactic (← \`(tactic| rel [*])),
-      evalTactic (← \`(tactic| positivity)),
-      evalTactic (← \`(tactic| push_neg; linarith [*]))
-    ]
-    for c in closers do
-      try c; return catch _ => pure ()
-    throwError "conclude: no closing tactic succeeded"
+macro "conclude" "[" t:term,* "]" : tactic => do
+  \`(tactic| iterate 5 (try (first
+    | rel [$t,*]
+    | (fail_if_no_progress simp [$[$t:term],*])
+    | (fail_if_no_progress field_simp [$[$t:term],*])
+    | ring_nf | norm_num | norm_cast
+    | linarith only [$t,*] | nlinarith only [$t,*]
+    | positivity | abel | omega)))
 
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ y ≠ c, |y - c| < δ → |f y - L| < ε
@@ -76,6 +69,7 @@ def SeqLim (a : ℕ → ℝ) (L : ℝ) : Prop :=
   ∀ ε > 0, ∃ N, ∀ n > N, |a n - L| < ε
 
 theorem ArchProp {ε : ℝ} (hε : ε > 0) : ∃ N > (0 : ℕ), 1 / (N : ℝ) < ε := by sorry
+
 `;
 
 // ── Public types ─────────────────────────────────────────────────────
