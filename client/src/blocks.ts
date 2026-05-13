@@ -615,7 +615,7 @@ function defineTactics() {
       ],
       "previousStatement": "tactic",
       "nextStatement": "tactic",
-      "colour": 165
+      "style": "text_blocks"
     },
     {
       "type": "tactic_transform",

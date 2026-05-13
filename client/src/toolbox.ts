@@ -54,6 +54,10 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
+      type: 'tactic_choose',
+    },
+    {
+      kind: 'block',
       type: 'tactic_ring_nf',
     },
     {
