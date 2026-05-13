@@ -179,6 +179,11 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_conclude': {
+      chunks = [...indentChunk, chunk(`conclude\n`, blockId)];
+      break;
+    }
+
     case 'tactic_other': {
       const name = fields['PROP_NAME'] ?? '';
       chunks = [...indentChunk, chunk(`${name}\n`, blockId)];

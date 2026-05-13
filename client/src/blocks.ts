@@ -523,6 +523,15 @@ function defineTactics() {
       'style': 'logic_blocks',
     },
     {
+      'type': 'tactic_conclude',
+      'message0': 'conclude',
+      'previousStatement': 'tactic',
+      'nextStatement': 'tactic',
+      'tooltip': 'Tries assumption, norm_num, linarith, nlinarith, gcongr, rel, positivity.',
+      'helpUrl': 'conclude',
+      'style': 'logic_blocks',
+    },
+    {
       'type': 'tactic_rewrite',
       'message0': 'rewrite %1 %2 %3',
       'args0': [
