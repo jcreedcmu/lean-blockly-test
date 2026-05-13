@@ -43,7 +43,7 @@ const DEFAULT_URI = 'file:///blockly/Blockly.lean';
 const DEFAULT_PRELUDE = `import MathlibDemo.Preamble
 
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
-  ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
+  ∀ ε > 0, ∃ δ > 0, ∀ y ≠ c, |y - c| < δ → |f y - L| < ε
 
 `;
 
