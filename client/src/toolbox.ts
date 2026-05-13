@@ -66,6 +66,11 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
+      type: 'tactic_unfold',
+      inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
+    },
+    {
+      kind: 'block',
       type: 'tactic_refl',
     },
     {
@@ -101,7 +106,7 @@ const LeanTacticsCategory: CategoryItem = {
       type: 'tactic_other',
     },
     ...blocks.singleArgTactics
-      .filter(t => !['intro', 'use', 'apply'].includes(t.name))
+      .filter(t => !['intro', 'use', 'apply', 'unfold'].includes(t.name))
       .map(t => ({ kind: 'block' as const, type: `tactic_${t.name}` })),
   ],
 };
