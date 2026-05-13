@@ -549,14 +549,13 @@ function defineTactics() {
           'type': 'input_value',
           'name': 'REWRITE_SOURCE',
           'check': 'proposition',
-          'align': 'CENTRE',
         },
         {
           'type': 'input_dummy',
           'name': 'CONTROLS',
         },
       ],
-      'inputsInline': false,
+      'inputsInline': true,
       'previousStatement': 'tactic',
       'nextStatement': 'tactic',
       'style': 'logic_blocks',
@@ -901,7 +900,7 @@ function defineTactics() {
         `DIRECTION_TYPE_${i}`,
       )
       .setCheck('proposition');
-    block.moveInputBefore(`REWRITE_SOURCE_${i}`, 'CONTROLS');
+    block.appendEndRowInput(`END_ROW_${i}`);
   }
 
   if (!blockly.Extensions.isRegistered('rewrite_arg_buttons')) {
@@ -928,6 +927,7 @@ function defineTactics() {
             this.extraArgCount_ = nextIndex;
           }
           while (this.extraArgCount_ > target) {
+            this.removeInput(`END_ROW_${this.extraArgCount_}`);
             this.removeInput(`REWRITE_SOURCE_${this.extraArgCount_}`);
             this.extraArgCount_ -= 1;
           }
@@ -948,6 +948,7 @@ function defineTactics() {
           MINUS_ICON_URI, 14, 14, '−',
           () => {
             if (self.extraArgCount_ > 0) {
+              self.removeInput(`END_ROW_${self.extraArgCount_}`);
               self.removeInput(`REWRITE_SOURCE_${self.extraArgCount_}`);
               self.extraArgCount_ -= 1;
             }
@@ -956,6 +957,7 @@ function defineTactics() {
         self.getInput('CONTROLS')!
           .appendField(plusBtn, 'PLUS')
           .appendField(minusBtn, 'MINUS');
+        self.appendEndRowInput('END_ROW_BASE');
       },
     );
   }
