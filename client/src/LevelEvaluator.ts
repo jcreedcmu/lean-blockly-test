@@ -45,6 +45,9 @@ const DEFAULT_PRELUDE = `import MathlibDemo.Preamble
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ y ≠ c, |y - c| < δ → |f y - L| < ε
 
+def FunCont (f : ℝ → ℝ) : Prop :=
+  ∀ x, ∀ ε > 0, ∃ δ > 0, ∀ y, |y - x| < δ → |f y - f x| < ε
+
 `;
 
 // ── Public types ─────────────────────────────────────────────────────
