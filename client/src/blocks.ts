@@ -489,17 +489,17 @@ function defineTactics() {
       'helpUrl': 'rewrite_at',
     },
     {
-      // `choose <var> using <hyp>` destructs an existential hypothesis.
-      // CHOSEN is the new variable name to introduce (free text — the
-      // student can type multiple names here, e.g. `c hc` to also bind
-      // the proof). SOURCE is the hypothesis with the existential.
       'type': 'tactic_choose',
-      'message0': 'choose %1 using %2',
+      'message0': 'choose %1 %2 using %3',
       'args0': [
         {
           'type': 'input_value',
           'name': 'CHOSEN',
           'check': 'proposition',
+        },
+        {
+          'type': 'input_dummy',
+          'name': 'CONTROLS',
         },
         {
           'type': 'input_value',
@@ -513,6 +513,7 @@ function defineTactics() {
       'style': 'logic_blocks',
       'tooltip': 'choose',
       'helpUrl': 'choose',
+      'mutator': 'choose_arg_buttons',
     },
     {
       'type': 'tactic_sorry',
@@ -690,6 +691,64 @@ function defineTactics() {
       "style": "procedure_blocks"
     }
   ]);
+
+  if (!blockly.Extensions.isRegistered('choose_arg_buttons')) {
+    blockly.Extensions.registerMutator(
+      'choose_arg_buttons',
+      {
+        saveExtraState: function(this: { extraArgCount_: number }) {
+          return { argCount: this.extraArgCount_ };
+        },
+        loadExtraState: function(
+          this: blockly.Block & { extraArgCount_: number },
+          state: unknown,
+        ) {
+          const rawTarget =
+            state && typeof state === 'object' && 'argCount' in state
+              ? Number((state as { argCount?: number }).argCount ?? 0)
+              : 0;
+          const target = Number.isFinite(rawTarget)
+            ? Math.max(0, Math.floor(rawTarget))
+            : 0;
+          while (this.extraArgCount_ < target) {
+            const nextIndex = this.extraArgCount_ + 1;
+            this.appendValueInput(`CHOSEN_${nextIndex}`).setCheck('proposition');
+            this.moveInputBefore(`CHOSEN_${nextIndex}`, 'CONTROLS');
+            this.extraArgCount_ = nextIndex;
+          }
+          while (this.extraArgCount_ > target) {
+            this.removeInput(`CHOSEN_${this.extraArgCount_}`);
+            this.extraArgCount_ -= 1;
+          }
+        },
+      },
+      function(this: blockly.Block) {
+        const self = this as blockly.Block & { extraArgCount_: number };
+        self.extraArgCount_ = 0;
+        const plusBtn = new blockly.FieldImage(
+          PLUS_ICON_URI, 14, 14, '+',
+          () => {
+            const nextIndex = self.extraArgCount_ + 1;
+            self.appendValueInput(`CHOSEN_${nextIndex}`).setCheck('proposition');
+            self.moveInputBefore(`CHOSEN_${nextIndex}`, 'CONTROLS');
+            self.extraArgCount_ = nextIndex;
+          },
+        );
+        const minusBtn = new blockly.FieldImage(
+          MINUS_ICON_URI, 14, 14, '−',
+          () => {
+            if (self.extraArgCount_ > 0) {
+              self.removeInput(`CHOSEN_${self.extraArgCount_}`);
+              self.extraArgCount_ -= 1;
+            }
+          },
+        );
+        self.getInput('CONTROLS')!
+          .appendField(plusBtn, 'PLUS')
+          .appendField(minusBtn, 'MINUS');
+      },
+    );
+  }
 
   function appendRewriteArgInput(
     block: blockly.Block & { extraArgCount_: number },
