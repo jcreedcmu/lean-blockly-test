@@ -714,6 +714,7 @@ function defineTactics() {
             const nextIndex = this.extraArgCount_ + 1;
             this.appendValueInput(`CHOSEN_${nextIndex}`).setCheck('proposition');
             this.moveInputBefore(`CHOSEN_${nextIndex}`, 'CONTROLS');
+            setDefaultPropShadow(this, `CHOSEN_${nextIndex}`);
             this.extraArgCount_ = nextIndex;
           }
           while (this.extraArgCount_ > target) {
@@ -731,6 +732,7 @@ function defineTactics() {
             const nextIndex = self.extraArgCount_ + 1;
             self.appendValueInput(`CHOSEN_${nextIndex}`).setCheck('proposition');
             self.moveInputBefore(`CHOSEN_${nextIndex}`, 'CONTROLS');
+            setDefaultPropShadow(self, `CHOSEN_${nextIndex}`);
             self.extraArgCount_ = nextIndex;
           },
         );
