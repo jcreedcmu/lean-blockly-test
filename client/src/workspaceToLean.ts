@@ -414,17 +414,22 @@ function blockToChunks(
       const lhs = fields['LHS'] ?? 'a';
       const relSym = (r: string | undefined) =>
         ({ 'LEQ': '≤', 'LT': '<' } as Record<string, string>)[r ?? ''] ?? '=';
-      const proof0 = blockToChunks(inputBlock(inputs['PROOF_0']), indent + '    ');
+      const concludeArgs = (stepIdx: number): string => {
+        const parts: string[] = [];
+        for (let j = 0; inputs[`CONCLUDE_${stepIdx}_${j}`]; j++) {
+          const argChunks = blockToChunks(inputBlock(inputs[`CONCLUDE_${stepIdx}_${j}`]), '');
+          const text = argChunks.map(c => c.text).join('').trim();
+          if (text) parts.push(text);
+        }
+        return parts.join(', ');
+      };
       chunks = [
         ...indentChunk,
         chunk(`have ${name} := calc\n`, blockId),
-        chunk(`${indent}  ${lhs} ${relSym(fields['REL_0'])} ${fields['RHS_0'] ?? 'b'} := by\n`, blockId),
-        ...bodyOrSkip(proof0, indent + '    '),
+        chunk(`${indent}  ${lhs} ${relSym(fields['REL_0'])} ${fields['RHS_0'] ?? 'b'} := by conclude [${concludeArgs(0)}]\n`, blockId),
       ];
       for (let i = 1; `RHS_${i}` in fields; i++) {
-        const proofI = blockToChunks(inputBlock(inputs[`PROOF_${i}`]), indent + '    ');
-        chunks.push(chunk(`${indent}  _ ${relSym(fields[`REL_${i}`])} ${fields[`RHS_${i}`]} := by\n`, blockId));
-        chunks.push(...bodyOrSkip(proofI, indent + '    '));
+        chunks.push(chunk(`${indent}  _ ${relSym(fields[`REL_${i}`])} ${fields[`RHS_${i}`]} := by conclude [${concludeArgs(i)}]\n`, blockId));
       }
       break;
     }
