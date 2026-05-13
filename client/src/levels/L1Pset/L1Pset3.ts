@@ -8,7 +8,7 @@ const level: LevelSource = {
   world: "L1Pset",
   level: 3,
   name: "Problem 3",
-  theoremName: "L1Pset_3",
+  theoremName: "OneOverNLimit",
   theoremStatement: `(g : ℝ → ℝ) (h1 : ∀ x, g (x + 1) = g (x) + 3)
  (h2 : g (0) = 5) : g (1) = 8`,
   objects: "(g : ℝ → ℝ)",
