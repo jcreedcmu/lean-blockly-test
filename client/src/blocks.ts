@@ -142,6 +142,7 @@ export function defineBlocks() {
   defineMisc();
   defineSpecialize();
   defineTermTheorems();
+  defineCalc();
 }
 
 function defineTermTheorems() {
@@ -973,6 +974,93 @@ function defineSpecialize() {
         self.getInput('CONTROLS')!
           .appendField(plusBtn, 'PLUS')
           .appendField(minusBtn, 'MINUS');
+      },
+    );
+  }
+}
+
+function defineCalc() {
+  const REL_OPTIONS: [string, string][] = [['=', 'EQ'], ['≤', 'LEQ'], ['<', 'LT']];
+
+  blockly.defineBlocksWithJsonArray([{
+    'type': 'tactic_calc',
+    'message0': 'calc %1 : %2 %3 %4 %5 by %6 %7 %8 %9',
+    'args0': [
+      { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },
+      { 'type': 'field_monospace_input', 'name': 'LHS', 'text': 'a' },
+      { 'type': 'field_dropdown', 'name': 'REL_0', 'options': REL_OPTIONS },
+      { 'type': 'field_monospace_input', 'name': 'RHS_0', 'text': 'b' },
+      { 'type': 'input_dummy', 'name': 'STEP_0' },
+      { 'type': 'input_statement', 'name': 'PROOF_0', 'check': 'tactic' },
+      { 'type': 'field_proof_status', 'name': 'STATUS_0' },
+      { 'type': 'input_dummy' },
+      { 'type': 'input_dummy', 'name': 'CONTROLS' },
+    ],
+    'inputsInline': false,
+    'previousStatement': 'tactic',
+    'nextStatement': 'tactic',
+    'style': 'procedure_blocks',
+    'tooltip': 'have h := calc ...',
+    'helpUrl': '',
+    'mutator': 'calc_step_buttons',
+  }]);
+
+  function appendCalcStep(block: blockly.Block & { extraArgCount_: number }, i: number) {
+    block.appendDummyInput(`STEP_${i}`)
+      .appendField(new blockly.FieldLabel('_'))
+      .appendField(new blockly.FieldDropdown(REL_OPTIONS), `REL_${i}`)
+      .appendField(new FieldMonospaceInput('b'), `RHS_${i}`);
+    block.moveInputBefore(`STEP_${i}`, 'CONTROLS');
+    block.appendStatementInput(`PROOF_${i}`)
+      .appendField(new blockly.FieldLabel('by'))
+      .setCheck('tactic');
+    block.moveInputBefore(`PROOF_${i}`, 'CONTROLS');
+  }
+
+  function removeCalcStep(block: blockly.Block & { extraArgCount_: number }, i: number) {
+    block.removeInput(`STEP_${i}`);
+    block.removeInput(`PROOF_${i}`);
+  }
+
+  if (!blockly.Extensions.isRegistered('calc_step_buttons')) {
+    blockly.Extensions.registerMutator(
+      'calc_step_buttons',
+      {
+        saveExtraState: function(this: { extraArgCount_: number }) {
+          return { argCount: this.extraArgCount_ };
+        },
+        loadExtraState: function(
+          this: blockly.Block & { extraArgCount_: number },
+          state: unknown,
+        ) {
+          const rawTarget =
+            state && typeof state === 'object' && 'argCount' in state
+              ? Number((state as { argCount?: number }).argCount ?? 0) : 0;
+          const target = Number.isFinite(rawTarget) ? Math.max(0, Math.floor(rawTarget)) : 0;
+          while (this.extraArgCount_ < target) {
+            appendCalcStep(this, this.extraArgCount_ + 1);
+            this.extraArgCount_ += 1;
+          }
+          while (this.extraArgCount_ > target) {
+            removeCalcStep(this, this.extraArgCount_);
+            this.extraArgCount_ -= 1;
+          }
+        },
+      },
+      function(this: blockly.Block) {
+        const self = this as blockly.Block & { extraArgCount_: number };
+        self.extraArgCount_ = 0;
+        self.getInput('CONTROLS')!
+          .appendField(new blockly.FieldImage(PLUS_ICON_URI, 14, 14, '+', () => {
+            appendCalcStep(self, self.extraArgCount_ + 1);
+            self.extraArgCount_ += 1;
+          }), 'PLUS')
+          .appendField(new blockly.FieldImage(MINUS_ICON_URI, 14, 14, '−', () => {
+            if (self.extraArgCount_ > 0) {
+              removeCalcStep(self, self.extraArgCount_);
+              self.extraArgCount_ -= 1;
+            }
+          }), 'MINUS');
       },
     );
   }

@@ -390,6 +390,26 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_calc': {
+      const name = fields['NAME'] ?? 'h';
+      const lhs = fields['LHS'] ?? 'a';
+      const relSym = (r: string | undefined) =>
+        ({ 'LEQ': '≤', 'LT': '<' } as Record<string, string>)[r ?? ''] ?? '=';
+      const proof0 = blockToChunks(inputBlock(inputs['PROOF_0']), indent + '    ');
+      chunks = [
+        ...indentChunk,
+        chunk(`have ${name} := calc\n`, blockId),
+        chunk(`${indent}  ${lhs} ${relSym(fields['REL_0'])} ${fields['RHS_0'] ?? 'b'} := by\n`, blockId),
+        ...bodyOrSkip(proof0, indent + '    '),
+      ];
+      for (let i = 1; `RHS_${i}` in fields; i++) {
+        const proofI = blockToChunks(inputBlock(inputs[`PROOF_${i}`]), indent + '    ');
+        chunks.push(chunk(`${indent}  _ ${relSym(fields[`REL_${i}`])} ${fields[`RHS_${i}`]} := by\n`, blockId));
+        chunks.push(...bodyOrSkip(proofI, indent + '    '));
+      }
+      break;
+    }
+
     default:
       console.warn(`[workspaceToLean] Unknown block type: ${tp}`);
       return [];
