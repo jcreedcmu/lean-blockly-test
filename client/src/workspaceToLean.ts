@@ -240,13 +240,24 @@ function blockToChunks(
     }
 
     case 'tactic_rewrite': {
-      const direction = fields['DIRECTION_TYPE'];
-      const sourceChunks = blockToChunks(inputs['REWRITE_SOURCE']?.block, indent + '  ', true);
-      const arrow = direction === 'LEFT' ? '← ' : '';
+      const buildEntry = (dirKey: string, srcKey: string): CodeChunk[] => {
+        const arrow = fields[dirKey] === 'LEFT' ? '← ' : '';
+        const src = blockToChunks(inputs[srcKey]?.block, indent + '  ', true);
+        return arrow ? [chunk(arrow, blockId), ...src] : src;
+      };
+      const entries: CodeChunk[][] = [buildEntry('DIRECTION_TYPE', 'REWRITE_SOURCE')];
+      for (let i = 1; inputs[`REWRITE_SOURCE_${i}`]; i++) {
+        entries.push(buildEntry(`DIRECTION_TYPE_${i}`, `REWRITE_SOURCE_${i}`));
+      }
+      const interleaved: CodeChunk[] = [];
+      for (let i = 0; i < entries.length; i++) {
+        if (i > 0) interleaved.push(chunk(', ', blockId));
+        interleaved.push(...entries[i]);
+      }
       chunks = [
         ...indentChunk,
-        chunk(`rewrite [${arrow}`, blockId),
-        ...sourceChunks,
+        chunk(`rewrite [`, blockId),
+        ...interleaved,
         chunk(`]\n`, blockId),
       ];
       break;
