@@ -130,7 +130,8 @@ function blockToChunks(
     case 'prop':
     case 'prop_dynamic': {
       const value = block.data ?? fields['PROP_NAME'] ?? '';
-      chunks = [chunk(value, blockId)];
+      const emitted = value.includes(' ') ? `(${value})` : value;
+      chunks = [chunk(emitted, blockId)];
       break;
     }
 
