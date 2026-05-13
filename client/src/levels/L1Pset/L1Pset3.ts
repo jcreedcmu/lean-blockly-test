@@ -9,15 +9,15 @@ const level: LevelSource = {
   level: 3,
   name: "Problem 3",
   theoremName: "OneOverNLimit",
-  theoremStatement: `(a : ℕ → ℝ) (ha : ∀ n, a n = 1 / (n + 1)) :
+  theoremStatement: `(a : ℕ → ℝ) (ha : ∀ n, a n = 1 / n) :
  SeqLim a 0`,
   objects: "(a : ℕ → ℝ)",
-  assumptions: "(ha : ∀ n, a n = 1 / (n + 1))",
+  assumptions: "(ha : ∀ n, a n = 1 / n)",
   goal: "SeqLim a 0",
   introduction: `
 # Problem 3
 
-Now prove that the limit of the sequence $a_n = \\frac{1}{n + 1}$ is $0$.
+Now prove that the limit of the sequence $a_n = \\frac{1}{n}$ is $0$.
 `,
   conclusion: "Done.",
 };
