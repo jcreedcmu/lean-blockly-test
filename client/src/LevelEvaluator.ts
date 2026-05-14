@@ -50,14 +50,21 @@ attribute [grind =] Mathlib.Tactic.Rify.ratCast_le._simp_1
 attribute [grind =] Int.cast_natCast
 attribute [grind =] Rat.cast_natCast
 
+macro "triangle_ineq" : tactic => \`(tactic| (
+  simp only [abs, max_def]
+  split_ifs <;> linarith
+))
+
 macro "conclude" "[" t:term,* "]" : tactic => do
   \`(tactic| iterate 5 (try (first
+    | (fail_if_no_progress triangle_ineq)
     | rel [$t,*]
-    | (fail_if_no_progress simp [$[$t:term],*])
+    | (fail_if_no_progress simp [$[$t:term],*]; norm_num)
     | (fail_if_no_progress field_simp [$[$t:term],*])
     | ring_nf | norm_num | norm_cast
     | linarith only [$t,*] | nlinarith only [$t,*]
-    | positivity | abel | omega)))
+    | positivity | abel | omega))
+    done)
 
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ y ≠ c, |y - c| < δ → |f y - L| < ε
@@ -67,6 +74,8 @@ def FunCont (f : ℝ → ℝ) : Prop :=
 
 def SeqLim (a : ℕ → ℝ) (L : ℝ) : Prop :=
   ∀ ε > 0, ∃ N, ∀ n > N, |a n - L| < ε
+
+def SeqConv (a : ℕ → ℝ) : Prop :=  ∃ L, SeqLim a L
 
 theorem ArchProp {ε : ℝ} (hε : ε > 0) : ∃ N > (0 : ℕ), 1 / (N : ℝ) < ε := by sorry
 

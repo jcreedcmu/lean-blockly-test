@@ -8,41 +8,15 @@ const level: LevelSource = {
   world: "L1Pset",
   level: 4,
   name: "Problem 4",
-  theoremName: "L1Pset_4",
-  theoremStatement: `(g : ℝ → ℝ) (h1 : ∀ x, g (x + 1) = g (x) + 3)
- (h2 : g (0) = 5)
- :
-  g (2) = 11`,
-  objects: "(g : ℝ → ℝ)",
-  assumptions: "(h1 : ∀ x, g (x + 1) = g (x) + 3) (h2 : g (0) = 5)",
-  goal: "g (2) = 11",
+  theoremName: "NegOnePowDNC",
+  theoremStatement: `(a : ℕ → ℝ) (ha : ∀ n, a n = (-1) ^ n) : ¬ SeqConv a`,
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha : ∀ n, a n = (-1) ^ n)",
+  goal: "¬ SeqConv a",
   introduction: `
 # Problem 4
 
-This problem looks very similar to the previous one, but without a few hints, it
-may cause great difficulty. The issue is that, last time, you likely called \`specialize h1 0\`, and turned \`h1\` into:
-
-\`h1 : g (0 + 1) = g (0) + 3\`
-
-If you do that now, the original \`h1\` will be *gone*, and you won't have a way of accessing it *again* to bootstrap from \`g (1)\` to \`g (2)\`. So what should you do?
-
-Observe that \`have\` can perform the same
-role as \`specialize\` (and much more)! Try starting your solution with:
-
-\`have h3 : g (0 + 1) = g (0) + 3 := by apply h1 0\`
-
-This will not affect the original statement
-of \`h1\`, but will instead add a *new* hypothesis, \`h3\`, which amounts to the
-desired fact that \`g (0 + 1) = g (0) + 3\`.
-Notice what's happening in the proof: \`h1\` says: for all \`x\`, \`g (x + 1) = g (x) + 3\`.
-So \`h1\` is really a *function* whose input
-is a real number \`x\`, and whose output is a
-*proof* of the fact that, for this value of \`x\`, \`g (x + 1) = g (x) + 3\` holds. So when
-we feed \`0\` into \`h1\`, it has the same effect
-as it did when we \`specialize\`d, thus giving a proof of
- exactly what was claimed in the \`have\` statement.
-
-Now you should be able to solve this problem.
+Prove that $(-1)^n$ does not converge.
 `,
   conclusion: "Done.",
 };
