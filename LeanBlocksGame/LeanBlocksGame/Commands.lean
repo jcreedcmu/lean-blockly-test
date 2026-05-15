@@ -14,59 +14,54 @@ set_option autoImplicit false
 
 /-! # Statement decomposition -/
 
-/-- Decompose a type into objects (non-Prop binders), assumptions (Prop binders),
-and goal (the target type). Consecutive binders with the same type and binder info
-are bundled, e.g. `(x y : Nat)`. Returns `(objects?, assumptions?, goal?)`. -/
-def decomposeType (typ : Expr) : MetaM (Option String × Option String × Option String) :=
-  Meta.forallTelescope typ fun xs body => do
-    let mut binders : Array (Name × Expr × BinderInfo × Bool) := #[]
-    for x in xs do
-      let localDecl ← x.fvarId!.getDecl
-      let xType ← Meta.inferType x
-      let isPropType ← Meta.isProp xType
-      binders := binders.push (localDecl.userName, xType, localDecl.binderInfo, isPropType)
-    let mut objParts : Array String := #[]
-    let mut asmParts : Array String := #[]
-    let mut i := 0
-    while i < binders.size do
-      let (name, typ, bi, isPropType) := binders[i]!
-      let mut names : Array Name := #[name]
-      while i + names.size < binders.size do
-        let j := i + names.size
-        let (nextName, nextTyp, nextBi, nextIsProp) := binders[j]!
-        if nextBi == bi && nextIsProp == isPropType && (← Meta.isDefEq typ nextTyp) then
-          names := names.push nextName
+/-- Get the first identifier name from a binder syntax group.
+    E.g. `(x y : T)` → `x`, `{n : T}` → `n`, `[inst : T]` → `inst`.
+    Recurses into child nodes to find idents inside `binderIdent` wrappers. -/
+private partial def firstBinderName (stx : Syntax) : Option Name :=
+  if stx.isIdent then some stx.getId
+  else stx.getArgs.findSome? firstBinderName
+
+/-- Decompose a `declSig` into objects (non-Prop binders), assumptions (Prop binders),
+and goal (the return type). Classification is done by elaborating the binders and
+checking `isProp` on the type of the first name in each syntax group.
+Returns `(objects?, assumptions?, goal?)`. -/
+def decomposeDeclSig (sig : TSyntax ``Lean.Parser.Command.declSig) :
+    CommandElabM (Option String × Option String × Option String) := do
+  let (bindersStx, typeStx) := expandDeclSig sig
+  let goalStr := String.Slice.toString (typeStx.reprint.getD "").trimAscii
+  let groups := bindersStx.getArgs
+  if groups.isEmpty then
+    return (none, none, some goalStr)
+  let (objParts, asmParts) ← runTermElabM fun _ =>
+    Term.elabBinders groups fun _fvars => do
+      let mut objParts : Array String := #[]
+      let mut asmParts : Array String := #[]
+      for group in groups do
+        let groupStr := String.Slice.toString (group.reprint.getD "").trimAscii
+        let some name := firstBinderName group | continue
+        let decl ← Meta.getLocalDeclFromUserName name
+        let isProp ← Meta.isProp (← Meta.inferType decl.toExpr)
+        if isProp then
+          asmParts := asmParts.push groupStr
         else
-          break
-      let typeStr ← Meta.ppExpr typ
-      let namesStr := " ".intercalate (names.toList.map toString)
-      let binderStr := match bi with
-        | .implicit => s!"\{{namesStr} : {typeStr}}"
-        | .strictImplicit => s!"⦃{namesStr} : {typeStr}⦄"
-        | .instImplicit => s!"[{namesStr} : {typeStr}]"
-        | _ => s!"({namesStr} : {typeStr})"
-      if isPropType then
-        asmParts := asmParts.push binderStr
-      else
-        objParts := objParts.push binderStr
-      i := i + names.size
-    let goalStr ← Meta.ppExpr body
-    let objects := if objParts.isEmpty then none
-      else some (" ".intercalate objParts.toList)
-    let assumptions := if asmParts.isEmpty then none
-      else some (" ".intercalate asmParts.toList)
-    return (objects, assumptions, some s!"{goalStr}")
+          objParts := objParts.push groupStr
+      return (objParts, asmParts)
+  let objects := if objParts.isEmpty then none
+    else some (" ".intercalate objParts.toList)
+  let assumptions := if asmParts.isEmpty then none
+    else some (" ".intercalate asmParts.toList)
+  return (objects, assumptions, some goalStr)
 
-private def testDecomposeType (typ : Expr) : MetaM Unit := do
-  let (objects, assumptions, goal) ← decomposeType typ
-  Lean.logInfo m!"objects: {repr objects}"
-  Lean.logInfo m!"assumptions: {repr assumptions}"
-  Lean.logInfo m!"goal: {repr goal}"
+private def testDecomposeDeclSig (sig : TSyntax ``Lean.Parser.Command.declSig) :
+    CommandElabM Unit := do
+  let (objects, assumptions, goal) ← decomposeDeclSig sig
+  logInfo m!"objects: {repr objects}"
+  logInfo m!"assumptions: {repr assumptions}"
+  logInfo m!"goal: {repr goal}"
 
-elab "#test_decompose " t:term : command =>
-  Elab.Command.liftTermElabM do
-    let e ← Elab.Term.elabType t
-    testDecomposeType e
+syntax "#test_decompose " declSig : command
+elab_rules : command
+  | `(command| #test_decompose $sig:declSig) => testDecomposeDeclSig sig
 
 section
 set_option linter.unusedVariables false
@@ -78,16 +73,7 @@ info: assumptions: some "(ha : a > 0) (hb : b > 0)"
 ---
 info: goal: some "a + b > 0"
 -/
-#guard_msgs in #test_decompose ∀ (a : Nat) (b : Nat) (ha : a > 0) (hb : b > 0), a + b > 0
-
-/--
-info: objects: some "(a b : Nat)"
----
-info: assumptions: some "(ha : a > 0) (hb : b > 0)"
----
-info: goal: some "a + b > 0"
--/
-#guard_msgs in #test_decompose ∀ (a b : Nat) (ha : a > 0) (hb : b > 0), a + b > 0
+#guard_msgs in #test_decompose (a b : Nat) (ha : a > 0) (hb : b > 0) : a + b > 0
 
 /--
 info: objects: some "(a : Nat) (b : Nat)"
@@ -96,16 +82,25 @@ info: assumptions: some "(ha : a > 0) (hb : b > 0)"
 ---
 info: goal: some "a + b > 0"
 -/
-#guard_msgs in #test_decompose ∀ (a : Nat) (ha : a > 0) (b : Nat) (hb : b > 0), a + b > 0
+#guard_msgs in #test_decompose (a : Nat) (ha : a > 0) (b : Nat) (hb : b > 0) : a + b > 0
 
 /--
 info: objects: some "{a : Nat}"
 ---
-info: assumptions: some "(ha1 ha2 : a > 0)"
+info: assumptions: some "(ha1 : a > 0) (ha2 : a > 0)"
 ---
 info: goal: some "a > 0"
 -/
-#guard_msgs in #test_decompose ∀ {a : Nat} (ha1 : a > 0) (ha2 : a > 0), a > 0
+#guard_msgs in #test_decompose {a : Nat} (ha1 : a > 0) (ha2 : a > 0) : a > 0
+
+/--
+info: objects: none
+---
+info: assumptions: none
+---
+info: goal: some "∀ ε : ℕ, ε > 0 → ε = ε"
+-/
+#guard_msgs in #test_decompose : ∀ ε : ℕ, ε > 0 → ε = ε
 
 end section
 
@@ -574,14 +569,8 @@ elab doc:docComment ? attrs:Parser.Term.attributes ?
   | some name, false =>  s!"def {name.getId} {sigString} := by"
   | none, _ => s!"example {sigString} := by" -- TODO: is this correct?
 
-  -- Decompose the elaborated type into objects / assumptions / goal
-  let declName := match statementName with
-    | some name => currNamespace ++ name.getId
-    | none => currNamespace ++ defaultDeclName.getId
-  let (objects, assumptions, goalDisplay) ← do
-    let some constInfo := env.find? declName
-      | pure (none, none, none)
-    liftTermElabM <| decomposeType constInfo.type
+  -- Decompose the signature into objects / assumptions / goal
+  let (objects, assumptions, goalDisplay) ← decomposeDeclSig sig
 
   modifyCurLevel fun level => pure { level with
     module := env.header.mainModule
@@ -625,18 +614,17 @@ elab doc:docComment ? attrs:Parser.Term.attributes ?
 elab "AllowBlock" args:str* : command =>
   let newBlocks := args.foldl (fun s a => s.insert a.getString) ({} : HashSet String)
   modifyCurLevel fun level => pure {level with
-    permissions := level.permissions.union (.restricted newBlocks {})}
+    permissions := level.permissions.union { blocks := newBlocks }}
 
 /-- Allow specific affordances in this level. -/
-elab "AllowAffordance" args:str* : command =>
-  let newAffs := args.foldl (fun s a => s.insert a.getString) ({} : HashSet String)
-  modifyCurLevel fun level => pure {level with
-    permissions := level.permissions.union (.restricted {} newAffs)}
+elab "AllowAffordance" _args:str* : command =>
+  -- Affordances are not currently tracked individually; use AllowAllAffordances
+  pure ()
 
 /-- Allow all affordances in this level. -/
 elab "AllowAllAffordances" : command =>
   modifyCurLevel fun level => pure {level with
-    permissions := .all}
+    permissions := level.permissions.union { allAffordances := true }}
 
 /-- Override the theorem block label for this level. -/
 elab "TheoremBlockLabel" label:str : command =>

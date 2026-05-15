@@ -249,25 +249,26 @@ def getCurLevelId [MonadError m] : m LevelId := do
 /-- Instance to make GameLevel Repr work -/
 instance : Repr Elab.Command.Scope := ⟨fun s _ => repr s.currNamespace⟩
 
-/-- Blockly block/affordance permissions. Once `all` is reached, union is a no-op. -/
-inductive Permissions where
-  | restricted (blocks : HashSet String) (affordances : HashSet String)
-  | all
+/-- Blockly block/affordance permissions. Supports union for cumulative accumulation. -/
+structure Permissions where
+  blocks : HashSet String := {}
+  allAffordances : Bool := false
 deriving Inhabited, Repr
 
-def Permissions.empty : Permissions := .restricted {} {}
+def Permissions.empty : Permissions := {}
 
-def Permissions.union : Permissions → Permissions → Permissions
-  | .all, _ | _, .all => .all
-  | .restricted b1 a1, .restricted b2 a2 =>
-    .restricted (b1 ∪ b2) (a1 ∪ a2)
+def Permissions.union (a b : Permissions) : Permissions where
+  blocks := a.blocks ∪ b.blocks
+  allAffordances := a.allAffordances || b.allAffordances
 
 /-- Convert cumulative permissions to the JSON discriminated-union array. -/
-def Permissions.toJsonArray : Permissions → Array Json
-  | .all => #[Json.mkObj [("t", "allowAllAffordances")]]
-  | .restricted blocks affordances =>
-    blocks.toArray.map (fun b => Json.mkObj [("t", "allowTactic"), ("tacticName", toJson b)])
-    ++ affordances.toArray.map (fun a => Json.mkObj [("t", "allowAffordance"), ("affordance", toJson a)])
+def Permissions.toJsonArray (p : Permissions) : Array Json :=
+  let blockEntries := p.blocks.toArray.map fun b =>
+    Json.mkObj [("t", "allowTactic"), ("tacticName", toJson b)]
+  if p.allAffordances then
+    blockEntries.push (Json.mkObj [("t", "allowAllAffordances")])
+  else
+    blockEntries
 
 structure GameLevel where
   index: Nat
