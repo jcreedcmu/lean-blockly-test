@@ -395,12 +395,17 @@ can be deleted once confirmed.
 **Done when**: The RealAnalysisStory world loads entirely from JSON
 and plays identically to before.
 
-### Milestone 7+: Incremental expansion
+### Milestone 7: Incremental expansion
 
 Port additional worlds one at a time, validating each. The
 hand-authored `.ts` files for unported worlds continue to work
 unchanged. Once all worlds are ported, remove the TypeScript level
 files and the first glob from `gameData.ts`.
+
+### Milestone 8: Cleanup
+
+Remove any remaining code that imports old data, as well as comments
+that pertain to that process.
 
 ## Deferred Work
 

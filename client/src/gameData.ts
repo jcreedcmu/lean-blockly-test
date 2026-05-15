@@ -195,8 +195,16 @@ function levelSourceToDefinition(src: LevelSource): LevelDefinition {
 // into a synchronous map of path → module. We group by world (parsed
 // from the path) and sort by the `level` field within each world.
 
+// Source 1: Hand-authored TypeScript level files.
 const levelModules = import.meta.glob<{ default: LevelSource }>(
   ['./levels/*/*.ts', '!./levels/*/*_tutorial.ts'],
+  { eager: true },
+);
+
+// Source 2: JSON levels emitted by MakeGame in RealAnalysisGame.
+// Filenames are `level__<WorldId>__<LevelIdx>.json`.
+const jsonLevelModules = import.meta.glob<LevelDefinition & { index?: number }>(
+  '../../RealAnalysisGame/.lake/gamedata/level__*__*.json',
   { eager: true },
 );
 
@@ -214,28 +222,47 @@ for (const [path, mod] of Object.entries(tutorialModules)) {
   if (mod.default) tutorialByLevelPath[levelPath] = mod.default;
 }
 
-const levelsByWorld: Record<string, LevelDefinition[]> = {};
+// ── JSON levels (grouped by world, sorted by index) ────────────────
+const jsonLevelsByWorld: Record<string, LevelDefinition[]> = {};
+for (const [path, data] of Object.entries(jsonLevelModules)) {
+  // Parse world and level index from filename: level__<World>__<N>.json
+  const match = path.match(/level__([^_]+)__(\d+)\.json$/);
+  if (!match || !data) continue;
+  const worldId = match[1];
+  const levelIdx = parseInt(match[2], 10);
+  if (!jsonLevelsByWorld[worldId])
+    jsonLevelsByWorld[worldId] = [];
+  // Carry the index for sorting, then strip it
+  (jsonLevelsByWorld[worldId] as (LevelDefinition & { _sortIdx: number })[])
+    .push({ ...data, _sortIdx: levelIdx } as LevelDefinition & { _sortIdx: number });
+}
+for (const world of Object.keys(jsonLevelsByWorld)) {
+  const tagged = jsonLevelsByWorld[world] as (LevelDefinition & { _sortIdx: number })[];
+  tagged.sort((a, b) => a._sortIdx - b._sortIdx);
+  jsonLevelsByWorld[world] = tagged.map(({ _sortIdx: _, ...rest }) => rest);
+}
+
+// ── TypeScript levels (grouped by world, sorted by level number) ───
+const tsLevelsByWorld: Record<string, LevelDefinition[]> = {};
 for (const [path, mod] of Object.entries(levelModules)) {
   const src = mod.default;
   if (!src) continue;
-  if (!levelsByWorld[src.world]) levelsByWorld[src.world] = [];
+  if (!tsLevelsByWorld[src.world]) tsLevelsByWorld[src.world] = [];
   const def = levelSourceToDefinition(src);
   // Attach tutorial from sibling *_tutorial.ts file, if one exists.
   if (tutorialByLevelPath[path]) def.tutorial = tutorialByLevelPath[path];
-  (levelsByWorld[src.world] as unknown as { src: LevelSource; def: LevelDefinition }[])
+  (tsLevelsByWorld[src.world] as unknown as { src: LevelSource; def: LevelDefinition }[])
     .push({ src, def } as never);
 }
-// Sort each world's levels by their `level` number, then unwrap to
-// LevelDefinition[]. The cast above lets us carry both shapes through
-// the temporary array without polluting the public type.
-for (const world of Object.keys(levelsByWorld)) {
-  const tagged = levelsByWorld[world] as unknown as { src: LevelSource; def: LevelDefinition }[];
+for (const world of Object.keys(tsLevelsByWorld)) {
+  const tagged = tsLevelsByWorld[world] as unknown as { src: LevelSource; def: LevelDefinition }[];
   tagged.sort((a, b) => a.src.level - b.src.level);
-  levelsByWorld[world] = tagged.map((t) => t.def);
+  tsLevelsByWorld[world] = tagged.map((t) => t.def);
 }
 
+// ── Merge: JSON takes precedence per-world ─────────────────────────
 function levelsFor(worldId: string): LevelDefinition[] {
-  return levelsByWorld[worldId] ?? [];
+  return jsonLevelsByWorld[worldId] ?? tsLevelsByWorld[worldId] ?? [];
 }
 
 // ── Hand-coded world list ───────────────────────────────────────────
