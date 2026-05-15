@@ -623,18 +623,20 @@ elab doc:docComment ? attrs:Parser.Term.attributes ?
 
 /-- Allow specific Blockly block types in this level. -/
 elab "AllowBlock" args:str* : command =>
+  let newBlocks := args.foldl (fun s a => s.insert a.getString) ({} : HashSet String)
   modifyCurLevel fun level => pure {level with
-    allowedBlocks := level.allowedBlocks ++ args.map (·.getString)}
+    permissions := level.permissions.union (.restricted newBlocks {})}
 
 /-- Allow specific affordances in this level. -/
 elab "AllowAffordance" args:str* : command =>
+  let newAffs := args.foldl (fun s a => s.insert a.getString) ({} : HashSet String)
   modifyCurLevel fun level => pure {level with
-    allowedAffordances := level.allowedAffordances ++ args.map (·.getString)}
+    permissions := level.permissions.union (.restricted {} newAffs)}
 
 /-- Allow all affordances in this level. -/
 elab "AllowAllAffordances" : command =>
   modifyCurLevel fun level => pure {level with
-    allAffordances := true}
+    permissions := .all}
 
 /-- Override the theorem block label for this level. -/
 elab "TheoremBlockLabel" label:str : command =>

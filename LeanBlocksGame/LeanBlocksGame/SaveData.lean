@@ -46,23 +46,22 @@ def saveGameData (allItemsByType : HashMap InventoryType (HashSet Name))
   -- copy the images folder
   copyImages
 
+  -- Compute cumulative permissions inherited from predecessor worlds
+  let worldPerms (worldId : Name) : Permissions :=
+    (game.worlds.predecessors worldId).fold (fun acc predId =>
+      match game.worlds.nodes.get? predId with
+      | some w => w.levels.fold (fun acc _ lvl => acc.union lvl.permissions) acc
+      | none => acc) .empty
+
   for (worldId, world) in game.worlds.nodes.toArray do
-    for (levelId, level) in world.levels.toArray do
-      -- Start with the existing LevelInfo JSON
+    let levels := world.levels.toArray.insertionSort fun a b => a.1 < b.1
+    for (levelId, level) in levels do
+      let cumPerms := levels.foldl (fun acc (i, l) =>
+        if i ≤ levelId then acc.union l.permissions else acc) (worldPerms worldId)
       let levelJson := toJson (level.toInfo env)
-      -- Compute the theoremName: use the explicit name if given, else WorldId_LevelIdx
       let theoremName : String := match level.statementName with
         | .anonymous => s!"{worldId}_{levelId}"
         | name => name.toString
-      -- Compute the permissions array in the LevelPermission discriminated-union format
-      let mut perms : Array Json := #[]
-      for block in level.allowedBlocks do
-        perms := perms.push (Json.mkObj [("t", "allowTactic"), ("tacticName", toJson block)])
-      for aff in level.allowedAffordances do
-        perms := perms.push (Json.mkObj [("t", "allowAffordance"), ("affordance", toJson aff)])
-      if level.allAffordances then
-        perms := perms.push (Json.mkObj [("t", "allowAllAffordances")])
-      -- Merge Blockly-specific fields
       let blocklyFields := Json.mkObj [
         ("name", toJson level.title),
         ("theoremName", toJson theoremName),
@@ -71,10 +70,10 @@ def saveGameData (allItemsByType : HashMap InventoryType (HashSet Name))
         ("objects", toJson level.objects),
         ("assumptions", toJson level.assumptions),
         ("goal", toJson level.goalDisplay),
-        ("permissions", toJson perms)
+        ("permissions", toJson cumPerms.toJsonArray)
       ]
-      let mergedJson := levelJson.mergeObj blocklyFields
-      IO.FS.writeFile (path / levelFileName worldId levelId) (toString mergedJson)
+      IO.FS.writeFile (path / levelFileName worldId levelId)
+        (toString (levelJson.mergeObj blocklyFields))
 
   IO.FS.writeFile (path / gameFileName) (toString (getGameJson game))
 

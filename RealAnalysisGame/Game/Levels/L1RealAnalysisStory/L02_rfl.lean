@@ -18,7 +18,7 @@ Statement (x y : ℝ) : x ^ 2 + 2 * y = x ^ 2 + 2 * y := by
 
 NewTactic rfl
 
-AllowBlock "prop" "tactic_apply" "tactic_refl"
+AllowBlock "tactic_refl"
 
 Conclusion "
 Excellent! You've learned the `rfl` tactic.
