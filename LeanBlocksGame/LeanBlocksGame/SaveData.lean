@@ -68,6 +68,9 @@ def saveGameData (allItemsByType : HashMap InventoryType (HashSet Name))
         ("theoremName", toJson theoremName),
         ("theoremStatement", toJson level.theoremStatement),
         ("theoremBlockLabel", toJson level.theoremBlockLabel),
+        ("objects", toJson level.objects),
+        ("assumptions", toJson level.assumptions),
+        ("goal", toJson level.goalDisplay),
         ("permissions", toJson perms)
       ]
       let mergedJson := levelJson.mergeObj blocklyFields

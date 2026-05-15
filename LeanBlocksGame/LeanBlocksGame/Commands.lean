@@ -12,6 +12,103 @@ namespace LeanBlocksGame
 
 set_option autoImplicit false
 
+/-! # Statement decomposition -/
+
+/-- Decompose a type into objects (non-Prop binders), assumptions (Prop binders),
+and goal (the target type). Consecutive binders with the same type and binder info
+are bundled, e.g. `(x y : Nat)`. Returns `(objects?, assumptions?, goal?)`. -/
+def decomposeType (typ : Expr) : MetaM (Option String × Option String × Option String) :=
+  Meta.forallTelescope typ fun xs body => do
+    let mut binders : Array (Name × Expr × BinderInfo × Bool) := #[]
+    for x in xs do
+      let localDecl ← x.fvarId!.getDecl
+      let xType ← Meta.inferType x
+      let isPropType ← Meta.isProp xType
+      binders := binders.push (localDecl.userName, xType, localDecl.binderInfo, isPropType)
+    let mut objParts : Array String := #[]
+    let mut asmParts : Array String := #[]
+    let mut i := 0
+    while i < binders.size do
+      let (name, typ, bi, isPropType) := binders[i]!
+      let mut names : Array Name := #[name]
+      while i + names.size < binders.size do
+        let j := i + names.size
+        let (nextName, nextTyp, nextBi, nextIsProp) := binders[j]!
+        if nextBi == bi && nextIsProp == isPropType && (← Meta.isDefEq typ nextTyp) then
+          names := names.push nextName
+        else
+          break
+      let typeStr ← Meta.ppExpr typ
+      let namesStr := " ".intercalate (names.toList.map toString)
+      let binderStr := match bi with
+        | .implicit => s!"\{{namesStr} : {typeStr}}"
+        | .strictImplicit => s!"⦃{namesStr} : {typeStr}⦄"
+        | .instImplicit => s!"[{namesStr} : {typeStr}]"
+        | _ => s!"({namesStr} : {typeStr})"
+      if isPropType then
+        asmParts := asmParts.push binderStr
+      else
+        objParts := objParts.push binderStr
+      i := i + names.size
+    let goalStr ← Meta.ppExpr body
+    let objects := if objParts.isEmpty then none
+      else some (" ".intercalate objParts.toList)
+    let assumptions := if asmParts.isEmpty then none
+      else some (" ".intercalate asmParts.toList)
+    return (objects, assumptions, some s!"{goalStr}")
+
+private def testDecomposeType (typ : Expr) : MetaM Unit := do
+  let (objects, assumptions, goal) ← decomposeType typ
+  Lean.logInfo m!"objects: {repr objects}"
+  Lean.logInfo m!"assumptions: {repr assumptions}"
+  Lean.logInfo m!"goal: {repr goal}"
+
+elab "#test_decompose " t:term : command =>
+  Elab.Command.liftTermElabM do
+    let e ← Elab.Term.elabType t
+    testDecomposeType e
+
+section
+set_option linter.unusedVariables false
+
+/--
+info: objects: some "(a b : Nat)"
+---
+info: assumptions: some "(ha : a > 0) (hb : b > 0)"
+---
+info: goal: some "a + b > 0"
+-/
+#guard_msgs in #test_decompose ∀ (a : Nat) (b : Nat) (ha : a > 0) (hb : b > 0), a + b > 0
+
+/--
+info: objects: some "(a b : Nat)"
+---
+info: assumptions: some "(ha : a > 0) (hb : b > 0)"
+---
+info: goal: some "a + b > 0"
+-/
+#guard_msgs in #test_decompose ∀ (a b : Nat) (ha : a > 0) (hb : b > 0), a + b > 0
+
+/--
+info: objects: some "(a : Nat) (b : Nat)"
+---
+info: assumptions: some "(ha : a > 0) (hb : b > 0)"
+---
+info: goal: some "a + b > 0"
+-/
+#guard_msgs in #test_decompose ∀ (a : Nat) (ha : a > 0) (b : Nat) (hb : b > 0), a + b > 0
+
+/--
+info: objects: some "{a : Nat}"
+---
+info: assumptions: some "(ha1 ha2 : a > 0)"
+---
+info: goal: some "a > 0"
+-/
+#guard_msgs in #test_decompose ∀ {a : Nat} (ha1 : a > 0) (ha2 : a > 0), a > 0
+
+end section
+
 /-! # Game metadata -/
 
 /-- Switch to the specified `Game` (and create it if non-existent). Example: `Game "NNG"` -/
@@ -477,6 +574,15 @@ elab doc:docComment ? attrs:Parser.Term.attributes ?
   | some name, false =>  s!"def {name.getId} {sigString} := by"
   | none, _ => s!"example {sigString} := by" -- TODO: is this correct?
 
+  -- Decompose the elaborated type into objects / assumptions / goal
+  let declName := match statementName with
+    | some name => currNamespace ++ name.getId
+    | none => currNamespace ++ defaultDeclName.getId
+  let (objects, assumptions, goalDisplay) ← do
+    let some constInfo := env.find? declName
+      | pure (none, none, none)
+    liftTermElabM <| decomposeType constInfo.type
+
   modifyCurLevel fun level => pure { level with
     module := env.header.mainModule
     goal := sig
@@ -489,6 +595,9 @@ elab doc:docComment ? attrs:Parser.Term.attributes ?
     | some name => currNamespace ++ name.getId
     descrFormat := descrFormat
     theoremStatement := sigString
+    objects := objects
+    assumptions := assumptions
+    goalDisplay := goalDisplay
     tactics := {level.tactics with used := usedInventory.tactics.toArray}
     definitions := {level.definitions with used := usedInventory.definitions.toArray}
     lemmas := {level.lemmas with used := usedInventory.lemmas.toArray}

@@ -285,6 +285,12 @@ structure GameLevel where
   preamble : TSyntax `Lean.Parser.Tactic.tacticSeq := default
   /-- The bare declaration signature, e.g. "(x : ℝ) (h : x = 5) : x = 5" -/
   theoremStatement : String := ""
+  /-- Non-Prop binders, e.g. "x : ℝ" -/
+  objects : Option String := none
+  /-- Prop binders, e.g. "h : x = 5" -/
+  assumptions : Option String := none
+  /-- The target type, e.g. "x = 5" -/
+  goalDisplay : Option String := none
   /-- Blockly block type names allowed in this level -/
   allowedBlocks : Array String := #[]
   /-- Affordances allowed: "apply", "rewrite", "use", "choose" -/
