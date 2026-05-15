@@ -283,6 +283,8 @@ structure GameLevel where
   image : String := default
   /-- A sequence of tactics the game automatically executes before the first step. -/
   preamble : TSyntax `Lean.Parser.Tactic.tacticSeq := default
+  /-- The bare declaration signature, e.g. "(x : ℝ) (h : x = 5) : x = 5" -/
+  theoremStatement : String := ""
   /-- Blockly block type names allowed in this level -/
   allowedBlocks : Array String := #[]
   /-- Affordances allowed: "apply", "rewrite", "use", "choose" -/

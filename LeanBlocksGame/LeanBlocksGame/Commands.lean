@@ -471,7 +471,7 @@ elab doc:docComment ? attrs:Parser.Term.attributes ?
   let currNamespace ← getCurrNamespace
 
   -- Format theorem statement for displaying
-  let sigString := sig.raw.reprint.getD ""
+  let sigString := String.Slice.toString (sig.raw.reprint.getD "").trimAscii
   let descrFormat : String := match statementName, isProp with
   | some name, true =>  s!"theorem {name.getId} {sigString} := by"
   | some name, false =>  s!"def {name.getId} {sigString} := by"
@@ -488,6 +488,7 @@ elab doc:docComment ? attrs:Parser.Term.attributes ?
     | none => default
     | some name => currNamespace ++ name.getId
     descrFormat := descrFormat
+    theoremStatement := sigString
     tactics := {level.tactics with used := usedInventory.tactics.toArray}
     definitions := {level.definitions with used := usedInventory.definitions.toArray}
     lemmas := {level.lemmas with used := usedInventory.lemmas.toArray}

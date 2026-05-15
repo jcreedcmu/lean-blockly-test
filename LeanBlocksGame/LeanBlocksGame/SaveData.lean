@@ -48,7 +48,30 @@ def saveGameData (allItemsByType : HashMap InventoryType (HashSet Name))
 
   for (worldId, world) in game.worlds.nodes.toArray do
     for (levelId, level) in world.levels.toArray do
-      IO.FS.writeFile (path / levelFileName worldId levelId) (toString (toJson (level.toInfo env)))
+      -- Start with the existing LevelInfo JSON
+      let levelJson := toJson (level.toInfo env)
+      -- Compute the theoremName: use the explicit name if given, else WorldId_LevelIdx
+      let theoremName : String := match level.statementName with
+        | .anonymous => s!"{worldId}_{levelId}"
+        | name => name.toString
+      -- Compute the permissions array in the LevelPermission discriminated-union format
+      let mut perms : Array Json := #[]
+      for block in level.allowedBlocks do
+        perms := perms.push (Json.mkObj [("t", "allowTactic"), ("tacticName", toJson block)])
+      for aff in level.allowedAffordances do
+        perms := perms.push (Json.mkObj [("t", "allowAffordance"), ("affordance", toJson aff)])
+      if level.allAffordances then
+        perms := perms.push (Json.mkObj [("t", "allowAllAffordances")])
+      -- Merge Blockly-specific fields
+      let blocklyFields := Json.mkObj [
+        ("name", toJson level.title),
+        ("theoremName", toJson theoremName),
+        ("theoremStatement", toJson level.theoremStatement),
+        ("theoremBlockLabel", toJson level.theoremBlockLabel),
+        ("permissions", toJson perms)
+      ]
+      let mergedJson := levelJson.mergeObj blocklyFields
+      IO.FS.writeFile (path / levelFileName worldId levelId) (toString mergedJson)
 
   IO.FS.writeFile (path / gameFileName) (toString (getGameJson game))
 

@@ -1,0 +1,19 @@
+name = "RealAnalysisGame"
+defaultTargets = ["Game"]
+
+leanOptions = [
+  { name = "linter.all", value = false },
+  { name = "tactic.hygienic", value = false }
+]
+
+[[require]]
+name = "LeanBlocksGame"
+path = "../LeanBlocksGame"
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.28.0"
+
+[[lean_lib]]
+name = "Game"
