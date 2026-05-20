@@ -67,10 +67,14 @@ export class FieldProofStatus extends Field<string> {
         this.iconElement_.textContent = '\u2713';
         break;
       case 'incomplete':
-        this.circleBg_.style.display = 'none';
+        this.circleBg_.style.display = '';
+        this.circleBg_.setAttribute('fill', '#FFD600');
+        this.circleBg_.setAttribute('fill-opacity', '1');
+        this.circleBg_.setAttribute('cx', String(FieldProofStatus.WIDTH / 2));
+        this.circleBg_.setAttribute('r', String(FieldProofStatus.WIDTH / 2 - 1));
         this.iconElement_.setAttribute('x', String(FieldProofStatus.WIDTH / 2));
         this.iconElement_.setAttribute('font-size', '13');
-        this.iconElement_.setAttribute('fill', '#FFD600');
+        this.iconElement_.setAttribute('fill', '#ffffff');
         this.iconElement_.textContent = 'sorry';
         break;
       case 'unknown':
