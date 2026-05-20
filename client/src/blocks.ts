@@ -969,10 +969,11 @@ function defineSpecialize() {
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'tactic_specialize',
-      'message0': 'specialize %1 to %2 %3',
+      'message0': 'specialize %1 to (%2) %3 %4',
       'args0': [
         { 'type': 'input_value', 'name': 'HYP', 'check': 'proposition', 'align': 'LEFT' },
         { 'type': 'input_value', 'name': 'ARG', 'check': 'proposition', 'align': 'LEFT' },
+        { 'type': 'input_dummy', 'name': 'CLOSE_0' },
         { 'type': 'input_dummy', 'name': 'CONTROLS' },
       ],
       'inputsInline': true,
@@ -1003,11 +1004,17 @@ function defineSpecialize() {
           : 0;
         while (this.extraArgCount_ < target) {
           const nextIndex = this.extraArgCount_ + 1;
-          this.appendValueInput(`ARG${nextIndex}`).setCheck('proposition');
+          this.appendValueInput(`ARG${nextIndex}`)
+            .appendField(new blockly.FieldLabel('('))
+            .setCheck('proposition');
           this.moveInputBefore(`ARG${nextIndex}`, 'CONTROLS');
+          this.appendDummyInput(`CLOSE_${nextIndex}`)
+            .appendField(new blockly.FieldLabel(')'));
+          this.moveInputBefore(`CLOSE_${nextIndex}`, 'CONTROLS');
           this.extraArgCount_ = nextIndex;
         }
         while (this.extraArgCount_ > target) {
+          this.removeInput(`CLOSE_${this.extraArgCount_}`);
           this.removeInput(`ARG${this.extraArgCount_}`);
           this.extraArgCount_ -= 1;
         }
@@ -1024,8 +1031,13 @@ function defineSpecialize() {
           PLUS_ICON_URI, 14, 14, '+',
           () => {
             const nextIndex = self.extraArgCount_ + 1;
-            self.appendValueInput(`ARG${nextIndex}`).setCheck('proposition');
+            self.appendValueInput(`ARG${nextIndex}`)
+              .appendField(new blockly.FieldLabel('('))
+              .setCheck('proposition');
             self.moveInputBefore(`ARG${nextIndex}`, 'CONTROLS');
+            self.appendDummyInput(`CLOSE_${nextIndex}`)
+              .appendField(new blockly.FieldLabel(')'));
+            self.moveInputBefore(`CLOSE_${nextIndex}`, 'CONTROLS');
             self.extraArgCount_ = nextIndex;
           },
         );
@@ -1033,6 +1045,7 @@ function defineSpecialize() {
           MINUS_ICON_URI, 14, 14, '−',
           () => {
             if (self.extraArgCount_ > 0) {
+              self.removeInput(`CLOSE_${self.extraArgCount_}`);
               self.removeInput(`ARG${self.extraArgCount_}`);
               self.extraArgCount_ -= 1;
             }

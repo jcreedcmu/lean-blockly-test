@@ -260,12 +260,14 @@ function blockToChunks(
       const hypChunks = blockToChunks(inputBlock(inputs['HYP']), '');
       const argChunks: CodeChunk[] = [];
       if (inputs['ARG']) {
-        argChunks.push(text(' '));
+        argChunks.push(text(' ('));
         argChunks.push(...blockToChunks(inputBlock(inputs['ARG']), ''));
+        argChunks.push(text(')'));
       }
       for (let i = 1; inputs[`ARG${i}`]; i++) {
-        argChunks.push(text(' '));
+        argChunks.push(text(' ('));
         argChunks.push(...blockToChunks(inputBlock(inputs[`ARG${i}`]), ''));
+        argChunks.push(text(')'));
       }
       chunks = [
         ...indentChunk,
