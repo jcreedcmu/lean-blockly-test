@@ -1,7 +1,7 @@
 import Mathlib
 
 /-
-The goal of this file is to test the various closing tactics against the situations in which they occur. They should be just strong enough but not too strong!
+The goal of this file is to build up the entire Game and test the various closing tactics against the situations in which they occur. They should be just strong enough but not too strong!
 -/
 
 macro "triangle_ineq" : tactic => `(tactic| (
