@@ -150,11 +150,10 @@ definitions needed. The existing boss is:
 > `hf₂ : ∀ x > 0, f (x + 1) = f x + 9`, prove
 > `∃ b, ∀ y > 0, f (y + 1)² = (f y + (f b)²)²`.
 
-Solution sketch: choose `a` from `h₁`; use `a` as the witness for
+Solution sketch: choose `a ha` from `h₁`; use `a` as the witness for
 `b`; fix `y` and assume `hy`; plug `y` into `hf₂`; feed `hy` into `hf₂`; now 
-`calc f (y + 1)² = (f y + 9)² using hf₂
-
-`
+`have h := (calc f (y + 1)² = (f y + 9)² using hf₂; _ = (f y + (f a)²)² using ha)`;
+and finally `apply h`.
 
 Boss: existing `RealAnalysisStory_9`.
 
