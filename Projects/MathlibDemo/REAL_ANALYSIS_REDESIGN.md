@@ -85,23 +85,23 @@ Proposed levels (10 total):
 **Level 1 — apply**
 The goal is a statement that follows immediately from a single named theorem or
 hypothesis. The player drags `apply` and snaps the right theorem bubble into it.
-Example: given `h : P → Q` and a proof of `P`, apply `h`.
-Teaches: the basic shape of a proof step; how `apply` turns a goal into
-sub-goals or closes it outright.
+Example: given `h : x = 2` and a goal of `x = 2`, write `apply h`.
+Teaches: the basic shape of a proof step; how `apply` closes a goal of the identical shape (there is no need for `exact` and we will later see "fancier" uses of `apply`).
 
-**Level 2 — calc**
-The goal is an equality or inequality that requires a two-step chain.
-Example: given `h₁ : a = b` and `h₂ : b = c`, prove `a = c` via
-`calc a = b using [h₁]; _ = c using [h₂]`.
-Teaches: chained reasoning; how each step of a calc block carries its own
-`conclude [...]` justification.
-
-**Level 3 — rewrite**
+**Level 2 — rewrite**
 The goal mentions a sub-expression that a hypothesis equates to something
 simpler. The player rewrites with that hypothesis.
-Example: given `h : x = 2`, prove a goal involving `x` by rewriting with `h`.
+Example: given `h : x = 2`, prove a goal involving `x` by rewriting by `h`.
 Teaches: substitution; how `rewrite` transforms the goal rather than closing it
 directly.
+
+**Level 3 — calc**
+The goal is an equality or inequality that requires a two-step chain.
+Example: given `h₁ : a ≤ b` and `h₂ : b < c`, prove `a + 1 ≤ c + 1` via
+`have h := (calc a + 1 ≤ b + 1 using [h₁]; _ ≤ c + 1 using [h₂])`.
+Now `apply h`.
+Teaches: chained reasoning; how each step of a calc block carries its own
+`[...]` justification.
 
 **Level 4 — use**
 The goal is `∃ x, P x`. The player must choose a concrete witness.
@@ -146,15 +146,15 @@ Also clarifies why `plug` and `feed` are the same tactic at two different types.
 A pure-logic puzzle that requires all nine moves in concert, with no analysis
 definitions needed. The existing boss is:
 
-> Given `f : ℝ → ℝ`, `h_existential : ∃ a, f a = 3`, and
-> `h_universal : ∀ x > 0, f (x + 1) = f x + 9`, prove
+> Given `f : ℝ → ℝ`, `hf₁ : ∃ a, f a = 3`, and
+> `hf₂ : ∀ x > 0, f (x + 1) = f x + 9`, prove
 > `∃ b, ∀ y > 0, f (y + 1)² = (f y + (f b)²)²`.
 
-Solution sketch: choose `a` from `h_existential`; use `a` as the witness for
-`b`; fix `y` and assume `hy`; plug `h_universal` at `(y, hy)`; rewrite with
-`h_universal`, then with `ha`; conclude (since `9 = 3²` is arithmetic).
-The final arithmetic step was previously `ring_nf`; it should now be
-`conclude []` since `(f y + 9)² = (f y + 3²)²` follows from `norm_num`.
+Solution sketch: choose `a` from `h₁`; use `a` as the witness for
+`b`; fix `y` and assume `hy`; plug `y` into `hf₂`; feed `hy` into `hf₂`; now 
+`calc f (y + 1)² = (f y + 9)² using hf₂
+
+`
 
 Boss: existing `RealAnalysisStory_9`.
 
