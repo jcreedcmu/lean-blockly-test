@@ -1,5 +1,8 @@
 import type { TutorialStep } from '../../gameData';
 
+export const worldId = 'RealAnalysisStory';
+export const levelIndex = 1;
+
 const tutorial: TutorialStep[] = [
   {
     target: ".goals-panel",

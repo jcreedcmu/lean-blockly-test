@@ -1,5 +1,8 @@
 import type { TutorialStep } from '../../gameData';
 
+export const worldId = 'RealAnalysisStory';
+export const levelIndex = 0;
+
 const tutorial: TutorialStep[] = [
   {
     target: ".tutorial-workspace-anchor",

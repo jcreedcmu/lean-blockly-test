@@ -108,29 +108,6 @@ export type NavigationState =
   | { kind: 'worldOverview' }
   | { kind: 'playing'; worldId: string; levelIndex: number };
 
-/**
- * Per-level data shape used by the auto-generated files under
- * `client/src/levels/<World>/<basename>.ts`. Each such file does
- * `export default <LevelSource>;` and is discovered at build time
- * by Vite's `import.meta.glob`. The conversion to `LevelDefinition`
- * happens in this file.
- */
-export type LevelSource = {
-  world: string;
-  level: number;
-  name: string;
-  theoremName: string;
-  theoremBlockLabel?: string;
-  /** The Lean declaration signature, fed to the compiler via workspaceToLean. */
-  theoremStatement: string;
-  objects?: string;
-  assumptions?: string;
-  goal?: string;
-  introduction?: string;
-  conclusion?: string;
-  permissions?: LevelPermission[];
-};
-
 // ── Blockly state helper ────────────────────────────────────────────
 
 /** Build a BlocklyState from a level's abstract theorem data. Called at
@@ -174,149 +151,69 @@ export function formatDisplay(level: LevelDefinition): string | undefined {
   return lines.join('\n');
 }
 
-function levelSourceToDefinition(src: LevelSource): LevelDefinition {
-  return {
-    name: src.name,
-    theoremName: src.theoremName,
-    theoremStatement: src.theoremStatement,
-    theoremBlockLabel: src.theoremBlockLabel,
-    objects: src.objects,
-    assumptions: src.assumptions,
-    goal: src.goal,
-    permissions: src.permissions,
-    introduction: src.introduction,
-    conclusion: src.conclusion,
-  };
-}
-
-// ── Load all generated level files ──────────────────────────────────
+// ── Load levels from JSON emitted by MakeGame ─────────────────────
 //
 // Vite's `import.meta.glob` with `eager: true` resolves at build time
-// into a synchronous map of path → module. We group by world (parsed
-// from the path) and sort by the `level` field within each world.
+// into a synchronous map of path → module.
 
-// Source 1: Hand-authored TypeScript level files.
-const levelModules = import.meta.glob<{ default: LevelSource }>(
-  ['./levels/*/*.ts', '!./levels/*/*_tutorial.ts'],
-  { eager: true },
-);
-
-// Source 2: JSON levels emitted by MakeGame in RealAnalysisGame.
-// Filenames are `level__<WorldId>__<LevelIdx>.json`.
 const jsonLevelModules = import.meta.glob<LevelDefinition & { index?: number }>(
   '../../RealAnalysisGame/.lake/gamedata/level__*__*.json',
   { eager: true },
 );
 
-// Tutorial files live alongside level files as `*_tutorial.ts`.
-// They are loaded via a second glob and matched by path convention.
-const tutorialModules = import.meta.glob<{ default: TutorialStep[] }>(
+// Tutorial files export { worldId, levelIndex, default: TutorialStep[] }.
+const tutorialModules = import.meta.glob<{
+  default: TutorialStep[];
+  worldId: string;
+  levelIndex: number;
+}>(
   './levels/*/*_tutorial.ts',
   { eager: true },
 );
 
-// Build a lookup: strip the `_tutorial` suffix to get the level path key.
-const tutorialByLevelPath: Record<string, TutorialStep[]> = {};
-for (const [path, mod] of Object.entries(tutorialModules)) {
-  const levelPath = path.replace(/_tutorial\.ts$/, '.ts');
-  if (mod.default) tutorialByLevelPath[levelPath] = mod.default;
+// Build tutorial lookup keyed by "worldId/levelIndex".
+const tutorialLookup: Record<string, TutorialStep[]> = {};
+for (const [, mod] of Object.entries(tutorialModules)) {
+  if (mod.default && mod.worldId != null && mod.levelIndex != null)
+    tutorialLookup[`${mod.worldId}/${mod.levelIndex}`] = mod.default;
 }
 
-// ── JSON levels (grouped by world, sorted by index) ────────────────
-const jsonLevelsByWorld: Record<string, LevelDefinition[]> = {};
+// Group JSON levels by world, sorted by index.
+const levelsByWorld: Record<string, LevelDefinition[]> = {};
 for (const [path, data] of Object.entries(jsonLevelModules)) {
-  // Parse world and level index from filename: level__<World>__<N>.json
   const match = path.match(/level__([^_]+)__(\d+)\.json$/);
   if (!match || !data) continue;
   const worldId = match[1];
   const levelIdx = parseInt(match[2], 10);
-  if (!jsonLevelsByWorld[worldId])
-    jsonLevelsByWorld[worldId] = [];
-  // Carry the index for sorting, then strip it
-  (jsonLevelsByWorld[worldId] as (LevelDefinition & { _sortIdx: number })[])
+  if (!levelsByWorld[worldId])
+    levelsByWorld[worldId] = [];
+  (levelsByWorld[worldId] as (LevelDefinition & { _sortIdx: number })[])
     .push({ ...data, _sortIdx: levelIdx } as LevelDefinition & { _sortIdx: number });
 }
-for (const world of Object.keys(jsonLevelsByWorld)) {
-  const tagged = jsonLevelsByWorld[world] as (LevelDefinition & { _sortIdx: number })[];
+for (const worldId of Object.keys(levelsByWorld)) {
+  const tagged = levelsByWorld[worldId] as (LevelDefinition & { _sortIdx: number })[];
   tagged.sort((a, b) => a._sortIdx - b._sortIdx);
-  jsonLevelsByWorld[world] = tagged.map(({ _sortIdx: _, ...rest }) => rest);
+  levelsByWorld[worldId] = tagged.map(({ _sortIdx: _, ...rest }) => {
+    return rest;
+  });
+  // Attach tutorials by index.
+  for (let i = 0; i < levelsByWorld[worldId].length; i++) {
+    const tut = tutorialLookup[`${worldId}/${i}`];
+    if (tut) levelsByWorld[worldId][i].tutorial = tut;
+  }
 }
 
-// ── TypeScript levels (grouped by world, sorted by level number) ───
-const tsLevelsByWorld: Record<string, LevelDefinition[]> = {};
-for (const [path, mod] of Object.entries(levelModules)) {
-  const src = mod.default;
-  if (!src) continue;
-  if (!tsLevelsByWorld[src.world]) tsLevelsByWorld[src.world] = [];
-  const def = levelSourceToDefinition(src);
-  // Attach tutorial from sibling *_tutorial.ts file, if one exists.
-  if (tutorialByLevelPath[path]) def.tutorial = tutorialByLevelPath[path];
-  (tsLevelsByWorld[src.world] as unknown as { src: LevelSource; def: LevelDefinition }[])
-    .push({ src, def } as never);
-}
-for (const world of Object.keys(tsLevelsByWorld)) {
-  const tagged = tsLevelsByWorld[world] as unknown as { src: LevelSource; def: LevelDefinition }[];
-  tagged.sort((a, b) => a.src.level - b.src.level);
-  tsLevelsByWorld[world] = tagged.map((t) => t.def);
-}
-
-// ── Merge: JSON takes precedence per-world ─────────────────────────
 function levelsFor(worldId: string): LevelDefinition[] {
-  return jsonLevelsByWorld[worldId] ?? tsLevelsByWorld[worldId] ?? [];
+  return levelsByWorld[worldId] ?? [];
 }
 
-// ── Hand-coded world list ───────────────────────────────────────────
-//
-// The set of worlds, their display names, and dependency edges are
-// authored here. The actual level content for each world is loaded
-// from `client/src/levels/<worldId>/` via the glob above.
+// ── World list ─────────────────────────────────────────────────────
 
 export const gameData: GameData = {
   worlds: [
     { id: 'RealAnalysisStory', name: 'Tutorial World', levels: levelsFor('RealAnalysisStory'), dependsOn: [] },
     { id: 'L1Pset', name: 'Pset 1', levels: levelsFor('L1Pset'), dependsOn: ['RealAnalysisStory'] },
     { id: 'NewtonsCalculationOfPi', name: "Newton's Computation of π", levels: levelsFor('NewtonsCalculationOfPi'), dependsOn: ['RealAnalysisStory'] },
-    { id: 'L2Pset', name: 'Pset 2', levels: levelsFor('L2Pset'), dependsOn: ['NewtonsCalculationOfPi', 'L1Pset'] },
-    { id: 'Lecture3', name: 'More fun with Sequences', levels: levelsFor('Lecture3'), dependsOn: ['NewtonsCalculationOfPi'] },
-    { id: 'L3Pset', name: 'Pset 3', levels: levelsFor('L3Pset'), dependsOn: ['L2Pset'] },
-    { id: 'Lecture4', name: 'Even more fun with Sequences', levels: levelsFor('Lecture4'), dependsOn: ['L2Pset', 'Lecture3'] },
-    { id: 'L4Pset', name: 'Pset 4', levels: levelsFor('L4Pset'), dependsOn: ['L3Pset'] },
-    { id: 'Lecture5', name: 'Algebraic Limit Theorem, Part I', levels: levelsFor('Lecture5'), dependsOn: ['Lecture4', 'L4Pset'] },
-    { id: 'Lecture6', name: 'Algebraic Limit Theorem, Part II', levels: levelsFor('Lecture6'), dependsOn: ['Lecture5', 'L4Pset'] },
-    { id: 'L6Pset', name: 'Pset 6', levels: levelsFor('L6Pset'), dependsOn: ['L4Pset'] },
-    { id: 'Lecture7', name: 'Algebraic Limit Theorem, Part III', levels: levelsFor('Lecture7'), dependsOn: ['Lecture6'] },
-    { id: 'L7Pset', name: 'Pset 7', levels: levelsFor('L7Pset'), dependsOn: ['L6Pset'] },
-    { id: 'Lecture8', name: 'Induction', levels: levelsFor('Lecture8'), dependsOn: ['L6Pset', 'L7Pset'] },
-    { id: 'L8Pset', name: 'Pset 8', levels: levelsFor('L8Pset'), dependsOn: ['L7Pset'] },
-    { id: 'Lecture9', name: 'Algebraic Limit Theorem, Part IV', levels: levelsFor('Lecture9'), dependsOn: ['L8Pset'] },
-    { id: 'L9Pset', name: 'Pset 9', levels: levelsFor('L9Pset'), dependsOn: ['L8Pset'] },
-    { id: 'Lecture10', name: 'Algebraic Limit Theorem, Part V', levels: levelsFor('Lecture10'), dependsOn: ['L9Pset'] },
-    { id: 'L10Pset', name: 'Pset 10', levels: levelsFor('L10Pset'), dependsOn: ['L9Pset'] },
-    { id: 'Lecture11', name: 'The Real Numbers I', levels: levelsFor('Lecture11'), dependsOn: ['L9Pset', 'Lecture10', 'L10Pset'] },
-    { id: 'L11Pset', name: 'Pset 11', levels: levelsFor('L11Pset'), dependsOn: ['Lecture11', 'L10Pset'] },
-    { id: 'Lecture12', name: 'Cauchy Sequences II', levels: levelsFor('Lecture12'), dependsOn: ['Lecture11', 'L10Pset'] },
-    { id: 'L12Pset', name: 'Pset 12', levels: levelsFor('L12Pset'), dependsOn: ['Lecture12', 'L11Pset'] },
-    { id: 'Lecture13', name: 'Monotone Subsequence', levels: levelsFor('Lecture13'), dependsOn: ['L11Pset', 'Lecture12'] },
-    { id: 'L13Pset', name: 'Pset 13', levels: levelsFor('L13Pset'), dependsOn: ['Lecture13', 'L12Pset'] },
-    { id: 'Lecture14', name: 'Bolzano-Weierstrass', levels: levelsFor('Lecture14'), dependsOn: ['L12Pset', 'Lecture13'] },
-    { id: 'Lecture15', name: 'The Real Numbers', levels: levelsFor('Lecture15'), dependsOn: ['Lecture14', 'L13Pset'] },
-    { id: 'L15Pset', name: 'Pset 15', levels: levelsFor('L15Pset'), dependsOn: ['Lecture15', 'L13Pset'] },
-    { id: 'Lecture16', name: 'Series', levels: levelsFor('Lecture16'), dependsOn: ['Lecture15'] },
-    { id: 'L16Pset', name: 'Pset 16', levels: levelsFor('L16Pset'), dependsOn: ['Lecture16', 'L15Pset'] },
-    { id: 'Lecture17', name: 'Series II', levels: levelsFor('Lecture17'), dependsOn: ['Lecture16', 'L15Pset', 'L16Pset'] },
-    { id: 'L17Pset', name: 'Pset 17', levels: levelsFor('L17Pset'), dependsOn: ['Lecture17', 'L16Pset'] },
-    { id: 'Lecture18', name: 'Infinite Addition', levels: levelsFor('Lecture18'), dependsOn: ['Lecture17', 'L16Pset'] },
-    { id: 'L18Pset', name: 'Pset 18', levels: levelsFor('L18Pset'), dependsOn: ['Lecture18', 'L17Pset', 'L13Pset'] },
-    { id: 'Lecture19', name: 'Rearrangements', levels: levelsFor('Lecture19'), dependsOn: ['L17Pset', 'L18Pset'] },
-    { id: 'Lecture20', name: 'Function Limits', levels: levelsFor('Lecture20'), dependsOn: ['L18Pset', 'Lecture19'] },
-    { id: 'L20Pset', name: 'Pset 20', levels: levelsFor('L20Pset'), dependsOn: ['Lecture20', 'L18Pset'] },
-    { id: 'Lecture21', name: 'Function Limits II', levels: levelsFor('Lecture21'), dependsOn: ['Lecture20'] },
-    { id: 'Lecture22', name: 'Uniformity', levels: levelsFor('Lecture22'), dependsOn: ['Lecture21', 'L20Pset'] },
-    { id: 'L22Pset', name: 'Pset 22', levels: levelsFor('L22Pset'), dependsOn: ['Lecture22', 'L20Pset'] },
-    { id: 'Lecture23', name: 'Uniformity II: Continuity', levels: levelsFor('Lecture23'), dependsOn: ['Lecture22'] },
-    { id: 'Lecture24', name: 'Topology', levels: levelsFor('Lecture24'), dependsOn: ['Lecture23', 'L22Pset'] },
-    { id: 'L24Pset', name: 'Pset 24', levels: levelsFor('L24Pset'), dependsOn: ['Lecture24'] },
-    { id: 'Lecture25', name: 'Swapping Limits and Integrals', levels: levelsFor('Lecture25'), dependsOn: ['L24Pset', 'Lecture24'] },
   ],
 };
 
