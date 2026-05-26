@@ -1,4 +1,6 @@
 import Game.Levels.L1RealAnalysisStory
+import Game.Levels.L1PsetIntro
+import Game.Levels.L2NewtonsCalculationOfPi
 
 Title "Real Analysis, The Game"
 
@@ -7,5 +9,8 @@ Introduction "
 
 This is a test build with one level.
 "
+
+Dependency RealAnalysisStory → NewtonsCalculationOfPi
+Dependency RealAnalysisStory → L1Pset
 
 MakeGame
