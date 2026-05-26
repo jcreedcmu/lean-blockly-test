@@ -212,21 +212,26 @@ theorem SumLim (a b c : ℕ → ℝ) (L M : ℝ)
     (ha : SeqLim a L) (hb : SeqLim b M) (hc : ∀ n, c n = a n + b n) :
     SeqLim c (L + M) := by
   intro ε hε
-  have hε2 : 0 < ε / 2 := by linarith only [hε] -- conclude [hε] FAILS
-  choose Na hNa using ha _ hε2
-  choose Nb hNb using hb _ hε2
+--  have hε2 : 0 < ε / 2 := by linarith only [hε] -- conclude [hε] FAILS
+  choose Na hNa using ha (ε / 2) (by simp [hε])
+  choose Nb hNb using hb (ε / 2) (by simp [hε])
+  -- max (Na, Nb, Nc, Nd)
+  -- max Na (max Nb (max Nc Nd))
+  -- max {Na, Nb, Nc, Nd}
+  -- Na + Nb + Nc + Nd
+  -- ∑ n in range N, |f n|
   use Na + Nb
   intro n hn
-  have hna : Na ≤ n := by linarith only [hn] -- conclude [hn] FAILS
-  have hnb : Nb ≤ n := by linarith only [hn] -- conclude [hn] FAILS
-  specialize hNa n hna
-  specialize hNb n hnb
-  calc |c n - (L + M)|
-      = |a n + b n - (L + M)| := by simp [hc] -- conclude [hc n]  -- FAILS
-    _ = |(a n - L) + (b n - M)| := by conclude []     -- SUCCEEDS
-    _ ≤ |a n - L| + |b n - M| := by conclude []       -- SUCCEEDS
-    _ < ε / 2 + ε / 2 := by linarith only [hNa, hNb]   -- conclude FAILS (step 4)
-    _ = ε := by linarith only [] -- conclude [] FAILS (step 5)
+  -- have hna : Na ≤ n := by linarith only [hn] -- conclude [hn] FAILS
+  -- have hnb : Nb ≤ n := by linarith only [hn] -- conclude [hn] FAILS
+  specialize hNa n (by linarith)
+  specialize hNb n (by linarith)
+  have h := (calc |c n - (L + M)|
+                = |a n + b n - (L + M)| := by simp [hc] -- conclude [hc n]  -- FAILS
+              _ ≤ |a n - L| + |b n - M| := by triangle_ineq       -- SUCCEEDS
+              _ < ε / 2 + ε / 2 := by linarith only [hNa, hNb]   -- conclude FAILS (step 4)
+              _ = ε := by linarith only []) -- conclude [] FAILS (step 5)
+  apply h
 
 -- **WORLD 2** Working with absolute values in convergence
 
