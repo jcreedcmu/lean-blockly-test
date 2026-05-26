@@ -12,7 +12,7 @@ export class FieldProofStatus extends Field<string> {
   private iconElement_: SVGTextElement | null = null;
   private onClickHandler_: ((blockId: string, fieldName: string) => void) | null = null;
 
-  static readonly WIDTH = 24;
+  static readonly WIDTH = 50;
   static readonly HEIGHT = 24;
 
   EDITABLE = false;
@@ -27,9 +27,9 @@ export class FieldProofStatus extends Field<string> {
     this.circleBg_ = blockly.utils.dom.createSvgElement(
       Svg.CIRCLE,
       {
-        'cx': String(FieldProofStatus.WIDTH / 2),
+        'cx': '12',
         'cy': String(FieldProofStatus.HEIGHT / 2),
-        'r': String(FieldProofStatus.WIDTH / 2 - 2),
+        'r': '10',
         'fill': '#888',
         'fill-opacity': '0.3',
       },
@@ -58,21 +58,32 @@ export class FieldProofStatus extends Field<string> {
     if (!this.circleBg_ || !this.iconElement_) return;
     switch (status) {
       case 'complete':
+        this.circleBg_.style.display = '';
         this.circleBg_.setAttribute('fill', '#4CAF50');
         this.circleBg_.setAttribute('fill-opacity', '0.3');
+        this.iconElement_.setAttribute('x', '12');
+        this.iconElement_.setAttribute('font-size', '14');
         this.iconElement_.setAttribute('fill', '#2E7D32');
         this.iconElement_.textContent = '\u2713';
         break;
       case 'incomplete':
-        this.circleBg_.setAttribute('fill', '#F44336');
-        this.circleBg_.setAttribute('fill-opacity', '0.3');
-        this.iconElement_.setAttribute('fill', '#C62828');
-        this.iconElement_.textContent = '\u2717';
+        this.circleBg_.style.display = '';
+        this.circleBg_.setAttribute('fill', '#FFD600');
+        this.circleBg_.setAttribute('fill-opacity', '1');
+        this.circleBg_.setAttribute('cx', String(FieldProofStatus.WIDTH / 2));
+        this.circleBg_.setAttribute('r', String(FieldProofStatus.WIDTH / 2 - 1));
+        this.iconElement_.setAttribute('x', String(FieldProofStatus.WIDTH / 2));
+        this.iconElement_.setAttribute('font-size', '13');
+        this.iconElement_.setAttribute('fill', '#ffffff');
+        this.iconElement_.textContent = 'sorry';
         break;
       case 'unknown':
       default:
+        this.circleBg_.style.display = '';
         this.circleBg_.setAttribute('fill', '#888');
         this.circleBg_.setAttribute('fill-opacity', '0.3');
+        this.iconElement_.setAttribute('x', '12');
+        this.iconElement_.setAttribute('font-size', '14');
         this.iconElement_.setAttribute('fill', '#888');
         this.iconElement_.textContent = '?';
         break;
@@ -109,7 +120,7 @@ export class FieldProofStatus extends Field<string> {
     return new blockly.utils.Size(FieldProofStatus.WIDTH, FieldProofStatus.HEIGHT);
   }
 
-  protected set size_(newValue: blockly.utils.Size) {
+  protected set size_(_newValue: blockly.utils.Size) {
     // Fixed size — ignore external resize attempts.
   }
 

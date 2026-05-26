@@ -11,7 +11,7 @@ interface SerializedBlock {
   x?: number;
   y?: number;
   fields?: Record<string, string>;
-  inputs?: Record<string, { block?: SerializedBlock }>;
+  inputs?: Record<string, { block?: SerializedBlock; shadow?: SerializedBlock }>;
   next?: { block?: SerializedBlock };
   data?: string;
 }
@@ -49,6 +49,44 @@ function chunk(text: string, blockId?: string): CodeChunk {
 // Helper to create chunks without block ID (plain text)
 function text(t: string): CodeChunk {
   return { text: t };
+}
+
+function inputBlock(input: { block?: SerializedBlock; shadow?: SerializedBlock } | undefined): SerializedBlock | undefined {
+  return input?.block ?? input?.shadow;
+}
+
+function collectSequentialFields(
+  fields: Record<string, string>,
+  firstName: string,
+  nextPrefix: string,
+): string[] {
+  const names: string[] = [];
+  if (firstName in fields) names.push(fields[firstName]);
+  for (let i = 1; `${nextPrefix}${i}` in fields; i++) {
+    names.push(fields[`${nextPrefix}${i}`]);
+  }
+  return names;
+}
+
+function collectSequentialInputs(
+  inputs: Record<string, { block?: SerializedBlock; shadow?: SerializedBlock }>,
+  firstInputName: string,
+  nextInputPrefix: string,
+  separator: string,
+): CodeChunk[] {
+  const chunks: CodeChunk[] = [];
+  const appendArg = (inputName: string) => {
+    const inputChunks = blockToChunks(inputBlock(inputs[inputName]), '');
+    if (inputChunks.every(c => c.text.length === 0)) return;
+    if (chunks.length > 0) chunks.push(text(separator));
+    chunks.push(...inputChunks);
+  };
+
+  appendArg(firstInputName);
+  for (let i = 1; inputs[`${nextInputPrefix}${i}`]; i++) {
+    appendArg(`${nextInputPrefix}${i}`);
+  }
+  return chunks;
 }
 
 /**
@@ -93,7 +131,7 @@ function blockToChunks(
     case 'lemma': {
       const name = fields['THEOREM_NAME'] ?? 'unnamed';
       const declaration = fields['THEOREM_DECLARATION'] ?? '';
-      const proofChunks = blockToChunks(inputs['LEMMA_PROOF']?.block, indent + '  ');
+      const proofChunks = blockToChunks(inputBlock(inputs['LEMMA_PROOF']), indent + '  ');
       // THEOREM_DECLARATION should contain the full signature, e.g. "(a b : ℕ) : a + b = b + a"
       chunks = [
         chunk(`theorem ${name} ${declaration} := by\n`, blockId),
@@ -105,7 +143,8 @@ function blockToChunks(
     case 'prop':
     case 'prop_dynamic': {
       const value = block.data ?? fields['PROP_NAME'] ?? '';
-      chunks = [chunk(value, blockId)];
+      const emitted = value.includes(' ') ? `(${value})` : value;
+      chunks = [chunk(emitted, blockId)];
       break;
     }
 
@@ -135,22 +174,44 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_simp': {
+      chunks = [...indentChunk, chunk(`simp\n`, blockId)];
+      break;
+    }
+
+    case 'tactic_conclude': {
+      const args: CodeChunk[][] = [];
+      for (let i = 0; inputs[`ARG${i}`]; i++) {
+        args.push(blockToChunks(inputBlock(inputs[`ARG${i}`]), ''));
+      }
+      const interleaved: CodeChunk[] = [];
+      for (let i = 0; i < args.length; i++) {
+        if (i > 0) interleaved.push(chunk(', ', blockId));
+        interleaved.push(...args[i]);
+      }
+      chunks = [
+        ...indentChunk,
+        chunk(`conclude [`, blockId),
+        ...interleaved,
+        chunk(`]\n`, blockId),
+      ];
+      break;
+    }
+
     case 'tactic_other': {
       const name = fields['PROP_NAME'] ?? '';
       chunks = [...indentChunk, chunk(`${name}\n`, blockId)];
       break;
     }
 
-    case 'tactic_intro':
     case 'tactic_exact':
     case 'tactic_apply':
-    case 'tactic_use':
     case 'tactic_unfold':
     case 'tactic_cases':
     case 'tactic_induction':
     case 'tactic_obtain': {
       const tacticName = tp.replace('tactic_', '');
-      const argChunks = blockToChunks(inputs['ARG']?.block, '');
+      const argChunks = blockToChunks(inputBlock(inputs['ARG']), '');
       chunks = [
         ...indentChunk,
         chunk(`${tacticName} `, blockId),
@@ -160,29 +221,53 @@ function blockToChunks(
       break;
     }
 
-    case 'tactic_choose': {
-      const chosenChunks = blockToChunks(inputs['CHOSEN']?.block, '');
-      const sourceChunks = blockToChunks(inputs['SOURCE']?.block, '');
+    case 'tactic_intro': {
+      const names = collectSequentialFields(fields, 'NAME', 'NAME_');
+      const nameStr = names.join(' ');
       chunks = [
         ...indentChunk,
-        chunk(`choose `, blockId),
-        ...chosenChunks,
-        chunk(` using `, blockId),
+        chunk(nameStr ? `intro ${nameStr}\n` : `intro\n`, blockId),
+      ];
+      break;
+    }
+
+    case 'tactic_use': {
+      const argChunks = collectSequentialInputs(inputs, 'ARG', 'ARG', ', ');
+
+      chunks = [
+        ...indentChunk,
+        chunk('use', blockId),
+        ...(argChunks.length > 0 ? [chunk(' ', blockId), ...argChunks] : []),
+        chunk(`\n`, blockId),
+      ];
+      break;
+    }
+
+    case 'tactic_choose': {
+      const chosenNames = collectSequentialFields(fields, 'CHOSEN_NAME', 'CHOSEN_NAME_');
+      const sourceChunks = blockToChunks(inputBlock(inputs['SOURCE']), '');
+      chunks = [
+        ...indentChunk,
+        chunk(`choose ${chosenNames.join(' ')} using `, blockId),
         ...sourceChunks,
         chunk(`\n`, blockId),
       ];
       break;
     }
 
-    // Variadic specialize: `specialize <HYP> <ARG0> <ARG1> …`. Inputs
-    // beyond HYP are a dense `ARG0..ARGn` run produced by the inline
-    // +/- buttons on the block.
+    // `specialize <HYP> <ARG> <ARG1> …`
     case 'tactic_specialize': {
-      const hypChunks = blockToChunks(inputs['HYP']?.block, '');
+      const hypChunks = blockToChunks(inputBlock(inputs['HYP']), '');
       const argChunks: CodeChunk[] = [];
-      for (let i = 0; inputs[`ARG${i}`]; i++) {
-        argChunks.push(text(' '));
-        argChunks.push(...blockToChunks(inputs[`ARG${i}`]?.block, ''));
+      if (inputs['ARG']) {
+        argChunks.push(text(' ('));
+        argChunks.push(...blockToChunks(inputBlock(inputs['ARG']), ''));
+        argChunks.push(text(')'));
+      }
+      for (let i = 1; inputs[`ARG${i}`]; i++) {
+        argChunks.push(text(' ('));
+        argChunks.push(...blockToChunks(inputBlock(inputs[`ARG${i}`]), ''));
+        argChunks.push(text(')'));
       }
       chunks = [
         ...indentChunk,
@@ -194,10 +279,48 @@ function blockToChunks(
       break;
     }
 
+    case 'term_archprop': {
+      const argChunks = blockToChunks(inputBlock(inputs['ARG']), '');
+      chunks = [
+        chunk('ArchProp', blockId),
+        ...(argChunks.length > 0 ? [text(' '), ...argChunks] : []),
+      ];
+      break;
+    }
+
+    case 'tactic_at': {
+      const hypChunks = blockToChunks(inputBlock(inputs['HYP']), '');
+      const hyp = hypChunks.map(c => c.text).join('');
+      const bodyBlock = inputBlock(inputs['BODY']);
+      // Strip next chain so only the first tactic is processed
+      const firstBlock = bodyBlock ? { ...bodyBlock, next: undefined } : undefined;
+      const tacticChunks = trimTrailingNewline(blockToChunks(firstBlock, indent));
+      chunks = tacticChunks.length > 0
+        ? [...tacticChunks, chunk(` at ${hyp}\n`, blockId)]
+        : [...indentChunk, chunk(`skip at ${hyp}\n`, blockId)];
+      break;
+    }
+
+    case 'tactic_transform': {
+      const from = fields['FROM'] ?? 'X';
+      const to = fields['TO'] ?? 'Y';
+      const proofChunks = blockToChunks(inputBlock(inputs['PROOF']), indent + '  ');
+      const trimmedProofChunks = trimTrailingNewline(
+        bodyOrSkip(proofChunks, indent + '  '),
+      );
+      chunks = [
+        ...indentChunk,
+        chunk(`rewrite [show ${from} = ${to} by\n`, blockId),
+        ...trimmedProofChunks,
+        chunk(`]\n`, blockId),
+      ];
+      break;
+    }
+
     case 'tactic_have': {
       const name = fields['NAME'] ?? 'h';
       const type = fields['TYPE'] ?? 'True';
-      const proofChunks = blockToChunks(inputs['PROOF']?.block, indent + '  ');
+      const proofChunks = blockToChunks(inputBlock(inputs['PROOF']), indent + '  ');
       chunks = [
         ...indentChunk,
         chunk(`have ${name} : ${type} := by\n`, blockId),
@@ -207,21 +330,32 @@ function blockToChunks(
     }
 
     case 'tactic_rewrite': {
-      const direction = fields['DIRECTION_TYPE'];
-      const sourceChunks = blockToChunks(inputs['REWRITE_SOURCE']?.block, indent + '  ', true);
-      const arrow = direction === 'LEFT' ? '← ' : '';
+      const buildEntry = (dirKey: string, srcKey: string): CodeChunk[] => {
+        const arrow = fields[dirKey] === 'LEFT' ? '← ' : '';
+        const src = blockToChunks(inputBlock(inputs[srcKey]), indent + '  ', true);
+        return arrow ? [chunk(arrow, blockId), ...src] : src;
+      };
+      const entries: CodeChunk[][] = [buildEntry('DIRECTION_TYPE', 'REWRITE_SOURCE')];
+      for (let i = 1; inputs[`REWRITE_SOURCE_${i}`]; i++) {
+        entries.push(buildEntry(`DIRECTION_TYPE_${i}`, `REWRITE_SOURCE_${i}`));
+      }
+      const interleaved: CodeChunk[] = [];
+      for (let i = 0; i < entries.length; i++) {
+        if (i > 0) interleaved.push(chunk(', ', blockId));
+        interleaved.push(...entries[i]);
+      }
       chunks = [
         ...indentChunk,
-        chunk(`rewrite [${arrow}`, blockId),
-        ...sourceChunks,
+        chunk(`rewrite [`, blockId),
+        ...interleaved,
         chunk(`]\n`, blockId),
       ];
       break;
     }
 
     case 'tactic_rewrite_at': {
-      const sourceChunks = blockToChunks(inputs['REWRITE_SOURCE']?.block, indent + '  ', true);
-      const targetChunks = blockToChunks(inputs['REWRITE_TARGET']?.block, indent + '  ', true);
+      const sourceChunks = blockToChunks(inputBlock(inputs['REWRITE_SOURCE']), indent + '  ', true);
+      const targetChunks = blockToChunks(inputBlock(inputs['REWRITE_TARGET']), indent + '  ', true);
       chunks = [
         ...indentChunk,
         chunk(`rewrite [`, blockId),
@@ -234,8 +368,8 @@ function blockToChunks(
     }
 
     case 'tactic_constructor': {
-      const body1Chunks = blockToChunks(inputs['BODY1']?.block, indent + '  ');
-      const body2Chunks = blockToChunks(inputs['BODY2']?.block, indent + '  ');
+      const body1Chunks = blockToChunks(inputBlock(inputs['BODY1']), indent + '  ');
+      const body2Chunks = blockToChunks(inputBlock(inputs['BODY2']), indent + '  ');
 
       // Replace first indent with bullet for each body. If a branch is
       // entirely empty, emit `· skip` so it parses and produces an
@@ -260,8 +394,8 @@ function blockToChunks(
     }
 
     case 'tactic_show': {
-      const goalChunks = blockToChunks(inputs['GOAL']?.block, '');
-      const proofChunks = blockToChunks(inputs['PROOF']?.block, indent + '  ');
+      const goalChunks = blockToChunks(inputBlock(inputs['GOAL']), '');
+      const proofChunks = blockToChunks(inputBlock(inputs['PROOF']), indent + '  ');
 
       // Remove trailing newline from proof
       const trimmedProofChunks = trimTrailingNewline(
@@ -274,6 +408,31 @@ function blockToChunks(
         chunk(` by\n`, blockId),
         ...trimmedProofChunks,
       ];
+      break;
+    }
+
+    case 'tactic_calc': {
+      const name = fields['NAME'] ?? 'h';
+      const lhs = fields['LHS'] ?? 'a';
+      const relSym = (r: string | undefined) =>
+        ({ 'LEQ': '≤', 'LT': '<' } as Record<string, string>)[r ?? ''] ?? '=';
+      const concludeArgs = (stepIdx: number): string => {
+        const parts: string[] = [];
+        for (let j = 0; inputs[`CONCLUDE_${stepIdx}_${j}`]; j++) {
+          const argChunks = blockToChunks(inputBlock(inputs[`CONCLUDE_${stepIdx}_${j}`]), '');
+          const text = argChunks.map(c => c.text).join('').trim();
+          if (text) parts.push(text);
+        }
+        return parts.join(', ');
+      };
+      chunks = [
+        ...indentChunk,
+        chunk(`have ${name} := calc\n`, blockId),
+        chunk(`${indent}  ${lhs} ${relSym(fields['REL_0'])} ${fields['RHS_0'] ?? 'b'} := by conclude [${concludeArgs(0)}]\n`, blockId),
+      ];
+      for (let i = 1; `RHS_${i}` in fields; i++) {
+        chunks.push(chunk(`${indent}  _ ${relSym(fields[`REL_${i}`])} ${fields[`RHS_${i}`]} := by conclude [${concludeArgs(i)}]\n`, blockId));
+      }
       break;
     }
 

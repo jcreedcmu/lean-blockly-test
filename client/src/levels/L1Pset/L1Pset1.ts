@@ -8,13 +8,13 @@ const level: LevelSource = {
   world: "L1Pset",
   level: 1,
   name: "Problem 1",
-  theoremName: "L1Pset_1",
-  theoremStatement: `(f : ℝ → ℝ) (h : ∀ u, f (u) = 2 * u + 1) :
-  ∃ a, f (3) = a`,
-  objects: "(f : ℝ → ℝ)",
-  assumptions: "(h : ∀ u, f (u) = 2 * u + 1)",
-  goal: "∃ a, f (3) = a",
-  introduction: "# Problem 1",
+  theoremName: "LimConstFun",
+  theoremStatement: `(f : ℝ → ℝ) (c : ℝ) (hf : ∀ x, f (x) = c) :
+  ∀ x, FunLimAt f c x`,
+  objects: "(f : ℝ → ℝ) (c : ℝ)",
+  assumptions: "(hf : ∀ x, f (x) = c)",
+  goal: "∀ x, FunLimAt f c x",
+  introduction: "# Problem 1: Prove that the constant function $f(x) = c$ has limit $c$ at every point.",
   conclusion: "Done.",
 };
 

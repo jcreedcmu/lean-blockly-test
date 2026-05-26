@@ -1,10 +1,21 @@
 import * as blockly from 'blockly';
-import * as blocks from './blocks';
+
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
 */
 
-type BlockItem = { kind: 'block'; type: string; id?: string };
+type ShadowBlock = {
+  type: string;
+  fields?: Record<string, string>;
+};
+
+type BlockItem = {
+  kind: 'block';
+  type: string;
+  id?: string;
+  fields?: Record<string, string>;
+  inputs?: Record<string, { shadow: ShadowBlock }>;
+};
 type CategoryItem = {
   kind: 'category';
   name: string;
@@ -25,15 +36,20 @@ const LeanTacticsCategory: CategoryItem = {
   contents: [
     {
       kind: 'block',
-      type: 'lemma',
+      type: 'tactic_unfold',
+      inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
     },
     {
       kind: 'block',
-      type: 'tactic_refl',
+      type: 'tactic_calc',
     },
     {
       kind: 'block',
-      type: 'tactic_ring_nf',
+      type: 'tactic_intro',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_use',
     },
     {
       kind: 'block',
@@ -41,7 +57,20 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'tactic_rewrite_at',
+      type: 'tactic_apply',
+      id: 'tutorial-toolbox-apply',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_specialize',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_choose',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_at',
     },
     {
       kind: 'block',
@@ -49,11 +78,11 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'tactic_show',
+      type: 'tactic_have',
     },
     {
       kind: 'block',
-      type: 'tactic_have',
+      type: 'tactic_show',
     },
     {
       kind: 'block',
@@ -62,15 +91,6 @@ const LeanTacticsCategory: CategoryItem = {
     {
       kind: 'block',
       type: 'tactic_other',
-    },
-    ...blocks.singleArgTactics.map(t => ({
-      kind: 'block' as const,
-      type: `tactic_${t.name}`,
-      ...(t.name === 'apply' ? { id: 'tutorial-toolbox-apply' } : {}),
-    })),
-    {
-      kind: 'block',
-      type: 'tactic_specialize',
     },
   ],
 };
@@ -97,8 +117,31 @@ const LeanValueCategory: CategoryItem = {
   ],
 };
 
+const LeanDefinitionsCategory: CategoryItem = {
+  kind: 'category',
+  name: 'Definitions',
+  contents: [
+    { kind: 'block', type: 'prop', fields: { PROP_NAME: 'FunLimAt' } },
+    { kind: 'block', type: 'prop', fields: { PROP_NAME: 'FunCont' } },
+    { kind: 'block', type: 'prop', fields: { PROP_NAME: 'SeqLim' } },
+  ],
+};
+
+const LeanTheoremsCategory: CategoryItem = {
+  kind: 'category',
+  name: 'Theorems',
+  contents: [
+    {
+      kind: 'block',
+      type: 'term_archprop',
+    },
+  ],
+};
+
 const allCategories: CategoryItem[] = [
   LeanTacticsCategory,
+  LeanTheoremsCategory,
+  LeanDefinitionsCategory,
   LeanVariableCategory,
   LeanValueCategory,
 ];

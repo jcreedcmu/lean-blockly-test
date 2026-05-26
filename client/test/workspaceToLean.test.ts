@@ -14,7 +14,7 @@ type Block = {
   type: string;
   id?: string;
   fields?: Record<string, string>;
-  inputs?: Record<string, { block?: Block }>;
+  inputs?: Record<string, { block?: Block; shadow?: Block }>;
   next?: { block?: Block };
 };
 
@@ -33,6 +33,14 @@ function lemma(name: string, declaration: string, proofBlock?: Block): Block {
 
 function tactic(type: string, fields: Record<string, string> = {}): Block {
   return { type, id: `${type}-1`, fields };
+}
+
+function prop(name: string): Block {
+  return {
+    type: 'prop',
+    id: `prop-${name}`,
+    fields: { PROP_NAME: name },
+  };
 }
 
 function have(name: string, type: string, proofBlock?: Block): Block {
@@ -120,6 +128,17 @@ describe('workspaceToLean', () => {
       );
     });
 
+    test('simp tactic emits simp', () => {
+      const ws = workspace(
+        lemma('simp_example', '(x : ℝ) : x = x', tactic('tactic_simp')),
+      );
+      const { leanCode } = workspaceToLean(ws);
+      expect(leanCode).toBe(
+        'theorem simp_example (x : ℝ) : x = x := by\n' +
+        '  simp\n'
+      );
+    });
+
     test('source info is produced for the lemma block', () => {
       const ws = workspace(lemma('the_problem', '(x : ℝ) (h : x = 5) : x = 5'));
       const { sourceInfo } = workspaceToLean(ws);
@@ -190,6 +209,48 @@ describe('workspaceToLean', () => {
         '  rewrite [h] at h2\n'
       );
     });
+
+    test('intro emits multiple argument bubbles, including shadows', () => {
+      const ws = workspace(
+        lemma(
+          'intro_many',
+          '(p q r : Prop) : p → q → r → p',
+          {
+            type: 'tactic_intro',
+            id: 'intro-many',
+            fields: { NAME: 'hp', NAME_1: 'hq', NAME_2: 'hr' },
+          },
+        ),
+      );
+      const { leanCode } = workspaceToLean(ws);
+      expect(leanCode).toBe(
+        'theorem intro_many (p q r : Prop) : p → q → r → p := by\n' +
+        '  intro hp hq hr\n'
+      );
+    });
+
+    test('use emits multiple argument bubbles separated by commas', () => {
+      const ws = workspace(
+        lemma(
+          'use_many',
+          ': ∃ x : ℝ, ∃ y : ℝ, x = y',
+          {
+            type: 'tactic_use',
+            id: 'use-many',
+            inputs: {
+              ARG: { block: prop('a') },
+              ARG1: { shadow: prop('b') },
+              ARG2: { shadow: prop('c') },
+            },
+          },
+        ),
+      );
+      const { leanCode } = workspaceToLean(ws);
+      expect(leanCode).toBe(
+        'theorem use_many : ∃ x : ℝ, ∃ y : ℝ, x = y := by\n' +
+        '  use a, b, c\n'
+      );
+    });
   });
 
   // ── Ported from the previous client/test/test-workspaceToLean.ts ────
@@ -200,7 +261,7 @@ describe('workspaceToLean', () => {
   // workspaceToLean no longer reads a VARIABLES input on lemmas.
 
   describe('full example workspace', () => {
-    const example1Data = { "blocks": { "languageVersion": 0, "blocks": [{ "type": "lemma", "id": "3yAUmdNL2=WYh]Gxi)]X", "x": 13, "y": 22, "fields": { "THEOREM_NAME": "away", "THEOREM_DECLARATION": "(y : ℝ) (hy : y ≠ 1) : (y^2 - 1) / (y - 1) = y + 1" }, "inputs": { "LEMMA_PROOF": { "block": { "type": "tactic_other", "id": "k}|H70s[,ot=/1U@K_,;", "fields": { "PROP_NAME": "grind" } } } } }, { "type": "lemma", "id": "DemnP%+kbpZdIIe~0(3W", "x": 308, "y": 35, "fields": { "THEOREM_NAME": "fun_limit_fact", "THEOREM_DECLARATION": "FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1" }, "inputs": { "LEMMA_PROOF": { "block": { "type": "tactic_unfold", "id": "4jk;hHJ|_aSp.)2PU`Gc", "inputs": { "ARG": { "block": { "type": "prop", "id": "Mojm{fSn$rJvFC81z{h(", "fields": { "PROP_NAME": "FunLimAt" } } } }, "next": { "block": { "type": "tactic_intro", "id": "^=/m!cJjN6xgQ.RpEN]y", "inputs": { "ARG": { "block": { "type": "prop", "id": "Y(gRn,NBi~2+wLabs!@A", "fields": { "PROP_NAME": "ε" } } } }, "next": { "block": { "type": "tactic_intro", "id": "MK{[.T(RH!$~`CKvXmL1", "inputs": { "ARG": { "block": { "type": "prop", "id": "mgxS^6SsXB-}9:6^cQ?!", "fields": { "PROP_NAME": "hε" } } } }, "next": { "block": { "type": "tactic_use", "id": "QPSB(Ek%b~pXS8}W4?4/", "inputs": { "ARG": { "block": { "type": "prop", "id": "^XKO;%FbY-Cl)sU%fNl;", "fields": { "PROP_NAME": "ε" } } } }, "next": { "block": { "type": "tactic_constructor", "id": "C=S-)mM.)`C``sWq!YlT", "inputs": { "BODY1": { "block": { "type": "tactic_other", "id": "m.6n,uHODs!Ns?ycFg`M", "fields": { "PROP_NAME": "linarith" } } }, "BODY2": { "block": { "type": "tactic_intro", "id": "4Nh1ti#nH_#d-A3V$e|_", "inputs": { "ARG": { "block": { "type": "prop", "id": ":un028QY,n#E7%_%,]4[", "fields": { "PROP_NAME": "y" } } } }, "next": { "block": { "type": "tactic_intro", "id": "fxEi-:)M^j3ee76?Z9l+", "inputs": { "ARG": { "block": { "type": "prop", "id": "U:5}c2^h7F]d8+hh(q}8", "fields": { "PROP_NAME": "hy" } } } }, "next": { "block": { "type": "tactic_intro", "id": "]@#*lMzE^dbkiR]{PhGo", "inputs": { "ARG": { "block": { "type": "prop", "id": "*ww_S)5(YZG^Uc84eUlv", "fields": { "PROP_NAME": "hy2" } } } }, "next": { "block": { "type": "tactic_other", "id": "3#gT|oNu-}[}3uB_a.2U", "fields": { "PROP_NAME": "simp" }, "next": { "block": { "type": "tactic_rewrite", "id": "f5piLnWwQvlx,Ki5WTp4", "fields": { "DIRECTION_TYPE": "RIGHT" }, "inputs": { "REWRITE_SOURCE": { "block": { "type": "prop", "id": "G.]vQSXK]?]G9T#)g+sJ", "fields": { "PROP_NAME": "away y hy" } } } }, "next": { "block": { "type": "tactic_rewrite", "id": "W|.ZlRq5@bi.2CML=mPB", "fields": { "DIRECTION_TYPE": "RIGHT" }, "inputs": { "REWRITE_SOURCE": { "block": { "type": "tactic_show", "id": "3{s96}qox|({ahT!Azz)", "inputs": { "GOAL": { "block": { "type": "prop", "id": "!bFf)T7:^+.{UW4*Cf*}", "fields": { "PROP_NAME": "y + 1 - 2 = y - 1" } } }, "PROOF": { "block": { "type": "tactic_other", "id": "fqI`{J4OU;d~Kx3hWy%e", "fields": { "PROP_NAME": "grind" } } } } } } }, "next": { "block": { "type": "tactic_exact", "id": "HSp12q.iHmw-1[hrEQB@", "inputs": { "ARG": { "block": { "type": "prop", "id": ",)45@UUo`{kGa5cYgWS8", "fields": { "PROP_NAME": "hy2" } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } }] } } as BlocklyState;
+    const example1Data = { "blocks": { "languageVersion": 0, "blocks": [{ "type": "lemma", "id": "3yAUmdNL2=WYh]Gxi)]X", "x": 13, "y": 22, "fields": { "THEOREM_NAME": "away", "THEOREM_DECLARATION": "(y : ℝ) (hy : y ≠ 1) : (y^2 - 1) / (y - 1) = y + 1" }, "inputs": { "LEMMA_PROOF": { "block": { "type": "tactic_other", "id": "k}|H70s[,ot=/1U@K_,;", "fields": { "PROP_NAME": "grind" } } } } }, { "type": "lemma", "id": "DemnP%+kbpZdIIe~0(3W", "x": 308, "y": 35, "fields": { "THEOREM_NAME": "fun_limit_fact", "THEOREM_DECLARATION": "FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1" }, "inputs": { "LEMMA_PROOF": { "block": { "type": "tactic_unfold", "id": "4jk;hHJ|_aSp.)2PU`Gc", "inputs": { "ARG": { "block": { "type": "prop", "id": "Mojm{fSn$rJvFC81z{h(", "fields": { "PROP_NAME": "FunLimAt" } } } }, "next": { "block": { "type": "tactic_intro", "id": "^=/m!cJjN6xgQ.RpEN]y", "fields": { "NAME": "ε" }, "next": { "block": { "type": "tactic_intro", "id": "MK{[.T(RH!$~`CKvXmL1", "fields": { "NAME": "hε" }, "next": { "block": { "type": "tactic_use", "id": "QPSB(Ek%b~pXS8}W4?4/", "inputs": { "ARG": { "block": { "type": "prop", "id": "^XKO;%FbY-Cl)sU%fNl;", "fields": { "PROP_NAME": "ε" } } } }, "next": { "block": { "type": "tactic_constructor", "id": "C=S-)mM.)`C``sWq!YlT", "inputs": { "BODY1": { "block": { "type": "tactic_other", "id": "m.6n,uHODs!Ns?ycFg`M", "fields": { "PROP_NAME": "linarith" } } }, "BODY2": { "block": { "type": "tactic_intro", "id": "4Nh1ti#nH_#d-A3V$e|_", "fields": { "NAME": "y" }, "next": { "block": { "type": "tactic_intro", "id": "fxEi-:)M^j3ee76?Z9l+", "fields": { "NAME": "hy" }, "next": { "block": { "type": "tactic_intro", "id": "]@#*lMzE^dbkiR]{PhGo", "fields": { "NAME": "hy2" }, "next": { "block": { "type": "tactic_other", "id": "3#gT|oNu-}[}3uB_a.2U", "fields": { "PROP_NAME": "simp" }, "next": { "block": { "type": "tactic_rewrite", "id": "f5piLnWwQvlx,Ki5WTp4", "fields": { "DIRECTION_TYPE": "RIGHT" }, "inputs": { "REWRITE_SOURCE": { "block": { "type": "prop", "id": "G.]vQSXK]?]G9T#)g+sJ", "fields": { "PROP_NAME": "away y hy" } } } }, "next": { "block": { "type": "tactic_rewrite", "id": "W|.ZlRq5@bi.2CML=mPB", "fields": { "DIRECTION_TYPE": "RIGHT" }, "inputs": { "REWRITE_SOURCE": { "block": { "type": "tactic_show", "id": "3{s96}qox|({ahT!Azz)", "inputs": { "GOAL": { "block": { "type": "prop", "id": "!bFf)T7:^+.{UW4*Cf*}", "fields": { "PROP_NAME": "y + 1 - 2 = y - 1" } } }, "PROOF": { "block": { "type": "tactic_other", "id": "fqI`{J4OU;d~Kx3hWy%e", "fields": { "PROP_NAME": "grind" } } } } } } }, "next": { "block": { "type": "tactic_exact", "id": "HSp12q.iHmw-1[hrEQB@", "inputs": { "ARG": { "block": { "type": "prop", "id": ",)45@UUo`{kGa5cYgWS8", "fields": { "PROP_NAME": "hy2" } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } }] } } as BlocklyState;
 
     const expectedOutput = `theorem away (y : ℝ) (hy : y ≠ 1) : (y^2 - 1) / (y - 1) = y + 1 := by
   grind
@@ -216,8 +277,8 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
     intro hy
     intro hy2
     simp
-    rewrite [away y hy]
-    rewrite [show y + 1 - 2 = y - 1 by
+    rewrite [(away y hy)]
+    rewrite [show (y + 1 - 2 = y - 1) by
         grind]
     exact hy2
 `;

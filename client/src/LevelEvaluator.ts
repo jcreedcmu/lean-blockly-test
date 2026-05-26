@@ -42,8 +42,42 @@ const DEFAULT_URI = 'file:///blockly/Blockly.lean';
 // live here.
 const DEFAULT_PRELUDE = `import MathlibDemo.Preamble
 
+attribute [grind .] inv_lt_of_inv_lt₀
+attribute [grind =] one_mul
+attribute [grind =] Nat.cast_le._simp_1
+attribute [grind =] Mathlib.Tactic.Qify.intCast_le._simp_1
+attribute [grind =] Mathlib.Tactic.Rify.ratCast_le._simp_1
+attribute [grind =] Int.cast_natCast
+attribute [grind =] Rat.cast_natCast
+
+macro "triangle_ineq" : tactic => \`(tactic| (
+  simp only [abs, max_def]
+  split_ifs <;> linarith
+))
+
+macro "conclude" "[" t:term,* "]" : tactic => do
+  \`(tactic| iterate 5 (try (first
+    | (fail_if_no_progress triangle_ineq)
+    | rel [$t,*]
+    | (fail_if_no_progress simp [$[$t:term],*]; norm_num)
+    | (fail_if_no_progress field_simp [$[$t:term],*])
+    | ring_nf | norm_num | norm_cast
+    | linarith only [$t,*] | nlinarith only [$t,*]
+    | positivity | abel | omega))
+    done)
+
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
-  ∀ ε > 0, ∃ δ > 0, ∀ x ≠ c, |x - c| < δ → |f x - L| < ε
+  ∀ ε > 0, ∃ δ > 0, ∀ y ≠ c, |y - c| < δ → |f y - L| < ε
+
+def FunCont (f : ℝ → ℝ) : Prop :=
+  ∀ x, ∀ ε > 0, ∃ δ > 0, ∀ y, |y - x| < δ → |f y - f x| < ε
+
+def SeqLim (a : ℕ → ℝ) (L : ℝ) : Prop :=
+  ∀ ε > 0, ∃ N, ∀ n > N, |a n - L| < ε
+
+def SeqConv (a : ℕ → ℝ) : Prop :=  ∃ L, SeqLim a L
+
+theorem ArchProp {ε : ℝ} (hε : ε > 0) : ∃ N > (0 : ℕ), 1 / (N : ℝ) < ε := by sorry
 
 `;
 
@@ -58,7 +92,9 @@ export type Affordance =
   | { kind: 'apply' }
   | { kind: 'rewrite' }
   | { kind: 'choose'; suggestedName: string }
-  | { kind: 'use' };
+  | { kind: 'use' }
+  | { kind: 'intro' }
+  | { kind: 'specialize' };
 
 /** Per-hypothesis info extracted server-side from the Lean `Expr` AST.
  * `affordances` is the list of drag-and-drop affordances the Lean side

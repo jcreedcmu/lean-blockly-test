@@ -8,41 +8,16 @@ const level: LevelSource = {
   world: "L1Pset",
   level: 3,
   name: "Problem 3",
-  theoremName: "L1Pset_3",
-  theoremStatement: `(g : ℝ → ℝ) (h1 : ∀ x, g (x + 1) = g (x) + 3)
- (h2 : g (0) = 5) : g (1) = 8`,
-  objects: "(g : ℝ → ℝ)",
-  assumptions: "(h1 : ∀ x, g (x + 1) = g (x) + 3) (h2 : g (0) = 5)",
-  goal: "g (1) = 8",
+  theoremName: "OneOverNLimit",
+  theoremStatement: `(a : ℕ → ℝ) (ha : ∀ n, a n = 1 / n) :
+ SeqLim a 0`,
+  objects: "(a : ℕ → ℝ)",
+  assumptions: "(ha : ∀ n, a n = 1 / n)",
+  goal: "SeqLim a 0",
   introduction: `
 # Problem 3
 
-You've just learned to add any necessary
-auxiliary
-facts to the list of hypotheses via the
-\`have\` tactic.
-In this problem,
-you might find the following new idea useful.
-
-You already know that if you
-have a hypothesis \`h : X = Y\`, and the Goal
-contains \`X\`, then if you \`rewrite [h]\`,
-then any instances of \`X\` in the goal
-get replaced by \`Y\`.
-But what if you have another hypothesis \`h2\`,
-and you want to replace \`X\`'s in \`h2\` by \`Y\`s, what should you do then?
-Elementary, my dear Watson!
-You simply type:
-
-\`rewrite [h] at h2\`.
-
-So the syntax is \`rewrite [h]\` as before, then
-the word \`at\`, and finally the name of the
-hypothesis where you want the rewriting to happen.
-Similarly, you can say \`ring_nf at h2\`,
-and any algebra in hypothesis \`h2\` will be put into normal form.
-
-Now you should be able to solve this problem!
+Now prove that the limit of the sequence $a_n = \\frac{1}{n}$ is $0$.
 `,
   conclusion: "Done.",
 };
