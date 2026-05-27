@@ -63,8 +63,7 @@ macro "conclude" "[" t:term,* "]" : tactic => do
     | (fail_if_no_progress field_simp [$[$t:term],*])
     | ring_nf | norm_num | norm_cast
     | linarith only [$t,*] | nlinarith only [$t,*]
-    | positivity | abel | omega))
-    done)
+    | positivity | abel | omega)))
 
 def FunLimAt (f : ℝ → ℝ) (L : ℝ) (c : ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ y ≠ c, |y - c| < δ → |f y - L| < ε

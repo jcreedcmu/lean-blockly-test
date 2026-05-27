@@ -1000,7 +1000,7 @@ function defineSpecialize() {
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'tactic_specialize',
-      'message0': 'specialize %1 to (%2) %3 %4',
+      'message0': 'specialize %1 to %2 %3 %4',
       'args0': [
         { 'type': 'input_value', 'name': 'HYP', 'check': 'proposition', 'align': 'LEFT' },
         { 'type': 'input_value', 'name': 'ARG', 'check': 'proposition', 'align': 'LEFT' },
@@ -1036,11 +1036,9 @@ function defineSpecialize() {
         while (this.extraArgCount_ < target) {
           const nextIndex = this.extraArgCount_ + 1;
           this.appendValueInput(`ARG${nextIndex}`)
-            .appendField(new blockly.FieldLabel('('))
             .setCheck('proposition');
           this.moveInputBefore(`ARG${nextIndex}`, 'CONTROLS');
-          this.appendDummyInput(`CLOSE_${nextIndex}`)
-            .appendField(new blockly.FieldLabel(')'));
+          this.appendDummyInput(`CLOSE_${nextIndex}`);
           this.moveInputBefore(`CLOSE_${nextIndex}`, 'CONTROLS');
           this.extraArgCount_ = nextIndex;
         }
@@ -1063,11 +1061,9 @@ function defineSpecialize() {
           () => {
             const nextIndex = self.extraArgCount_ + 1;
             self.appendValueInput(`ARG${nextIndex}`)
-              .appendField(new blockly.FieldLabel('('))
               .setCheck('proposition');
             self.moveInputBefore(`ARG${nextIndex}`, 'CONTROLS');
-            self.appendDummyInput(`CLOSE_${nextIndex}`)
-              .appendField(new blockly.FieldLabel(')'));
+            self.appendDummyInput(`CLOSE_${nextIndex}`);
             self.moveInputBefore(`CLOSE_${nextIndex}`, 'CONTROLS');
             self.extraArgCount_ = nextIndex;
           },
