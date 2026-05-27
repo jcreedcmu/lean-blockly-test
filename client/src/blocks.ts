@@ -320,23 +320,54 @@ function defineMisc() {
     );
   }
 
-  // `intro` uses square text-field slots (new names being introduced).
-  blockly.defineBlocksWithJsonArray([{
-    'type': 'tactic_intro',
-    'message0': 'intro %1 %2 %3',
-    'args0': [
-      { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },
-      { 'type': 'input_dummy', 'name': 'EXTRA_NAMES' },
-      { 'type': 'input_dummy', 'name': 'CONTROLS' },
-    ],
-    'inputsInline': true,
-    'previousStatement': 'tactic',
-    'nextStatement': 'tactic',
-    'style': 'logic_blocks',
-    'tooltip': 'intro',
-    'helpUrl': 'intro',
-    'mutator': 'intro_name_buttons',
-  }]);
+  // `fix` introduces a universally quantified object (Sort-level).
+  // `assume` introduces a hypothesis from an implication (Prop-level).
+  // `intro` (legacy multi-name block) is kept for later levels.
+  blockly.defineBlocksWithJsonArray([
+    {
+      'type': 'tactic_fix',
+      'message0': 'fix %1',
+      'args0': [
+        { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'x' },
+      ],
+      'inputsInline': true,
+      'previousStatement': 'tactic',
+      'nextStatement': 'tactic',
+      'style': 'logic_blocks',
+      'tooltip': 'Introduce a universally quantified variable.',
+      'helpUrl': 'intro',
+    },
+    {
+      'type': 'tactic_assume',
+      'message0': 'assume %1 : %2',
+      'args0': [
+        { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },
+        { 'type': 'field_monospace_input', 'name': 'PROP', 'text': 'P' },
+      ],
+      'inputsInline': true,
+      'previousStatement': 'tactic',
+      'nextStatement': 'tactic',
+      'style': 'logic_blocks',
+      'tooltip': 'Introduce a hypothesis from an implication. The proposition must match the goal.',
+      'helpUrl': 'intro',
+    },
+    {
+      'type': 'tactic_intro',
+      'message0': 'intro %1 %2 %3',
+      'args0': [
+        { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },
+        { 'type': 'input_dummy', 'name': 'EXTRA_NAMES' },
+        { 'type': 'input_dummy', 'name': 'CONTROLS' },
+      ],
+      'inputsInline': true,
+      'previousStatement': 'tactic',
+      'nextStatement': 'tactic',
+      'style': 'logic_blocks',
+      'tooltip': 'intro',
+      'helpUrl': 'intro',
+      'mutator': 'intro_name_buttons',
+    },
+  ]);
 
   if (!blockly.Extensions.isRegistered('intro_name_buttons')) {
     const appendNameField = (block: blockly.Block, index: number) =>

@@ -45,6 +45,14 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
+      type: 'tactic_fix',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_assume',
+    },
+    {
+      kind: 'block',
       type: 'tactic_intro',
     },
     {

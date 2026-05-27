@@ -221,6 +221,25 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_fix': {
+      const name = fields['NAME'] ?? 'x';
+      chunks = [
+        ...indentChunk,
+        chunk(`intro ${name}\n`, blockId),
+      ];
+      break;
+    }
+
+    case 'tactic_assume': {
+      const name = fields['NAME'] ?? 'h';
+      const prop = fields['PROP'] ?? 'P';
+      chunks = [
+        ...indentChunk,
+        chunk(`intro (${name} : ${prop})\n`, blockId),
+      ];
+      break;
+    }
+
     case 'tactic_intro': {
       const names = collectSequentialFields(fields, 'NAME', 'NAME_');
       const nameStr = names.join(' ');
