@@ -232,10 +232,10 @@ function blockToChunks(
 
     case 'tactic_assume': {
       const name = fields['NAME'] ?? 'h';
-      const prop = fields['PROP'] ?? 'P';
+      const prop = (fields['PROP'] ?? '').trim();
       chunks = [
         ...indentChunk,
-        chunk(`intro (${name} : ${prop})\n`, blockId),
+        chunk(prop ? `assume ${name} : ${prop}\n` : `assume ${name} : _\n`, blockId),
       ];
       break;
     }

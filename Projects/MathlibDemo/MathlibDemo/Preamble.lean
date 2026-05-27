@@ -188,3 +188,28 @@ elab "fix" x:ident : tactic => do
       m!"'fix' cannot introduce a proposition; use 'assume' instead"
   let (_, newGoal) ← goal.intro x.getId
   replaceMainGoal [newGoal]
+
+-- `assume`: like `intro (h : P)`, but restricted to Prop-level (implication) goals.
+-- Errors if the leading ∀ binder is a Sort-level object — use `fix` for that.
+-- Also checks that the stated proposition matches the goal's antecedent.
+open Lean Lean.Elab Lean.Elab.Tactic Lean.Meta in
+elab "assume" x:ident " : " p:term : tactic => do
+  let goal ← getMainGoal
+  let goalType ← whnf (← goal.getType)
+  if !goalType.isForall then
+    throwTacticEx `assume goal
+      m!"'assume' requires an implication goal 'P → Q'; the goal is not an implication"
+  let domainType := goalType.bindingDomain!
+  let sortOfDomain ← inferType domainType
+  if !sortOfDomain.isProp then
+    throwTacticEx `assume goal
+      m!"'assume' requires an implication goal 'P → Q'; use 'fix' for object-level binders"
+  let statedProp ← withMainContext (elabTerm p none)
+  if statedProp.isMVar then
+    throwTacticEx `assume goal
+      m!"'assume': you must state the proposition explicitly (e.g., 'assume h : ε > 0')"
+  unless ← isDefEq statedProp domainType do
+    throwTacticEx `assume goal
+      m!"'assume': the stated proposition does not match the goal's antecedent"
+  let (_, newGoal) ← goal.intro x.getId
+  replaceMainGoal [newGoal]
