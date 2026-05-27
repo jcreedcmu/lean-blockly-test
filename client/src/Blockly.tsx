@@ -11,6 +11,16 @@ import type { Affordance } from './LevelEvaluator'
 
 export type BlocklyState = object;
 
+/** Pin all lemma blocks in a workspace so they cannot be moved or deleted. */
+function pinLemmaBlocks(ws: blockly.WorkspaceSvg): void {
+  for (const block of ws.getAllBlocks(false)) {
+    if (block.type === 'lemma') {
+      block.setDeletable(false);
+      block.setMovable(false);
+    }
+  }
+}
+
 export type TheoremBlockDisplay = string | null;
 
 // Callback type for requesting goals for a specific block
@@ -89,6 +99,7 @@ function useBlockly(
     wsRef.current = ws;
     if (initialData) {
       blockly.serialization.workspaces.load(initialData, ws);
+      pinLemmaBlocks(ws);
     }
     // DEBUGGING LOAD AND SAVE
     (window as any).workspace = ws;
@@ -185,6 +196,7 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
     loadWorkspace: (data: BlocklyState) => {
       if (wsRef.current) {
         blockly.serialization.workspaces.load(data, wsRef.current);
+        pinLemmaBlocks(wsRef.current);
       }
     },
     saveWorkspace: () => {
