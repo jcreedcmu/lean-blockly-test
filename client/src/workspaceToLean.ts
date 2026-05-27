@@ -225,7 +225,7 @@ function blockToChunks(
       const name = fields['NAME'] ?? 'x';
       chunks = [
         ...indentChunk,
-        chunk(`intro ${name}\n`, blockId),
+        chunk(`fix ${name}\n`, blockId),
       ];
       break;
     }

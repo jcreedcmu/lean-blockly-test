@@ -171,3 +171,20 @@ def getGoalInfo (p : GoalInfoParams) :
           hyps
           target := { affordances := targetAffordances }
         }
+
+-- `fix`: like `intro`, but restricted to Sort-level (object) binders.
+-- Errors if the leading ∀ binder is a proposition — use `assume` for that.
+open Lean Lean.Elab Lean.Elab.Tactic Lean.Meta in
+elab "fix" x:ident : tactic => do
+  let goal ← getMainGoal
+  let goalType ← whnf (← goal.getType)
+  if !goalType.isForall then
+    throwTacticEx `fix goal
+      m!"'fix' requires a goal of the form '∀ x : T, …'; the goal is not a universal statement"
+  let domainType := goalType.bindingDomain!
+  let sortOfDomain ← inferType domainType
+  if sortOfDomain.isProp then
+    throwTacticEx `fix goal
+      m!"'fix' cannot introduce a proposition; use 'assume' instead"
+  let (_, newGoal) ← goal.intro x.getId
+  replaceMainGoal [newGoal]
