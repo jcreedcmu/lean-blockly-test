@@ -446,12 +446,15 @@ function blockToChunks(
       };
       chunks = [
         ...indentChunk,
-        chunk(`have ${name} := calc\n`, blockId),
+        chunk(`have ${name} := (calc\n`, blockId),
         chunk(`${indent}  ${lhs} ${relSym(fields['REL_0'])} ${fields['RHS_0'] ?? 'b'} := by conclude [${concludeArgs(0)}]\n`, blockId),
       ];
       for (let i = 1; `RHS_${i}` in fields; i++) {
         chunks.push(chunk(`${indent}  _ ${relSym(fields[`REL_${i}`])} ${fields[`RHS_${i}`]} := by conclude [${concludeArgs(i)}]\n`, blockId));
       }
+      // Close the parenthesis after the last calc step
+      const last = chunks[chunks.length - 1];
+      chunks[chunks.length - 1] = { ...last, text: last.text.replace(/\n$/, ')\n') };
       break;
     }
 
