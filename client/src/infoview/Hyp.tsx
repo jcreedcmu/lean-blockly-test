@@ -6,7 +6,7 @@ import type { Affordance } from '../LevelEvaluator';
 
 /** Order in which hypothesis-level affordances are rendered (left-to-right).
  * Also gates which kinds are recognized as hyp-side buttons at all. */
-export const HYP_AFFORDANCE_KINDS = ['apply', 'rewrite', 'choose'] as const;
+export const HYP_AFFORDANCE_KINDS = ['apply', 'rewrite', 'choose', 'specialize'] as const;
 type HypAffordanceKind = typeof HYP_AFFORDANCE_KINDS[number];
 
 /** Props that control hypothesis interaction, shared across Hyp/Goal/Goals. */

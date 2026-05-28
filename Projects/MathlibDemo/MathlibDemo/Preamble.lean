@@ -55,6 +55,8 @@ inductive Affordance where
   | rewrite
   | choose (suggestedName : String)
   | use
+  | intro (suggestedName : String)
+  | specialize
   deriving Inhabited
 
 open Lean Server Widget Elab in
@@ -65,6 +67,9 @@ instance : ToJson Affordance where
     | .choose name  => Json.mkObj [("kind", Json.str "choose"),
                                    ("suggestedName", Json.str name)]
     | .use          => Json.mkObj [("kind", Json.str "use")]
+    | .intro name   => Json.mkObj [("kind", Json.str "intro"),
+                                   ("suggestedName", Json.str name)]
+    | .specialize   => Json.mkObj [("kind", Json.str "specialize")]
 
 open Lean Server Widget Elab in
 instance : FromJson Affordance where
@@ -77,7 +82,11 @@ instance : FromJson Affordance where
         let name ← j.getObjValAs? String "suggestedName"
         pure (.choose name)
     | "use"     => pure .use
-    | k         => throw s!"unknown affordance kind: {k}"
+    | "intro"   => do
+        let name ← j.getObjValAs? String "suggestedName"
+        pure (.intro name)
+    | "specialize"  => pure .specialize
+    | k             => throw s!"unknown affordance kind: {k}"
 
 open Lean Server Widget Elab in
 structure HypInfo where
@@ -123,6 +132,14 @@ def existsBinderName? (e : Expr) : String :=
   | _                      => "x"
 
 open Lean Server Widget Elab Meta in
+/-- The binder name of a top-level `∀` (i.e. `.forallE`), falling back
+    to `"x"` if `e` isn't a `forallE`. -/
+def forallBinderName? (e : Expr) : String :=
+  match e with
+  | .forallE name _ _ _ => name.toString
+  | _                   => "x"
+
+open Lean Server Widget Elab Meta in
 @[server_rpc_method]
 def getGoalInfo (p : GoalInfoParams) :
     RequestM (RequestTask GoalInfo) :=
@@ -147,6 +164,8 @@ def getGoalInfo (p : GoalInfoParams) :
               affordances := affordances.push .rewrite
             if hypType.isAppOf ``Exists then
               affordances := affordances.push (.choose (existsBinderName? hypType))
+            if hypType.isForall then
+              affordances := affordances.push .specialize
           hyps := hyps.push {
             fvarId := toString decl.fvarId.name
             isAssumption
@@ -156,6 +175,8 @@ def getGoalInfo (p : GoalInfoParams) :
         let mut targetAffordances : Array Affordance := #[]
         if target.isAppOf ``Exists then
           targetAffordances := targetAffordances.push .use
+        if target.isForall then
+          targetAffordances := targetAffordances.push (.intro (forallBinderName? target))
         return {
           mvarId := p.mvarId
           hyps

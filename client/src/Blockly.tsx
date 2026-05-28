@@ -256,7 +256,8 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         if (!affordance) return propWithName(name);
 
         switch (affordance.kind) {
-          case 'apply':   return wrapSingle('tactic_apply', 'ARG');
+          case 'apply':       return wrapSingle('tactic_apply', 'ARG');
+          case 'specialize':  return wrapSingle('tactic_specialize', 'HYP');
           case 'rewrite': return wrapSingle('tactic_rewrite', 'REWRITE_SOURCE');
           case 'choose': {
             // tactic_choose has two inputs: CHOSEN (new variable names)
@@ -287,6 +288,19 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         switch (affordance.kind) {
           case 'use': {
             const block = ws.newBlock('tactic_use') as BlockSvg;
+            block.initSvg();
+            block.render();
+            return block;
+          }
+          case 'intro': {
+            // Seed the ARG slot with a `prop` carrying the bound variable
+            // name from the `∀` so the user starts with `intro <name>`.
+            const inner = ws.newBlock('prop') as BlockSvg;
+            inner.setFieldValue(affordance.suggestedName, 'PROP_NAME');
+            inner.initSvg();
+            inner.render();
+            const block = ws.newBlock('tactic_intro') as BlockSvg;
+            block.getInput('ARG')!.connection!.connect(inner.outputConnection!);
             block.initSvg();
             block.render();
             return block;
