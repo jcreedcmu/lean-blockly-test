@@ -72,7 +72,7 @@ def FunCont (f : ℝ → ℝ) : Prop :=
   ∀ x, ∀ ε > 0, ∃ δ > 0, ∀ y, |y - x| < δ → |f y - f x| < ε
 
 def SeqLim (a : ℕ → ℝ) (L : ℝ) : Prop :=
-  ∀ ε > 0, ∃ N, ∀ n > N, |a n - L| < ε
+  ∀ ε > 0, ∃ N, ∀ n ≥ N, |a n - L| < ε
 
 def SeqConv (a : ℕ → ℝ) : Prop :=  ∃ L, SeqLim a L
 
