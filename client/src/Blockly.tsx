@@ -260,15 +260,16 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
           case 'specialize':  return wrapSingle('tactic_specialize', 'HYP');
           case 'rewrite': return wrapSingle('tactic_rewrite', 'REWRITE_SOURCE');
           case 'choose': {
-            // tactic_choose has two inputs: CHOSEN (new variable names)
-            // and SOURCE (the hypothesis being destructed). Mathlib's
-            // `choose` on `h : ∃ c, P c` introduces *two* binders — the
-            // witness `c` and the proof `P c` — so we seed CHOSEN with
-            // both, using `<c> h<c>` (e.g. `c hc`) as a sensible default.
             const v = affordance.suggestedName;
-            const outer = ws.newBlock('tactic_choose') as BlockSvg;
+            const outer = ws.newBlock('tactic_choose') as BlockSvg & { extraArgCount_: number };
+            // CHOSEN gets the witness; a second slot gets the proof name.
             outer.getInput('CHOSEN')!.connection!.connect(
-              propWithName(`${v} h${v}`).outputConnection!);
+              propWithName(v).outputConnection!);
+            outer.appendValueInput('CHOSEN_1').setCheck('proposition');
+            outer.moveInputBefore('CHOSEN_1', 'CONTROLS');
+            outer.extraArgCount_ = 1;
+            outer.getInput('CHOSEN_1')!.connection!.connect(
+              propWithName(`h${v}`).outputConnection!);
             outer.getInput('SOURCE')!.connection!.connect(
               propWithName(name).outputConnection!);
             outer.initSvg();

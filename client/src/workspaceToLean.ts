@@ -232,12 +232,18 @@ function blockToChunks(
     }
 
     case 'tactic_choose': {
-      const chosenChunks = blockToChunks(inputBlock(inputs['CHOSEN']), '');
+      const allChosenChunks: CodeChunk[] = [
+        ...blockToChunks(inputBlock(inputs['CHOSEN']), ''),
+      ];
+      for (let i = 1; inputs[`CHOSEN_${i}`]; i++) {
+        allChosenChunks.push(text(' '));
+        allChosenChunks.push(...blockToChunks(inputBlock(inputs[`CHOSEN_${i}`]), ''));
+      }
       const sourceChunks = blockToChunks(inputBlock(inputs['SOURCE']), '');
       chunks = [
         ...indentChunk,
         chunk(`choose `, blockId),
-        ...chosenChunks,
+        ...allChosenChunks,
         chunk(` using `, blockId),
         ...sourceChunks,
         chunk(`\n`, blockId),
