@@ -236,7 +236,6 @@ const MINUS_ICON_URI = 'data:image/svg+xml;utf8,' + encodeURIComponent(
 function multiArgTacticInit(this: blockly.Block) {
   const self = this as blockly.Block & { extraArgCount_: number };
   self.extraArgCount_ = 0;
-  setDefaultPropShadow(self, 'ARG');
 
   const plusBtn = new blockly.FieldImage(
     PLUS_ICON_URI, 14, 14, '+',
@@ -263,9 +262,9 @@ function multiArgTacticInit(this: blockly.Block) {
 function defineMisc() {
   function single_arg_tactic(props: TacticProps) {
     const { name, msg } = props;
-    if (name === 'intro') {
+    if (name === 'intro' || name === 'use') {
       return {
-        'type': 'tactic_intro',
+        'type': `tactic_${name}`,
         'message0': `${msg} %1 %2`,
         'args0': [
           {
@@ -285,7 +284,7 @@ function defineMisc() {
         'style': 'logic_blocks',
         'tooltip': name,
         'helpUrl': name,
-        'mutator': 'multi_arg_buttons',
+        'mutator': 'multi_arg_tactic_buttons',
       };
     }
 
@@ -314,9 +313,9 @@ function defineMisc() {
   }
   blockly.defineBlocksWithJsonArray(singleArgTactics.map(single_arg_tactic));
 
-  if (!blockly.Extensions.isRegistered('multi_arg_buttons')) {
+  if (!blockly.Extensions.isRegistered('multi_arg_tactic_buttons')) {
     blockly.Extensions.registerMutator(
-      'multi_arg_buttons',
+      'multi_arg_tactic_buttons',
       MULTI_ARG_TACTIC_MIXIN,
       multiArgTacticInit,
     );
