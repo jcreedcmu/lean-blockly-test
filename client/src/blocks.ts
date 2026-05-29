@@ -152,6 +152,95 @@ export const singleArgTactics: TacticProps[] = [
   { name: 'use', msg: 'use' },
 ];
 
+function setDefaultPropShadow(block: blockly.Block, inputName: string) {
+  const connection = block.getInput(inputName)?.connection;
+  if (!connection || connection.targetBlock()) return;
+  connection.setShadowState({
+    type: 'prop',
+    fields: {
+      PROP_NAME: 'h',
+    },
+  });
+}
+
+function appendMultiArgInput(
+  block: blockly.Block & { extraArgCount_: number },
+  i: number,
+) {
+  const inputName = `ARG${i}`;
+  block.appendValueInput(inputName).setCheck('proposition');
+  block.moveInputBefore(inputName, 'CONTROLS');
+  setDefaultPropShadow(block, inputName);
+}
+
+const MULTI_ARG_TACTIC_MIXIN = {
+  saveExtraState: function(this: { extraArgCount_: number }) {
+    return { argCount: this.extraArgCount_ };
+  },
+  loadExtraState: function(
+    this: blockly.Block & { extraArgCount_: number },
+    state: unknown,
+  ) {
+    const rawTarget =
+      state && typeof state === 'object' && 'argCount' in state
+        ? Number((state as { argCount?: number }).argCount ?? 0)
+        : 0;
+    const target = Number.isFinite(rawTarget)
+      ? Math.max(0, Math.floor(rawTarget))
+      : 0;
+
+    while (this.extraArgCount_ < target) {
+      const nextIndex = this.extraArgCount_ + 1;
+      appendMultiArgInput(this, nextIndex);
+      this.extraArgCount_ = nextIndex;
+    }
+    while (this.extraArgCount_ > target) {
+      this.removeInput(`ARG${this.extraArgCount_}`);
+      this.extraArgCount_ -= 1;
+    }
+  },
+};
+
+const PLUS_ICON_URI = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14">' +
+  '<rect width="14" height="14" rx="2" fill="white" stroke="#666"/>' +
+  '<text x="7" y="11" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="#333">+</text>' +
+  '</svg>'
+);
+const MINUS_ICON_URI = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14">' +
+  '<rect width="14" height="14" rx="2" fill="white" stroke="#666"/>' +
+  '<text x="7" y="11" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="#333">−</text>' +
+  '</svg>'
+);
+
+function multiArgTacticInit(this: blockly.Block) {
+  const self = this as blockly.Block & { extraArgCount_: number };
+  self.extraArgCount_ = 0;
+  setDefaultPropShadow(self, 'ARG');
+
+  const plusBtn = new blockly.FieldImage(
+    PLUS_ICON_URI, 14, 14, '+',
+    () => {
+      const nextIndex = self.extraArgCount_ + 1;
+      appendMultiArgInput(self, nextIndex);
+      self.extraArgCount_ = nextIndex;
+    },
+  );
+  const minusBtn = new blockly.FieldImage(
+    MINUS_ICON_URI, 14, 14, '−',
+    () => {
+      if (self.extraArgCount_ > 0) {
+        self.removeInput(`ARG${self.extraArgCount_}`);
+        self.extraArgCount_ -= 1;
+      }
+    },
+  );
+  self.getInput('CONTROLS')!
+    .appendField(plusBtn, 'PLUS')
+    .appendField(minusBtn, 'MINUS');
+}
+
 function defineMisc() {
   function single_arg_tactic(props: TacticProps) {
     const { name, msg } = props;
@@ -638,102 +727,15 @@ function defineTactics() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Variable-arity `specialize` block.
-//
-// Matches Lean's `specialize h x y z` syntax: a required hypothesis
-// (HYP) followed by zero or more arguments (ARG0..ARGn). Inline `+`
-// and `−` field buttons grow/shrink the arg list in place — no
-// gear-icon popup.
-//
-// Serialization (`saveExtraState` / `loadExtraState`) is provided via
-// Blockly's mutator API with no decompose/compose, which is the one
-// way to legally install those "mutation property" methods without
-// also getting a mutator-dialog icon.
-// ─────────────────────────────────────────────────────────────────────
-
-// Inline SVG data URIs for the +/- buttons.
-const PLUS_ICON_URI = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14">' +
-  '<rect width="14" height="14" rx="2" fill="white" stroke="#666"/>' +
-  '<text x="7" y="11" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="#333">+</text>' +
-  '</svg>'
-);
-const MINUS_ICON_URI = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14">' +
-  '<rect width="14" height="14" rx="2" fill="white" stroke="#666"/>' +
-  '<text x="7" y="11" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="#333">−</text>' +
-  '</svg>'
-);
-
-// New ARG slots are always appended at the tail. `message0` places
-// CONTROLS (the +/- buttons) immediately after HYP, so appending puts
-// new args to the right of the buttons.
-function appendSpecializeArgInput(
-  block: blockly.Block & { argCount_: number },
-  i: number,
-) {
-  block.appendValueInput(`ARG${i}`).setCheck('proposition');
-}
-
-// Mixin applied via Blockly's mutator API.
-const SPECIALIZE_MIXIN = {
-  saveExtraState: function(this: { argCount_: number }) {
-    return { argCount: this.argCount_ };
-  },
-  loadExtraState: function(
-    this: blockly.Block & { argCount_: number },
-    state: unknown,
-  ) {
-    const target =
-      state && typeof state === 'object' && 'argCount' in state
-        ? Number((state as { argCount?: number }).argCount ?? 0)
-        : 0;
-    while (this.argCount_ < target) {
-      appendSpecializeArgInput(this, this.argCount_);
-      this.argCount_ += 1;
-    }
-    while (this.argCount_ > target) {
-      this.argCount_ -= 1;
-      this.removeInput(`ARG${this.argCount_}`);
-    }
-  },
-};
-
-// Runs on every block init: zero argCount_ and wire +/- buttons.
-function specializeInit(this: blockly.Block) {
-  const self = this as blockly.Block & { argCount_: number };
-  self.argCount_ = 0;
-
-  const plusBtn = new blockly.FieldImage(
-    PLUS_ICON_URI, 14, 14, '+',
-    () => {
-      const i = self.argCount_;
-      appendSpecializeArgInput(self, i);
-      self.argCount_ = i + 1;
-    },
-  );
-  const minusBtn = new blockly.FieldImage(
-    MINUS_ICON_URI, 14, 14, '−',
-    () => {
-      if (self.argCount_ > 0) {
-        self.argCount_ -= 1;
-        self.removeInput(`ARG${self.argCount_}`);
-      }
-    },
-  );
-  self.getInput('CONTROLS')!
-    .appendField(plusBtn, 'PLUS')
-    .appendField(minusBtn, 'MINUS');
-}
-
 function defineSpecialize() {
   blockly.defineBlocksWithJsonArray([
     {
       'type': 'tactic_specialize',
-      'message0': 'specialize %1 %2',
+      'message0': 'specialize %1 to (%2) %3 %4',
       'args0': [
         { 'type': 'input_value', 'name': 'HYP', 'check': 'proposition', 'align': 'LEFT' },
+        { 'type': 'input_value', 'name': 'ARG', 'check': 'proposition', 'align': 'LEFT' },
+        { 'type': 'input_dummy', 'name': 'CLOSE_0' },
         { 'type': 'input_dummy', 'name': 'CONTROLS' },
       ],
       'inputsInline': true,
@@ -742,17 +744,79 @@ function defineSpecialize() {
       'style': 'logic_blocks',
       'tooltip': 'specialize',
       'helpUrl': 'specialize',
-      'mutator': 'specialize_buttons',
+      'mutator': 'specialize_arg_buttons',
     },
   ]);
 
-  if (!blockly.Extensions.isRegistered('specialize_buttons')) {
-    // Register as a mutator (no decompose/compose → no gear icon) so
-    // we can legally install saveExtraState / loadExtraState.
+  if (!blockly.Extensions.isRegistered('specialize_arg_buttons')) {
+    const MIXIN = {
+      saveExtraState: function(this: { extraArgCount_: number }) {
+        return { argCount: this.extraArgCount_ };
+      },
+      loadExtraState: function(
+        this: blockly.Block & { extraArgCount_: number },
+        state: unknown,
+      ) {
+        const rawTarget =
+          state && typeof state === 'object' && 'argCount' in state
+            ? Number((state as { argCount?: number }).argCount ?? 0)
+            : 0;
+        const target = Number.isFinite(rawTarget)
+          ? Math.max(0, Math.floor(rawTarget))
+          : 0;
+        while (this.extraArgCount_ < target) {
+          const nextIndex = this.extraArgCount_ + 1;
+          this.appendValueInput(`ARG${nextIndex}`)
+            .appendField(new blockly.FieldLabel('('))
+            .setCheck('proposition');
+          this.moveInputBefore(`ARG${nextIndex}`, 'CONTROLS');
+          this.appendDummyInput(`CLOSE_${nextIndex}`)
+            .appendField(new blockly.FieldLabel(')'));
+          this.moveInputBefore(`CLOSE_${nextIndex}`, 'CONTROLS');
+          this.extraArgCount_ = nextIndex;
+        }
+        while (this.extraArgCount_ > target) {
+          this.removeInput(`CLOSE_${this.extraArgCount_}`);
+          this.removeInput(`ARG${this.extraArgCount_}`);
+          this.extraArgCount_ -= 1;
+        }
+      },
+    };
+
     blockly.Extensions.registerMutator(
-      'specialize_buttons',
-      SPECIALIZE_MIXIN,
-      specializeInit,
+      'specialize_arg_buttons',
+      MIXIN,
+      function(this: blockly.Block) {
+        const self = this as blockly.Block & { extraArgCount_: number };
+        self.extraArgCount_ = 0;
+        const plusBtn = new blockly.FieldImage(
+          PLUS_ICON_URI, 14, 14, '+',
+          () => {
+            const nextIndex = self.extraArgCount_ + 1;
+            self.appendValueInput(`ARG${nextIndex}`)
+              .appendField(new blockly.FieldLabel('('))
+              .setCheck('proposition');
+            self.moveInputBefore(`ARG${nextIndex}`, 'CONTROLS');
+            self.appendDummyInput(`CLOSE_${nextIndex}`)
+              .appendField(new blockly.FieldLabel(')'));
+            self.moveInputBefore(`CLOSE_${nextIndex}`, 'CONTROLS');
+            self.extraArgCount_ = nextIndex;
+          },
+        );
+        const minusBtn = new blockly.FieldImage(
+          MINUS_ICON_URI, 14, 14, '−',
+          () => {
+            if (self.extraArgCount_ > 0) {
+              self.removeInput(`CLOSE_${self.extraArgCount_}`);
+              self.removeInput(`ARG${self.extraArgCount_}`);
+              self.extraArgCount_ -= 1;
+            }
+          },
+        );
+        self.getInput('CONTROLS')!
+          .appendField(plusBtn, 'PLUS')
+          .appendField(minusBtn, 'MINUS');
+      },
     );
   }
 }

@@ -168,6 +168,80 @@ describe('workspaceToLean', () => {
       expect(leanCode).not.toContain('rw [h]');
     });
 
+    test('specialize with no args emits bare `specialize hyp`', () => {
+      // The smart-affordance flow creates a specialize block with only
+      // HYP filled — ARG and any +/- args are unconnected. Codegen must
+      // omit the parenthesized arg slots entirely rather than emit `()`.
+      const ws = workspace(
+        lemma(
+          'specialize_no_arg',
+          '(hf : ∀ x, x = x) : True',
+          {
+            type: 'tactic_specialize',
+            id: 'specialize-1',
+            inputs: {
+              HYP: {
+                block: { type: 'prop', id: 'prop-hf', fields: { PROP_NAME: 'hf' } },
+              },
+            },
+          },
+        ),
+      );
+      const { leanCode } = workspaceToLean(ws);
+      expect(leanCode).toContain('specialize hf\n');
+      expect(leanCode).not.toContain('()');
+    });
+
+    test('specialize with one arg wraps it in parens', () => {
+      const ws = workspace(
+        lemma(
+          'specialize_one_arg',
+          '(hf : ∀ x, x = x) (y : ℕ) : True',
+          {
+            type: 'tactic_specialize',
+            id: 'specialize-1',
+            inputs: {
+              HYP: {
+                block: { type: 'prop', id: 'prop-hf', fields: { PROP_NAME: 'hf' } },
+              },
+              ARG: {
+                block: { type: 'prop', id: 'prop-y', fields: { PROP_NAME: 'y' } },
+              },
+            },
+          },
+        ),
+      );
+      const { leanCode } = workspaceToLean(ws);
+      expect(leanCode).toContain('specialize hf (y)\n');
+    });
+
+    test('specialize skips empty extra-arg slots', () => {
+      // Even if the user adds extra arg slots via +/- but leaves some
+      // empty, codegen should skip the empty ones rather than emit `()`.
+      const ws = workspace(
+        lemma(
+          'specialize_sparse',
+          '(hf : ∀ x y, x = y) (a b : ℕ) : True',
+          {
+            type: 'tactic_specialize',
+            id: 'specialize-1',
+            inputs: {
+              HYP: {
+                block: { type: 'prop', id: 'prop-hf', fields: { PROP_NAME: 'hf' } },
+              },
+              ARG: {
+                block: { type: 'prop', id: 'prop-a', fields: { PROP_NAME: 'a' } },
+              },
+              ARG1: { },
+            },
+          },
+        ),
+      );
+      const { leanCode } = workspaceToLean(ws);
+      expect(leanCode).toContain('specialize hf (a)\n');
+      expect(leanCode).not.toContain('()');
+    });
+
     test('rewrite at tactic emits bracketed rewrite syntax', () => {
       const ws = workspace(
         lemma(

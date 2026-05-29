@@ -179,15 +179,20 @@ function blockToChunks(
       break;
     }
 
-    // Variadic specialize: `specialize <HYP> <ARG0> <ARG1> …`. Inputs
-    // beyond HYP are a dense `ARG0..ARGn` run produced by the inline
-    // +/- buttons on the block.
+    // `specialize <HYP> <ARG> <ARG1> …`
     case 'tactic_specialize': {
       const hypChunks = blockToChunks(inputs['HYP']?.block, '');
       const argChunks: CodeChunk[] = [];
-      for (let i = 0; inputs[`ARG${i}`]; i++) {
-        argChunks.push(text(' '));
-        argChunks.push(...blockToChunks(inputs[`ARG${i}`]?.block, ''));
+      const emitArg = (key: string) => {
+        const argBlock = inputs[key]?.block;
+        if (!argBlock) return;
+        argChunks.push(text(' ('));
+        argChunks.push(...blockToChunks(argBlock, ''));
+        argChunks.push(text(')'));
+      };
+      emitArg('ARG');
+      for (let i = 1; inputs[`ARG${i}`]; i++) {
+        emitArg(`ARG${i}`);
       }
       chunks = [
         ...indentChunk,
