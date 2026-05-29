@@ -140,6 +140,25 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_conclude': {
+      const args: CodeChunk[][] = [];
+      for (let i = 0; inputs[`ARG${i}`]; i++) {
+        args.push(blockToChunks(inputs[`ARG${i}`]?.block, ''));
+      }
+      const interleaved: CodeChunk[] = [];
+      for (let i = 0; i < args.length; i++) {
+        if (i > 0) interleaved.push(chunk(', ', blockId));
+        interleaved.push(...args[i]);
+      }
+      chunks = [
+        ...indentChunk,
+        chunk(`conclude [`, blockId),
+        ...interleaved,
+        chunk(`]\n`, blockId),
+      ];
+      break;
+    }
+
     case 'tactic_other': {
       const name = fields['PROP_NAME'] ?? '';
       chunks = [...indentChunk, chunk(`${name}\n`, blockId)];

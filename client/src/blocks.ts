@@ -423,6 +423,20 @@ function defineTactics() {
       'style': 'logic_blocks',
     },
     {
+      'type': 'tactic_conclude',
+      'message0': 'conclude %1',
+      'args0': [
+        { 'type': 'input_dummy', 'name': 'CONTROLS' },
+      ],
+      'inputsInline': true,
+      'previousStatement': 'tactic',
+      'nextStatement': 'tactic',
+      'tooltip': 'Auto-finisher. Add hints with +.',
+      'helpUrl': 'conclude',
+      'style': 'logic_blocks',
+      'mutator': 'conclude_arg_buttons',
+    },
+    {
       'type': 'tactic_rewrite',
       'message0': 'rewrite %1 %2 %3',
       'args0': [
@@ -674,6 +688,55 @@ function defineTactics() {
       "style": "procedure_blocks"
     }
   ]);
+
+  if (!blockly.Extensions.isRegistered('conclude_arg_buttons')) {
+    blockly.Extensions.registerMutator(
+      'conclude_arg_buttons',
+      {
+        saveExtraState: function(this: { extraArgCount_: number }) {
+          return { argCount: this.extraArgCount_ };
+        },
+        loadExtraState: function(
+          this: blockly.Block & { extraArgCount_: number },
+          state: unknown,
+        ) {
+          const rawTarget =
+            state && typeof state === 'object' && 'argCount' in state
+              ? Number((state as { argCount?: number }).argCount ?? 0) : 0;
+          const target = Number.isFinite(rawTarget) ? Math.max(0, Math.floor(rawTarget)) : 0;
+          while (this.extraArgCount_ < target) {
+            const i = this.extraArgCount_;
+            this.appendValueInput(`ARG${i}`).setCheck('proposition');
+            this.moveInputBefore(`ARG${i}`, 'CONTROLS');
+            setDefaultPropShadow(this, `ARG${i}`);
+            this.extraArgCount_++;
+          }
+          while (this.extraArgCount_ > target) {
+            this.extraArgCount_--;
+            this.removeInput(`ARG${this.extraArgCount_}`);
+          }
+        },
+      },
+      function(this: blockly.Block) {
+        const self = this as blockly.Block & { extraArgCount_: number };
+        self.extraArgCount_ = 0;
+        self.getInput('CONTROLS')!
+          .appendField(new blockly.FieldImage(PLUS_ICON_URI, 14, 14, '+', () => {
+            const i = self.extraArgCount_;
+            self.appendValueInput(`ARG${i}`).setCheck('proposition');
+            self.moveInputBefore(`ARG${i}`, 'CONTROLS');
+            setDefaultPropShadow(self, `ARG${i}`);
+            self.extraArgCount_++;
+          }), 'PLUS')
+          .appendField(new blockly.FieldImage(MINUS_ICON_URI, 14, 14, '−', () => {
+            if (self.extraArgCount_ > 0) {
+              self.extraArgCount_--;
+              self.removeInput(`ARG${self.extraArgCount_}`);
+            }
+          }), 'MINUS');
+      },
+    );
+  }
 
   function appendRewriteArgInput(
     block: blockly.Block & { extraArgCount_: number },
