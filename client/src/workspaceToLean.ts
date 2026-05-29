@@ -354,6 +354,31 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_calc': {
+      const name = fields['NAME'] ?? 'h';
+      const lhs = fields['LHS'] ?? 'a';
+      const relSym = (r: string | undefined) =>
+        ({ 'LEQ': '≤', 'LT': '<' } as Record<string, string>)[r ?? ''] ?? '=';
+      const concludeArgs = (stepIdx: number): string => {
+        const parts: string[] = [];
+        for (let j = 0; inputs[`CONCLUDE_${stepIdx}_${j}`]; j++) {
+          const argChunks = blockToChunks(inputs[`CONCLUDE_${stepIdx}_${j}`]?.block, '');
+          const text = argChunks.map(c => c.text).join('').trim();
+          if (text) parts.push(text);
+        }
+        return parts.join(', ');
+      };
+      chunks = [
+        ...indentChunk,
+        chunk(`have ${name} := calc\n`, blockId),
+        chunk(`${indent}  ${lhs} ${relSym(fields['REL_0'])} ${fields['RHS_0'] ?? 'b'} := by conclude [${concludeArgs(0)}]\n`, blockId),
+      ];
+      for (let i = 1; `RHS_${i}` in fields; i++) {
+        chunks.push(chunk(`${indent}  _ ${relSym(fields[`REL_${i}`])} ${fields[`RHS_${i}`]} := by conclude [${concludeArgs(i)}]\n`, blockId));
+      }
+      break;
+    }
+
     default:
       console.warn(`[workspaceToLean] Unknown block type: ${tp}`);
       return [];

@@ -142,6 +142,7 @@ export function defineBlocks() {
   defineMisc();
   defineSpecialize();
   defineTermTheorems();
+  defineCalc();
 }
 
 function defineTermTheorems() {
@@ -897,6 +898,150 @@ function defineSpecialize() {
         self.getInput('CONTROLS')!
           .appendField(plusBtn, 'PLUS')
           .appendField(minusBtn, 'MINUS');
+      },
+    );
+  }
+}
+
+function defineCalc() {
+  const REL_OPTIONS: [string, string][] = [['=', 'EQ'], ['≤', 'LEQ'], ['<', 'LT']];
+  type CalcBlock = blockly.Block & { extraStepCount_: number; stepBubbleCounts_: number[] };
+
+  function appendConcludeBubble(block: CalcBlock, stepIdx: number, bubbleIdx: number) {
+    block.appendValueInput(`CONCLUDE_${stepIdx}_${bubbleIdx}`).setCheck('proposition');
+    const anchor = stepIdx === 0 ? 'END_ROW_BASE' : `END_ROW_STEP_${stepIdx}`;
+    block.moveInputBefore(`CONCLUDE_${stepIdx}_${bubbleIdx}`, anchor);
+  }
+
+  function removeConcludeBubble(block: CalcBlock, stepIdx: number, bubbleIdx: number) {
+    block.removeInput(`CONCLUDE_${stepIdx}_${bubbleIdx}`);
+  }
+
+  function makeBubbleButtons(block: CalcBlock, stepIdx: number) {
+    const plusBtn = new blockly.FieldImage(PLUS_ICON_URI, 14, 14, '+', () => {
+      const next = block.stepBubbleCounts_[stepIdx] + 1;
+      block.stepBubbleCounts_[stepIdx] = next;
+      appendConcludeBubble(block, stepIdx, next);
+    });
+    const minusBtn = new blockly.FieldImage(MINUS_ICON_URI, 14, 14, '−', () => {
+      if (block.stepBubbleCounts_[stepIdx] > 0) {
+        removeConcludeBubble(block, stepIdx, block.stepBubbleCounts_[stepIdx]);
+        block.stepBubbleCounts_[stepIdx] -= 1;
+      }
+    });
+    return { plusBtn, minusBtn };
+  }
+
+  function appendCalcStep(block: CalcBlock, stepIdx: number, extraBubbles = 0) {
+    block.appendDummyInput(`STEP_${stepIdx}`)
+      .appendField(new blockly.FieldLabel('_'))
+      .appendField(new blockly.FieldDropdown(REL_OPTIONS), `REL_${stepIdx}`)
+      .appendField(new FieldMonospaceInput('b'), `RHS_${stepIdx}`)
+      .appendField(new blockly.FieldLabel('using'));
+    block.moveInputBefore(`STEP_${stepIdx}`, 'STEP_CONTROLS');
+    const { plusBtn, minusBtn } = makeBubbleButtons(block, stepIdx);
+    block.appendDummyInput(`BUBBLE_CONTROLS_${stepIdx}`)
+      .appendField(plusBtn, `PLUS_BUBBLE_${stepIdx}`)
+      .appendField(minusBtn, `MINUS_BUBBLE_${stepIdx}`);
+    block.moveInputBefore(`BUBBLE_CONTROLS_${stepIdx}`, 'STEP_CONTROLS');
+    block.appendValueInput(`CONCLUDE_${stepIdx}_0`).setCheck('proposition');
+    block.moveInputBefore(`CONCLUDE_${stepIdx}_0`, 'STEP_CONTROLS');
+    block.appendEndRowInput(`END_ROW_STEP_${stepIdx}`);
+    block.moveInputBefore(`END_ROW_STEP_${stepIdx}`, 'STEP_CONTROLS');
+    block.stepBubbleCounts_[stepIdx] = 0;
+    for (let j = 1; j <= extraBubbles; j++) {
+      appendConcludeBubble(block, stepIdx, j);
+      block.stepBubbleCounts_[stepIdx] = j;
+    }
+  }
+
+  function removeCalcStep(block: CalcBlock, stepIdx: number) {
+    for (let j = block.stepBubbleCounts_[stepIdx]; j >= 1; j--) {
+      removeConcludeBubble(block, stepIdx, j);
+    }
+    block.removeInput(`END_ROW_STEP_${stepIdx}`);
+    block.removeInput(`CONCLUDE_${stepIdx}_0`);
+    block.removeInput(`BUBBLE_CONTROLS_${stepIdx}`);
+    block.removeInput(`STEP_${stepIdx}`);
+    block.stepBubbleCounts_.splice(stepIdx, 1);
+  }
+
+  blockly.defineBlocksWithJsonArray([{
+    'type': 'tactic_calc',
+    'message0': 'calc %1 : %2 %3 %4 using %5 %6',
+    'args0': [
+      { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },
+      { 'type': 'field_monospace_input', 'name': 'LHS', 'text': 'a' },
+      { 'type': 'field_dropdown', 'name': 'REL_0', 'options': REL_OPTIONS },
+      { 'type': 'field_monospace_input', 'name': 'RHS_0', 'text': 'b' },
+      { 'type': 'input_dummy', 'name': 'BUBBLE_CONTROLS_0' },
+      { 'type': 'input_value', 'name': 'CONCLUDE_0_0', 'check': 'proposition' },
+    ],
+    'inputsInline': true,
+    'previousStatement': 'tactic',
+    'nextStatement': 'tactic',
+    'style': 'procedure_blocks',
+    'tooltip': 'have h := calc ...',
+    'helpUrl': '',
+    'mutator': 'calc_step_buttons',
+  }]);
+
+  if (!blockly.Extensions.isRegistered('calc_step_buttons')) {
+    blockly.Extensions.registerMutator(
+      'calc_step_buttons',
+      {
+        saveExtraState: function(this: CalcBlock) {
+          return { bubbleCounts: [...this.stepBubbleCounts_] };
+        },
+        loadExtraState: function(this: CalcBlock, state: unknown) {
+          const savedCounts: number[] =
+            state && typeof state === 'object' && 'bubbleCounts' in state
+              ? (state as { bubbleCounts: number[] }).bubbleCounts
+              : [0];
+          // Reconcile step 0 bubbles
+          const target0 = Math.max(0, savedCounts[0] ?? 0);
+          while (this.stepBubbleCounts_[0] < target0) {
+            appendConcludeBubble(this, 0, this.stepBubbleCounts_[0] + 1);
+            this.stepBubbleCounts_[0] += 1;
+          }
+          while (this.stepBubbleCounts_[0] > target0) {
+            removeConcludeBubble(this, 0, this.stepBubbleCounts_[0]);
+            this.stepBubbleCounts_[0] -= 1;
+          }
+          // Reconcile extra steps
+          const targetStepCount = savedCounts.length - 1;
+          while (this.extraStepCount_ > targetStepCount) {
+            removeCalcStep(this, this.extraStepCount_);
+            this.extraStepCount_ -= 1;
+          }
+          while (this.extraStepCount_ < targetStepCount) {
+            const nextStep = this.extraStepCount_ + 1;
+            appendCalcStep(this, nextStep, savedCounts[nextStep] ?? 0);
+            this.extraStepCount_ = nextStep;
+          }
+        },
+      },
+      function(this: blockly.Block) {
+        const self = this as CalcBlock;
+        self.extraStepCount_ = 0;
+        self.stepBubbleCounts_ = [0];
+        const { plusBtn: plusBubble0, minusBtn: minusBubble0 } = makeBubbleButtons(self, 0);
+        self.getInput('BUBBLE_CONTROLS_0')!
+          .appendField(plusBubble0, 'PLUS_BUBBLE_0')
+          .appendField(minusBubble0, 'MINUS_BUBBLE_0');
+        self.appendEndRowInput('END_ROW_BASE');
+        self.appendDummyInput('STEP_CONTROLS')
+          .appendField(new blockly.FieldImage(PLUS_ICON_URI, 14, 14, '+', () => {
+            const nextStep = self.extraStepCount_ + 1;
+            appendCalcStep(self, nextStep);
+            self.extraStepCount_ = nextStep;
+          }), 'PLUS_STEP')
+          .appendField(new blockly.FieldImage(MINUS_ICON_URI, 14, 14, '−', () => {
+            if (self.extraStepCount_ > 0) {
+              removeCalcStep(self, self.extraStepCount_);
+              self.extraStepCount_ -= 1;
+            }
+          }), 'MINUS_STEP');
       },
     );
   }
