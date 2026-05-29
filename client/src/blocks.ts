@@ -141,6 +141,24 @@ export function defineBlocks() {
   defineTactics();
   defineMisc();
   defineSpecialize();
+  defineTermTheorems();
+}
+
+function defineTermTheorems() {
+  blockly.defineBlocksWithJsonArray([
+    {
+      'type': 'term_archprop',
+      'message0': 'ArchProp %1',
+      'args0': [
+        { 'type': 'input_value', 'name': 'ARG', 'check': 'proposition' },
+      ],
+      'inputsInline': true,
+      'output': 'proposition',
+      'colour': 260,
+      'tooltip': '∃ N > 0, 1/N < ε  (provide proof that ε > 0)',
+      'helpUrl': '',
+    },
+  ]);
 }
 
 type TacticProps = { name: string, msg: string };
