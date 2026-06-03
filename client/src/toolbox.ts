@@ -1,10 +1,21 @@
 import * as blockly from 'blockly';
-import * as blocks from './blocks';
+
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
 */
 
-type BlockItem = { kind: 'block'; type: string; id?: string };
+type ShadowBlock = {
+  type: string;
+  fields?: Record<string, string>;
+};
+
+type BlockItem = {
+  kind: 'block';
+  type: string;
+  id?: string;
+  fields?: Record<string, string>;
+  inputs?: Record<string, { shadow: ShadowBlock }>;
+};
 type CategoryItem = {
   kind: 'category';
   name: string;
@@ -25,6 +36,67 @@ const LeanTacticsCategory: CategoryItem = {
   contents: [
     {
       kind: 'block',
+      type: 'tactic_unfold',
+      inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
+    },
+    {
+      kind: 'block',
+      type: 'tactic_calc',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_intro',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_use',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_rewrite',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_apply',
+      id: 'tutorial-toolbox-apply',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_specialize',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_choose',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_at',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_constructor',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_have',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_show',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_sorry',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_other',
+    },
+    // Blocks added on the clean branch that the curated order above did
+    // not yet account for. They stay registered so levels that use them
+    // (e.g. refl/ring_nf in the tutorial world) keep working.
+    {
+      kind: 'block',
       type: 'tactic_refl',
     },
     {
@@ -41,10 +113,6 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'tactic_rewrite',
-    },
-    {
-      kind: 'block',
       type: 'tactic_rewrite_at',
     },
     {
@@ -53,48 +121,7 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
-      type: 'tactic_at',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_constructor',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_show',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_have',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_calc',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_sorry',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_other',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_intro',
-    },
-    ...blocks.singleArgTactics.map(t => ({
-      kind: 'block' as const,
-      type: `tactic_${t.name}`,
-      ...(t.name === 'apply' ? { id: 'tutorial-toolbox-apply' } : {}),
-    })),
-    {
-      kind: 'block',
-      type: 'tactic_specialize',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_choose',
+      type: 'tactic_exact',
     },
   ],
 };
@@ -121,6 +148,16 @@ const LeanValueCategory: CategoryItem = {
   ],
 };
 
+const LeanDefinitionsCategory: CategoryItem = {
+  kind: 'category',
+  name: 'Definitions',
+  contents: [
+    { kind: 'block', type: 'prop', fields: { PROP_NAME: 'FunLimAt' } },
+    { kind: 'block', type: 'prop', fields: { PROP_NAME: 'FunCont' } },
+    { kind: 'block', type: 'prop', fields: { PROP_NAME: 'SeqLim' } },
+  ],
+};
+
 const LeanTheoremsCategory: CategoryItem = {
   kind: 'category',
   name: 'Theorems',
@@ -134,9 +171,10 @@ const LeanTheoremsCategory: CategoryItem = {
 
 const allCategories: CategoryItem[] = [
   LeanTacticsCategory,
+  LeanTheoremsCategory,
+  LeanDefinitionsCategory,
   LeanVariableCategory,
   LeanValueCategory,
-  LeanTheoremsCategory,
 ];
 
 export const toolbox: blockly.utils.toolbox.ToolboxDefinition = {
