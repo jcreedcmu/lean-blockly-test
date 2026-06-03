@@ -167,7 +167,6 @@ export const singleArgTactics: TacticProps[] = [
   { name: 'unfold', msg: 'unfold' },
   { name: 'apply', msg: 'apply' },
   { name: 'exact', msg: 'exactly' },
-  { name: 'intro', msg: 'intro' },
   { name: 'use', msg: 'use' },
 ];
 
@@ -262,7 +261,7 @@ function multiArgTacticInit(this: blockly.Block) {
 function defineMisc() {
   function single_arg_tactic(props: TacticProps) {
     const { name, msg } = props;
-    if (name === 'intro' || name === 'use') {
+    if (name === 'use') {
       return {
         'type': `tactic_${name}`,
         'message0': `${msg} %1 %2`,
@@ -318,6 +317,73 @@ function defineMisc() {
       'multi_arg_tactic_buttons',
       MULTI_ARG_TACTIC_MIXIN,
       multiArgTacticInit,
+    );
+  }
+
+  // `intro` uses square text-field slots (new names being introduced); you
+  // never drag a term into them, so they read as fields rather than sockets.
+  blockly.defineBlocksWithJsonArray([{
+    'type': 'tactic_intro',
+    'message0': 'intro %1 %2 %3',
+    'args0': [
+      { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },
+      { 'type': 'input_dummy', 'name': 'EXTRA_NAMES' },
+      { 'type': 'input_dummy', 'name': 'CONTROLS' },
+    ],
+    'inputsInline': true,
+    'previousStatement': 'tactic',
+    'nextStatement': 'tactic',
+    'style': 'logic_blocks',
+    'tooltip': 'intro',
+    'helpUrl': 'intro',
+    'mutator': 'intro_name_buttons',
+  }]);
+
+  if (!blockly.Extensions.isRegistered('intro_name_buttons')) {
+    const appendNameField = (block: blockly.Block, index: number) =>
+      block.getInput('EXTRA_NAMES')!.appendField(new FieldMonospaceInput('h'), `NAME_${index}`);
+    const removeNameField = (block: blockly.Block, index: number) =>
+      block.getInput('EXTRA_NAMES')!.removeField(`NAME_${index}`);
+
+    blockly.Extensions.registerMutator(
+      'intro_name_buttons',
+      {
+        saveExtraState: function(this: { extraArgCount_: number }) {
+          return { argCount: this.extraArgCount_ };
+        },
+        loadExtraState: function(
+          this: blockly.Block & { extraArgCount_: number },
+          state: unknown,
+        ) {
+          const rawTarget =
+            state && typeof state === 'object' && 'argCount' in state
+              ? Number((state as { argCount?: number }).argCount ?? 0) : 0;
+          const target = Number.isFinite(rawTarget) ? Math.max(0, Math.floor(rawTarget)) : 0;
+          while (this.extraArgCount_ < target) {
+            appendNameField(this, this.extraArgCount_ + 1);
+            this.extraArgCount_ += 1;
+          }
+          while (this.extraArgCount_ > target) {
+            removeNameField(this, this.extraArgCount_);
+            this.extraArgCount_ -= 1;
+          }
+        },
+      },
+      function(this: blockly.Block) {
+        const self = this as blockly.Block & { extraArgCount_: number };
+        self.extraArgCount_ = 0;
+        self.getInput('CONTROLS')!
+          .appendField(new blockly.FieldImage(PLUS_ICON_URI, 14, 14, '+', () => {
+            appendNameField(self, self.extraArgCount_ + 1);
+            self.extraArgCount_ += 1;
+          }), 'PLUS')
+          .appendField(new blockly.FieldImage(MINUS_ICON_URI, 14, 14, '−', () => {
+            if (self.extraArgCount_ > 0) {
+              removeNameField(self, self.extraArgCount_);
+              self.extraArgCount_ -= 1;
+            }
+          }), 'MINUS');
+      },
     );
   }
 }
@@ -483,14 +549,13 @@ function defineTactics() {
           'type': 'input_value',
           'name': 'REWRITE_SOURCE',
           'check': 'proposition',
-          'align': 'CENTRE',
         },
         {
           'type': 'input_dummy',
           'name': 'CONTROLS',
         },
       ],
-      'inputsInline': false,
+      'inputsInline': true,
       'previousStatement': 'tactic',
       'nextStatement': 'tactic',
       'style': 'logic_blocks',
@@ -522,12 +587,16 @@ function defineTactics() {
     },
     {
       'type': 'tactic_choose',
-      'message0': 'choose %1 %2 using %3',
+      'message0': 'choose %1 %2 %3 using %4',
       'args0': [
         {
-          'type': 'input_value',
-          'name': 'CHOSEN',
-          'check': 'proposition',
+          'type': 'field_monospace_input',
+          'name': 'CHOSEN_NAME',
+          'text': 'x',
+        },
+        {
+          'type': 'input_dummy',
+          'name': 'CHOSEN_NAMES',
         },
         {
           'type': 'input_dummy',
@@ -545,7 +614,7 @@ function defineTactics() {
       'style': 'logic_blocks',
       'tooltip': 'choose',
       'helpUrl': 'choose',
-      'mutator': 'choose_arg_buttons',
+      'mutator': 'choose_name_buttons',
     },
     {
       'type': 'tactic_sorry',
@@ -636,9 +705,9 @@ function defineTactics() {
       "message0": "at %1 %2",
       "args0": [
         {
-          "type": "field_monospace_input",
+          "type": "input_value",
           "name": "HYP",
-          "text": "h"
+          "check": "proposition"
         },
         {
           "type": "input_statement",
@@ -774,9 +843,14 @@ function defineTactics() {
     );
   }
 
-  if (!blockly.Extensions.isRegistered('choose_arg_buttons')) {
+  if (!blockly.Extensions.isRegistered('choose_name_buttons')) {
+    const appendChosenField = (block: blockly.Block, index: number) =>
+      block.getInput('CHOSEN_NAMES')!.appendField(new FieldMonospaceInput(index === 1 ? 'hx' : 'x'), `CHOSEN_NAME_${index}`);
+    const removeChosenField = (block: blockly.Block, index: number) =>
+      block.getInput('CHOSEN_NAMES')!.removeField(`CHOSEN_NAME_${index}`);
+
     blockly.Extensions.registerMutator(
-      'choose_arg_buttons',
+      'choose_name_buttons',
       {
         saveExtraState: function(this: { extraArgCount_: number }) {
           return { argCount: this.extraArgCount_ };
@@ -787,20 +861,14 @@ function defineTactics() {
         ) {
           const rawTarget =
             state && typeof state === 'object' && 'argCount' in state
-              ? Number((state as { argCount?: number }).argCount ?? 0)
-              : 0;
-          const target = Number.isFinite(rawTarget)
-            ? Math.max(0, Math.floor(rawTarget))
-            : 0;
+              ? Number((state as { argCount?: number }).argCount ?? 0) : 0;
+          const target = Number.isFinite(rawTarget) ? Math.max(0, Math.floor(rawTarget)) : 0;
           while (this.extraArgCount_ < target) {
-            const nextIndex = this.extraArgCount_ + 1;
-            this.appendValueInput(`CHOSEN_${nextIndex}`).setCheck('proposition');
-            this.moveInputBefore(`CHOSEN_${nextIndex}`, 'CONTROLS');
-            setDefaultPropShadow(this, `CHOSEN_${nextIndex}`);
-            this.extraArgCount_ = nextIndex;
+            appendChosenField(this, this.extraArgCount_ + 1);
+            this.extraArgCount_ += 1;
           }
           while (this.extraArgCount_ > target) {
-            this.removeInput(`CHOSEN_${this.extraArgCount_}`);
+            removeChosenField(this, this.extraArgCount_);
             this.extraArgCount_ -= 1;
           }
         },
@@ -808,28 +876,19 @@ function defineTactics() {
       function(this: blockly.Block) {
         const self = this as blockly.Block & { extraArgCount_: number };
         self.extraArgCount_ = 0;
-        const plusBtn = new blockly.FieldImage(
-          PLUS_ICON_URI, 14, 14, '+',
-          () => {
-            const nextIndex = self.extraArgCount_ + 1;
-            self.appendValueInput(`CHOSEN_${nextIndex}`).setCheck('proposition');
-            self.moveInputBefore(`CHOSEN_${nextIndex}`, 'CONTROLS');
-            setDefaultPropShadow(self, `CHOSEN_${nextIndex}`);
-            self.extraArgCount_ = nextIndex;
-          },
-        );
-        const minusBtn = new blockly.FieldImage(
-          MINUS_ICON_URI, 14, 14, '−',
-          () => {
+        self.getInput('CONTROLS')!
+          .appendField(new blockly.FieldImage(PLUS_ICON_URI, 14, 14, '+', () => {
+            appendChosenField(self, self.extraArgCount_ + 1);
+            self.extraArgCount_ += 1;
+          }), 'PLUS')
+          .appendField(new blockly.FieldImage(MINUS_ICON_URI, 14, 14, '−', () => {
             if (self.extraArgCount_ > 0) {
-              self.removeInput(`CHOSEN_${self.extraArgCount_}`);
+              removeChosenField(self, self.extraArgCount_);
               self.extraArgCount_ -= 1;
             }
-          },
-        );
-        self.getInput('CONTROLS')!
-          .appendField(plusBtn, 'PLUS')
-          .appendField(minusBtn, 'MINUS');
+          }), 'MINUS');
+        appendChosenField(self, 1);
+        self.extraArgCount_ = 1;
       },
     );
   }
@@ -844,7 +903,7 @@ function defineTactics() {
         `DIRECTION_TYPE_${i}`,
       )
       .setCheck('proposition');
-    block.moveInputBefore(`REWRITE_SOURCE_${i}`, 'CONTROLS');
+    block.appendEndRowInput(`END_ROW_${i}`);
   }
 
   if (!blockly.Extensions.isRegistered('rewrite_arg_buttons')) {
@@ -871,6 +930,7 @@ function defineTactics() {
             this.extraArgCount_ = nextIndex;
           }
           while (this.extraArgCount_ > target) {
+            this.removeInput(`END_ROW_${this.extraArgCount_}`);
             this.removeInput(`REWRITE_SOURCE_${this.extraArgCount_}`);
             this.extraArgCount_ -= 1;
           }
@@ -891,6 +951,7 @@ function defineTactics() {
           MINUS_ICON_URI, 14, 14, '−',
           () => {
             if (self.extraArgCount_ > 0) {
+              self.removeInput(`END_ROW_${self.extraArgCount_}`);
               self.removeInput(`REWRITE_SOURCE_${self.extraArgCount_}`);
               self.extraArgCount_ -= 1;
             }
@@ -899,6 +960,7 @@ function defineTactics() {
         self.getInput('CONTROLS')!
           .appendField(plusBtn, 'PLUS')
           .appendField(minusBtn, 'MINUS');
+        self.appendEndRowInput('END_ROW_BASE');
       },
     );
   }

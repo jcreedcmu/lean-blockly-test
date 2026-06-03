@@ -261,15 +261,13 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
           case 'rewrite': return wrapSingle('tactic_rewrite', 'REWRITE_SOURCE');
           case 'choose': {
             const v = affordance.suggestedName;
-            const outer = ws.newBlock('tactic_choose') as BlockSvg & { extraArgCount_: number };
-            // CHOSEN gets the witness; a second slot gets the proof name.
-            outer.getInput('CHOSEN')!.connection!.connect(
-              propWithName(v).outputConnection!);
-            outer.appendValueInput('CHOSEN_1').setCheck('proposition');
-            outer.moveInputBefore('CHOSEN_1', 'CONTROLS');
-            outer.extraArgCount_ = 1;
-            outer.getInput('CHOSEN_1')!.connection!.connect(
-              propWithName(`h${v}`).outputConnection!);
+            const outer = ws.newBlock('tactic_choose') as BlockSvg;
+            // The witness name and the proof name are square text fields;
+            // loadExtraState adds the second name slot, then we set values.
+            (outer as unknown as { loadExtraState: (s: unknown) => void })
+              .loadExtraState({ argCount: 1 });
+            outer.setFieldValue(v, 'CHOSEN_NAME');
+            outer.setFieldValue(`h${v}`, 'CHOSEN_NAME_1');
             outer.getInput('SOURCE')!.connection!.connect(
               propWithName(name).outputConnection!);
             outer.initSvg();
@@ -294,14 +292,10 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
             return block;
           }
           case 'intro': {
-            // Seed the ARG slot with a `prop` carrying the bound variable
-            // name from the `∀` so the user starts with `intro <name>`.
-            const inner = ws.newBlock('prop') as BlockSvg;
-            inner.setFieldValue(affordance.suggestedName, 'PROP_NAME');
-            inner.initSvg();
-            inner.render();
+            // Seed the NAME field with the bound variable name from the `∀`
+            // so the user starts with `intro <name>`.
             const block = ws.newBlock('tactic_intro') as BlockSvg;
-            block.getInput('ARG')!.connection!.connect(inner.outputConnection!);
+            block.setFieldValue(affordance.suggestedName, 'NAME');
             block.initSvg();
             block.render();
             return block;

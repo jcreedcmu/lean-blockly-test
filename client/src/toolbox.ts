@@ -79,28 +79,22 @@ const LeanTacticsCategory: CategoryItem = {
       kind: 'block',
       type: 'tactic_other',
     },
+    {
+      kind: 'block',
+      type: 'tactic_intro',
+    },
     ...blocks.singleArgTactics.map(t => ({
       kind: 'block' as const,
       type: `tactic_${t.name}`,
       ...(t.name === 'apply' ? { id: 'tutorial-toolbox-apply' } : {}),
-      ...(t.name === 'intro'
-        ? {
-            inputs: {
-              ARG: {
-                shadow: {
-                  type: 'prop',
-                  fields: {
-                    PROP_NAME: 'h',
-                  },
-                },
-              },
-            },
-          }
-        : {}),
     })),
     {
       kind: 'block',
       type: 'tactic_specialize',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_choose',
     },
   ],
 };
