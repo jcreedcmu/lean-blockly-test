@@ -7,6 +7,7 @@ import { FieldTheoremStatement } from './blocks'
 import { toolbox as defaultToolbox, filterToolbox } from './toolbox'
 import { workspaceToLean, WorkspaceToLeanResult, SourceInfo } from './workspaceToLean'
 import { FieldProofStatus, ProofStatus } from './FieldProofStatus'
+import { CUSTOM_RENDERER_NAME } from './customRenderer'
 import type { Affordance } from './LevelEvaluator'
 
 export type BlocklyState = object;
@@ -81,7 +82,7 @@ function useBlockly(
     const ws = blockly.inject(ref.current, {
       toolbox: toolbox,
       scrollbars: false,
-      renderer: 'zelos',
+      renderer: CUSTOM_RENDERER_NAME,
       theme: blockly.Themes.Zelos,
       grid: { spacing: 64, colour: '#ccc', length: 5 },
       move: { drag: true, scrollbars: true, wheel: true }
@@ -256,8 +257,8 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         if (!affordance) return propWithName(name);
 
         switch (affordance.kind) {
-          case 'apply':       return wrapSingle('tactic_apply', 'ARG');
-          case 'specialize':  return wrapSingle('tactic_specialize', 'HYP');
+          case 'apply': return wrapSingle('tactic_apply', 'ARG');
+          case 'specialize': return wrapSingle('tactic_specialize', 'HYP');
           case 'rewrite': return wrapSingle('tactic_rewrite', 'REWRITE_SOURCE');
           case 'choose': {
             const v = affordance.suggestedName;
@@ -355,7 +356,7 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
     // Suppress Blockly's auto-scroll that fires when the new block
     // receives focus during startDrag → moveToDragLayer → focusNode.
     const origScroll = ws.scrollBoundsIntoView.bind(ws);
-    ws.scrollBoundsIntoView = () => {};
+    ws.scrollBoundsIntoView = () => { };
 
     // Allow the drag surface SVG to render outside the Blockly pane
     // by temporarily removing overflow clipping and raising z-index.
