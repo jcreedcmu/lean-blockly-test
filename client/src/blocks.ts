@@ -128,7 +128,7 @@ blockly.fieldRegistry.register('field_theorem_statement', FieldTheoremStatement)
 blockly.fieldRegistry.register('field_monospace_input', FieldMonospaceInput);
 
 // Register extensions (must happen exactly once, before any block definitions)
-blockly.Extensions.register('lemma_init', function (this: blockly.Block) {
+blockly.Extensions.register('lemma_init', function(this: blockly.Block) {
   (this as blockly.BlockSvg).addClass('lemma-block');
   // THEOREM_NAME is used by codegen but not displayed; the user-visible
   // label is THEOREM_BLOCK_LABEL (e.g. "theorem foo" or "Example").
