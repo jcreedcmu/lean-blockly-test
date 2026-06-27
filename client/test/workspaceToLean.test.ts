@@ -5,7 +5,7 @@
  * via `blockly.serialization.workspaces.save`. We construct minimal
  * inputs by hand here to keep tests focused on the translator logic.
  */
-import { workspaceToLean } from '../src/workspaceToLean';
+import { workspaceToLean, emptyArmId } from '../src/workspaceToLean';
 import type { BlocklyState } from '../src/Blockly';
 
 // ── Tiny builders for serialized Blockly state ──────────────────────
@@ -74,6 +74,16 @@ describe('workspaceToLean', () => {
         'theorem the_problem (x : ℝ) (h : x = 5) : x = 5 := by\n' +
         '  skip\n'
       );
+    });
+
+    test('empty lemma proof body is keyed in sourceInfo (addressable position)', () => {
+      const ws = workspace(lemma('the_problem', '(x : ℝ) : x = x'));
+      const { sourceInfo } = workspaceToLean(ws);
+      const skipInfo = sourceInfo.find(
+        si => si.id === emptyArmId('lemma-the_problem', 'LEMMA_PROOF'),
+      );
+      expect(skipInfo).toBeDefined();
+      expect(skipInfo!.startLineCol).toEqual([1, 0]); // the `  skip` line
     });
 
     test('have with no proof body emits `skip`', () => {

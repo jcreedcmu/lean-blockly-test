@@ -110,9 +110,16 @@ function collectSequentialInputs(
  * with unsolved goals, and `LevelEvaluator` reports the level as
  * incomplete (`complete: false`).
  */
-function bodyOrSkip(bodyChunks: CodeChunk[], indent: string): CodeChunk[] {
+function bodyOrSkip(
+  bodyChunks: CodeChunk[],
+  indent: string,
+  blockId: string,
+  inputName: string,
+): CodeChunk[] {
   if (bodyChunks.length === 0) {
-    return [text(`${indent}skip\n`)];
+    // Key the placeholder so an empty body is still an addressable source
+    // position (e.g. for a goal-position marker that targets this input).
+    return [chunk(`${indent}skip\n`, emptyArmId(blockId, inputName))];
   }
   return bodyChunks;
 }
@@ -145,7 +152,7 @@ function blockToChunks(
       // THEOREM_DECLARATION should contain the full signature, e.g. "(a b : ℕ) : a + b = b + a"
       chunks = [
         chunk(`theorem ${name} ${declaration} := by\n`, blockId),
-        ...bodyOrSkip(proofChunks, indent + '  '),
+        ...bodyOrSkip(proofChunks, indent + '  ', blockId, 'LEMMA_PROOF'),
       ];
       break;
     }
@@ -316,7 +323,7 @@ function blockToChunks(
       const to = fields['TO'] ?? 'Y';
       const proofChunks = blockToChunks(inputs['PROOF']?.block, indent + '  ');
       const trimmedProofChunks = trimTrailingNewline(
-        bodyOrSkip(proofChunks, indent + '  '),
+        bodyOrSkip(proofChunks, indent + '  ', blockId, 'PROOF'),
       );
       chunks = [
         ...indentChunk,
@@ -332,7 +339,7 @@ function blockToChunks(
       chunks = [
         ...indentChunk,
         chunk(`conv =>\n`, blockId),
-        ...bodyOrSkip(bodyChunks, indent + '  '),
+        ...bodyOrSkip(bodyChunks, indent + '  ', blockId, 'BODY'),
       ];
       break;
     }
@@ -353,7 +360,7 @@ function blockToChunks(
       chunks = [
         ...indentChunk,
         chunk(`have ${name} : ${type} := by\n`, blockId),
-        ...bodyOrSkip(proofChunks, indent + '  '),
+        ...bodyOrSkip(proofChunks, indent + '  ', blockId, 'PROOF'),
       ];
       break;
     }
@@ -429,7 +436,7 @@ function blockToChunks(
 
       // Remove trailing newline from proof
       const trimmedProofChunks = trimTrailingNewline(
-        bodyOrSkip(proofChunks, indent + '  '),
+        bodyOrSkip(proofChunks, indent + '  ', blockId, 'PROOF'),
       );
 
       chunks = [

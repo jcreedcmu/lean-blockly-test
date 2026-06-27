@@ -426,6 +426,7 @@ function defineLemma() {
         {
           'type': 'field_proof_status',
           'name': 'PROOF_STATUS',
+          'target': 'LEMMA_PROOF',
         },
         {
           'type': 'input_dummy',
@@ -693,7 +694,8 @@ function defineTactics() {
         },
         {
           "type": "field_proof_status",
-          "name": "PROOF_STATUS"
+          "name": "PROOF_STATUS",
+          "target": "PROOF"
         },
         {
           "type": "input_dummy"
@@ -750,7 +752,8 @@ function defineTactics() {
         },
         {
           "type": "field_proof_status",
-          "name": "PROOF_STATUS"
+          "name": "PROOF_STATUS",
+          "target": "PROOF"
         },
         {
           "type": "input_dummy"
@@ -786,7 +789,8 @@ function defineTactics() {
         },
         {
           "type": "field_proof_status",
-          "name": "PROOF_STATUS"
+          "name": "PROOF_STATUS",
+          "target": "PROOF"
         },
         {
           "type": "input_dummy"
