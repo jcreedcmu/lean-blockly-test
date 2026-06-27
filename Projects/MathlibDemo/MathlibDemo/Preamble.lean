@@ -182,3 +182,185 @@ def getGoalInfo (p : GoalInfoParams) :
           hyps
           target := { affordances := targetAffordances }
         }
+
+/-
+  Conv navigation for goal subexpressions, served via the `getConvTargets`
+  RPC. Given the goal's `mvarId` and a list of subexpression positions (the
+  slash-encoded `SubExpr.Pos` strings the client already holds from the
+  goal's `CodeWithInfos`), we return, for the subset that are valid `conv`
+  targets, the `enter [...]` arguments that zoom `conv` onto them.
+
+  The association is intentionally PARTIAL: positions that `conv` can't reach
+  (implicit arguments, application heads, binder domains) are omitted, and the
+  client simply offers no conv block for those subexpressions.
+
+  `solveLevel` — the one-step `SubExpr.Pos` → `enter` translation — is copied
+  from Mathlib's `conv?` widget (`Mathlib/Tactic/Widget/Conv.lean`, Apache-2.0,
+  authors Robin Böhne, Wojciech Nawrocki, Patrick Massot). It handles the
+  subtleties that make a naive client-side implementation wrong: counting
+  explicit vs. implicit application arguments for 1-based `enter` indices, and
+  emitting binder names for `∀`/`λ`.
+-/
+
+open Lean Server Widget Elab Meta in
+private structure SolveReturn where
+  expr : Expr
+  val? : Option String
+  listRest : List Nat
+
+open Lean Server Widget Elab Meta in
+private def solveLevel (expr : Expr) (path : List Nat) : MetaM SolveReturn := match expr with
+  | Expr.app _ _ => do
+    let mut descExp := expr
+    let mut count := 0
+    let mut explicitList := []
+    -- walk the application spine, recording explicit/implicit for each arg
+    while descExp.isApp do
+      if (← Lean.Meta.inferType descExp.appFn!).bindingInfo!.isExplicit then
+        explicitList := true::explicitList
+        count := count + 1
+      else
+        explicitList := false::explicitList
+      descExp := descExp.appFn!
+    -- the `enter` index is the count of explicit args, minus those skipped
+    let mut mutablePath := path
+    let mut length := count
+    explicitList := List.reverse explicitList
+    while !mutablePath.isEmpty && mutablePath.head! == 0 do
+      if explicitList.head! == true then
+        count := count - 1
+      explicitList := explicitList.tail!
+      mutablePath := mutablePath.tail!
+    let mut nextExp := expr
+    while length > count do
+      nextExp := nextExp.appFn!
+      length := length - 1
+    nextExp := nextExp.appArg!
+    let pathRest := if mutablePath.isEmpty then [] else mutablePath.tail!
+    return { expr := nextExp, val? := toString count, listRest := pathRest }
+  | Expr.lam n _ b _ => do
+    let name := match n with
+      | Name.str _ s => s
+      | _ => panic! "no name found"
+    return { expr := b, val? := name, listRest := path.tail! }
+  | Expr.forallE n _ b _ => do
+    let name := match n with
+      | Name.str _ s => s
+      | _ => panic! "no name found"
+    return { expr := b, val? := name, listRest := path.tail! }
+  | Expr.mdata _ b => do
+    match b with
+      | Expr.mdata _ _ => return { expr := b, val? := none, listRest := path }
+      | _ => return { expr := b.appFn!.appArg!, val? := none, listRest := path.tail!.tail! }
+  | _ => do
+    return {
+      expr := ← (Lean.Core.viewSubexpr path.head! expr)
+      val? := toString (path.head! + 1)
+      listRest := path.tail!
+    }
+
+open Lean Server Widget Elab Meta in
+/-- The `conv => enter [...]` arguments navigating to `pos` within `goalType`,
+    or `none` if `pos` isn't a valid `conv` target. -/
+private def convArgsForPos (goalType : Expr) (pos : SubExpr.Pos) :
+    MetaM (Option (Array String)) := do
+  let mut list := (SubExpr.Pos.toArray pos).toList
+  let mut expr := goalType
+  let mut retList : List String := []
+  while !list.isEmpty do
+    let res ← solveLevel expr list
+    expr := res.expr
+    retList := match res.val? with
+      | none => retList
+      | some val => val :: retList
+    list := res.listRest
+  let args := retList.reverse
+  -- `enter` is 1-based: a "0" means navigation landed on a non-conv-target
+  -- (implicit arg / application head). The empty path is the goal root.
+  if args.isEmpty || args.contains "0" then
+    return none
+  return some args.toArray
+
+open Lean Server Widget Elab in
+structure ConvTarget where
+  /-- The subexpression position, echoing the client's `subexprPos` string. -/
+  pos : String
+  /-- The `enter [...]` arguments (explicit-arg indices and/or binder names). -/
+  enter : Array String
+  deriving FromJson, ToJson
+
+open Lean Server Widget Elab in
+structure ConvTargets where
+  mvarId : String
+  targets : Array ConvTarget
+  deriving FromJson, ToJson
+
+open Lean Server Widget Elab in
+structure ConvTargetParams where
+  ctx : WithRpcRef ContextInfo
+  mvarId : String
+  /-- Subexpression positions to evaluate, as slash-encoded `SubExpr.Pos`
+      strings (exactly the `subexprPos` values the client already holds). -/
+  positions : Array String
+  deriving RpcEncodable
+
+open Lean Server Widget Elab Meta in
+@[server_rpc_method]
+def getConvTargets (p : ConvTargetParams) :
+    RequestM (RequestTask ConvTargets) :=
+  RequestM.pureTask do
+    let ci := p.ctx.val
+    ci.runMetaM {} do
+      let mvarId := MVarId.mk (parseLeanName p.mvarId)
+      let mctx ← getMCtx
+      let some mvarDecl := mctx.findDecl? mvarId
+        | return { mvarId := p.mvarId, targets := #[] }
+      withLCtx mvarDecl.lctx mvarDecl.localInstances do
+        let goalType ← instantiateMVars mvarDecl.type
+        let mut targets : Array ConvTarget := #[]
+        for posStr in p.positions do
+          match SubExpr.Pos.fromString? posStr with
+          | .ok pos =>
+            let res ← (try convArgsForPos goalType pos catch _ => pure none)
+            match res with
+            | some enter => targets := targets.push { pos := posStr, enter }
+            | none => pure ()
+          | .error _ => pure ()
+        return { mvarId := p.mvarId, targets }
+
+/-
+  Unit tests for the conv-path generation. Each `#eval` runs `convArgsForPos`
+  on a closed example goal at a hand-written `SubExpr.Pos` and prints the
+  resulting `enter` args; `#guard_msgs` pins the expected output. These run at
+  preamble *build* time only (importing the olean does not re-run them).
+
+  NOTE: the expected `info:` values were written by hand. If a build reports a
+  `#guard_msgs` mismatch, its message shows the actual output to paste in.
+-/
+section ConvPathTests
+open Lean Qq
+
+private def egArith : Q(Prop) := q((2 : Nat) + 3 = 5)
+private def egForall : Q(Prop) := q(∀ n : Nat, n = n)
+
+-- `(2 + 3 = 5)` is `@Eq Nat (2 + 3) 5`; positions index the binary `Expr` tree.
+
+/-- info: some #["1"] -/        -- lhs `2 + 3` (first explicit arg of `Eq`)
+#guard_msgs in #eval convArgsForPos egArith (.fromString! "/0/1")
+
+/-- info: some #["2"] -/        -- rhs `5` (second explicit arg of `Eq`)
+#guard_msgs in #eval convArgsForPos egArith (.fromString! "/1")
+
+/-- info: some #["1", "1"] -/   -- the `2` (first explicit arg of `+`, inside lhs)
+#guard_msgs in #eval convArgsForPos egArith (.fromString! "/0/1/0/1")
+
+/-- info: some #["1", "2"] -/   -- the `3` (second explicit arg of `+`)
+#guard_msgs in #eval convArgsForPos egArith (.fromString! "/0/1/1")
+
+/-- info: none -/               -- the goal root has no `enter`, so no conv target
+#guard_msgs in #eval convArgsForPos egArith (.fromString! "/")
+
+/-- info: some #["n"] -/        -- body of `∀ n, n = n` (enter the binder by name)
+#guard_msgs in #eval convArgsForPos egForall (.fromString! "/1")
+
+end ConvPathTests
