@@ -21,6 +21,7 @@
  */
 import type {
   InteractiveGoal,
+  InteractiveGoals,
   InteractiveDiagnostic,
   TaggedText,
   SubexprInfo,
@@ -384,6 +385,19 @@ export class LevelEvaluator {
     }
 
     return { diagnostics, leafGoals, goalInfoMap, complete };
+  }
+
+  /**
+   * Interactive goals at a contribution-relative position. The line is offset
+   * by the prelude to form a document position, then queried via the server's
+   * position-goal RPC. Returns null when there are no goals there.
+   */
+  async goalsAtContributionPosition(pos: Position): Promise<InteractiveGoals | null> {
+    const docPos: Position = {
+      line: pos.line + this.preludeLineCount,
+      character: pos.character,
+    };
+    return this.session.getGoalsAtPosition(this.uri, docPos);
   }
 
   // ── Coordinate translation ──────────────────────────────────────

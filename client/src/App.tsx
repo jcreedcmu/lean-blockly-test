@@ -408,6 +408,30 @@ function App() {
         style={{ flexGrow: 1 }}
         onBlocklyChange={onBlocklyChange}
         onRequestGoals={onRequestGoals}
+        onMarkerSelect={(location, blockId, target) => {
+          // Slice 2 / step 1: confirm position math + the goal-at-position RPC.
+          const ev = evaluatorRef.current;
+          if (!ev || !location) {
+            console.log('[marker] unresolved', { blockId, target, location });
+            return;
+          }
+          const toPos = (lc: [number, number]) => ({ line: lc[0], character: lc[1] });
+          void (async () => {
+            try {
+              const start = await ev.goalsAtContributionPosition(toPos(location.startLineCol));
+              const end = await ev.goalsAtContributionPosition(toPos(location.endLineCol));
+              console.log('[marker] goals at position', {
+                blockId, target,
+                startPos: location.startLineCol, endPos: location.endLineCol,
+                startCount: start?.goals?.length ?? null,
+                endCount: end?.goals?.length ?? null,
+                start, end,
+              });
+            } catch (err) {
+              console.error('[marker] goal query failed', err);
+            }
+          })();
+        }}
         initialData={levelStates[nav.worldId][nav.levelIndex]}
         allowedBlocks={allowedBlocks}
       />

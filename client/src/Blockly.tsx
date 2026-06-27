@@ -5,7 +5,8 @@ import type { ContextMenuRegistry, BlockSvg } from 'blockly'
 import * as blocks from './blocks'
 import { FieldTheoremStatement } from './blocks'
 import { toolbox as defaultToolbox, filterToolbox } from './toolbox'
-import { workspaceToLean, WorkspaceToLeanResult, SourceInfo, emptyArmId } from './workspaceToLean'
+import { workspaceToLean, WorkspaceToLeanResult, SourceInfo } from './workspaceToLean'
+import { resolveMarkerLocation, MarkerLocation } from './markerResolve'
 import { FieldProofStatus, ProofStatus } from './FieldProofStatus'
 import './FieldGoalMarker'
 import { setMarkerClickHandler, isGoalPositionMarker } from './goalMarker'
@@ -22,6 +23,15 @@ export type GoalRequestHandler = (
   leanCode: string,
   sourceInfo: SourceInfo[],
   blockSourceInfo: SourceInfo | undefined
+) => void;
+
+// Fired when a goal-position marker pill is clicked. `location` is the
+// resolved (contribution-relative) source range for the selected position,
+// or undefined if it couldn't be resolved.
+export type MarkerSelectHandler = (
+  location: MarkerLocation | undefined,
+  blockId: string,
+  target: string,
 ) => void;
 
 export type BlocklyHandle = {
@@ -60,9 +70,15 @@ function useBlockly(
   onBlocklyChange?: BlocklyChangeHandler,
   onRequestGoals?: GoalRequestHandler,
   allowedBlocks?: string[],
+  onMarkerSelect?: MarkerSelectHandler,
 ) {
   const handlerRef = useRef<BlocklyChangeHandler | undefined>(onBlocklyChange);
   const goalHandlerRef = useRef<GoalRequestHandler | undefined>(onRequestGoals);
+  const markerSelectRef = useRef<MarkerSelectHandler | undefined>(onMarkerSelect);
+
+  useEffect(() => {
+    markerSelectRef.current = onMarkerSelect;
+  }, [onMarkerSelect]);
 
   useEffect(() => {
     handlerRef.current = onBlocklyChange;
@@ -158,14 +174,24 @@ function useBlockly(
     // reports (blockId, target); we resolve that to a source location via the
     // input's child (or the synthesized empty-arm placeholder) and `sourceInfo`.
     setMarkerClickHandler((blockId, target) => {
-      const { sourceInfo } = workspaceToLean(blockly.serialization.workspaces.save(ws));
-      const byId = new Map(sourceInfo.map((s) => [s.id, s] as const));
-      let key = blockId;
-      if (target) {
-        const child = ws.getBlockById(blockId)?.getInput(target)?.connection?.targetBlock();
-        key = child ? child.id : emptyArmId(blockId, target);
+      const state = blockly.serialization.workspaces.save(ws);
+      const { leanCode, sourceInfo } = workspaceToLean(state);
+      const location = resolveMarkerLocation(state, sourceInfo, blockId, target);
+
+      // Debug: mark the resolved span in the generated contribution text so the
+      // pill→position mapping is visible. End is inserted first so it doesn't
+      // shift the start column.
+      if (location) {
+        const mark = (s: string, [line, col]: [number, number], m: string): string => {
+          const lines = s.split('\n');
+          if (line < 0 || line >= lines.length) return s;
+          lines[line] = lines[line].slice(0, col) + m + lines[line].slice(col);
+          return lines.join('\n');
+        };
+        let marked = mark(leanCode, location.endLineCol, '/-«end»-/');
+        marked = mark(marked, location.startLineCol, '/-«start»-/');
+        console.log(`[marker] position in text (${blockId}/${target || 'self'}):\n${marked}`);
       }
-      const location = byId.get(key);
 
       // Highlight the clicked marker, clear the rest (any marker field type).
       for (const b of ws.getAllBlocks(false)) {
@@ -178,8 +204,7 @@ function useBlockly(
         }
       }
 
-      // Slice 1: just report the resolved location. Slice 2 queries the goal here.
-      console.log('[goal-marker] select', { blockId, target, key, location });
+      markerSelectRef.current?.(location, blockId, target);
     });
 
     function changeListener(e: blockly.Events.Abstract) {
@@ -211,6 +236,7 @@ export type BlocklyProps = {
   onBlocklyChange?: BlocklyChangeHandler;
   onRequestGoals?: GoalRequestHandler;
   allowedBlocks?: string[];
+  onMarkerSelect?: MarkerSelectHandler;
 };
 
 export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
@@ -476,6 +502,7 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
     props.onBlocklyChange,
     props.onRequestGoals,
     props.allowedBlocks,
+    props.onMarkerSelect,
   );
 
   return <div style={props.style} ref={blocklyRef}></div>;

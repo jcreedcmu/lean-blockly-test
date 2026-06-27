@@ -5,7 +5,7 @@
 import type { BlocklyState } from './Blockly';
 
 // Type definitions for the serialized block structure
-interface SerializedBlock {
+export interface SerializedBlock {
   type: string;
   id?: string;
   x?: number;
@@ -16,7 +16,7 @@ interface SerializedBlock {
   data?: string;
 }
 
-interface SerializedWorkspace {
+export interface SerializedWorkspace {
   blocks?: {
     languageVersion?: number;
     blocks?: SerializedBlock[];

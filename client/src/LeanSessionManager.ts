@@ -23,6 +23,7 @@
  * Multi-URI is supported even though current callers use a single URI.
  */
 import type { MessageConnection } from './LeanLspClient';
+import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { log, logError } from './log';
 
 const KEEPALIVE_PERIOD_MS = 10_000;
@@ -284,6 +285,21 @@ export class LeanSessionManager {
       }
     }
     throw new Error(`widgetRpcCall[${method}] failed after retries`);
+  }
+
+  /**
+   * Query the interactive goal state at a document position via
+   * `Lean.Widget.getInteractiveGoals`. Returns null when there are no goals
+   * there (e.g. term mode or an already-completed region). `position` is a
+   * full-document position (line counting includes the prelude).
+   */
+  async getGoalsAtPosition(uri: string, position: Position): Promise<InteractiveGoals | null> {
+    return this.widgetRpcCall<InteractiveGoals | null>(
+      uri,
+      'Lean.Widget.getInteractiveGoals',
+      { textDocument: { uri }, position },
+      position,
+    );
   }
 
   // ── RPC session plumbing ────────────────────────────────────────
