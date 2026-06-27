@@ -1,13 +1,13 @@
 import * as blockly from 'blockly';
 import { Field, FieldConfig } from 'blockly';
 import { dispatchMarkerClick, GoalPositionMarker } from './goalMarker';
-import { PILL_WIDTH, PILL_HEIGHT, PillElements, createPill, updatePill } from './pill';
+import { PILL_WIDTH, PILL_HEIGHT, createPill, updatePill } from './pill';
 
 /**
  * A clickable marker pill that selects a proof position for goal display, for
  * tactics that have no proof-status pill of their own (e.g. `intro`). Uses the
- * shared {@link createPill} renderer, so it is the same fixed 48×18 oblong
- * shape as {@link import('./FieldProofStatus')} — just with no status glyph.
+ * shared {@link createPill} renderer, so it is the same pill as the one in
+ * {@link import('./FieldProofStatus')} (which adds a status decoration beside it).
  *
  * `target` names a statement input whose sub-proof position this pill points
  * to; an empty `target` means the block's own position. On click it reports
@@ -16,7 +16,7 @@ import { PILL_WIDTH, PILL_HEIGHT, PillElements, createPill, updatePill } from '.
 export class FieldGoalMarker extends Field<string> implements GoalPositionMarker {
   private target_: string;
   private selected_ = false;
-  private pill_: PillElements | null = null;
+  private pill_: SVGRectElement | null = null;
 
   EDITABLE = false;
   SERIALIZABLE = false;
@@ -32,13 +32,7 @@ export class FieldGoalMarker extends Field<string> implements GoalPositionMarker
   }
 
   private redraw_(): void {
-    if (!this.pill_) return;
-    // White when unselected, blue when selected; no status glyph.
-    updatePill(this.pill_, {
-      fill: this.selected_ ? '#1565c0' : '#ffffff',
-      stroke: this.selected_ ? '#1565c0' : '#888888',
-      strokeWidth: '1',
-    });
+    if (this.pill_) updatePill(this.pill_, this.selected_);
   }
 
   setSelected(selected: boolean): void {
