@@ -2,6 +2,7 @@ import * as blockly from 'blockly';
 import { FieldLabelSerializable, FieldTextInput, FieldConfig } from 'blockly';
 import { attachAbbreviationRewriter } from './abbreviations';
 import './FieldProofStatus';
+import './FieldGoalMarker';
 
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
@@ -324,8 +325,9 @@ function defineMisc() {
   // never drag a term into them, so they read as fields rather than sockets.
   blockly.defineBlocksWithJsonArray([{
     'type': 'tactic_intro',
-    'message0': 'intro %1 %2 %3',
+    'message0': 'intro %1 %2 %3 %4',
     'args0': [
+      { 'type': 'field_goal_marker', 'name': 'GOAL_AT' },
       { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },
       { 'type': 'input_dummy', 'name': 'EXTRA_NAMES' },
       { 'type': 'input_dummy', 'name': 'CONTROLS' },
@@ -652,7 +654,8 @@ function defineTactics() {
         },
         {
           "type": "field_proof_status",
-          "name": "STATUS_1"
+          "name": "STATUS_1",
+          "target": "BODY1"
         },
         {
           "type": "input_dummy"
@@ -663,7 +666,8 @@ function defineTactics() {
         },
         {
           "type": "field_proof_status",
-          "name": "STATUS_2"
+          "name": "STATUS_2",
+          "target": "BODY2"
         },
         {
           "type": "input_dummy"

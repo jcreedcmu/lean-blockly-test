@@ -1,5 +1,7 @@
 import * as blockly from 'blockly';
 import { Field, FieldConfig } from 'blockly';
+import { dispatchMarkerClick, GoalPositionMarker } from './goalMarker';
+import { PILL_WIDTH, PILL_HEIGHT, PillElements, createPill, updatePill } from './pill';
 
 export type ProofStatus = 'unknown' | 'complete' | 'incomplete';
 
@@ -11,8 +13,7 @@ type StatusStyle = {
   fontSize: string;
 };
 
-/** Per-status appearance. The pill background always spans the field's
- * full (possibly renderer-stretched) width; only colors/glyph differ. */
+/** Per-status appearance, drawn on the shared fixed-size pill. */
 const STATUS_STYLES: Record<ProofStatus, StatusStyle> = {
   complete: { fill: '#4a90e2', fillOpacity: '1', text: '✓', textFill: '#000', fontSize: '12' },
   incomplete: { fill: '#d11', fillOpacity: '1', text: 'sorry', textFill: '#fff', fontSize: '12' },
@@ -20,22 +21,18 @@ const STATUS_STYLES: Record<ProofStatus, StatusStyle> = {
 };
 
 /**
- * Custom field showing a proof status indicator (checkmark, `sorry` pill, or
- * question mark). Rendered as a rounded pill that spans the field's width.
- *
- * The width is dynamic: the custom renderer calls {@link setRenderWidth} to
- * stretch each instance to match the statement input it reports on, so the
- * pill lines up with the proof slot directly above it.
+ * Proof-status indicator pill (checkmark / `sorry` / `?`) that doubles as a
+ * goal-position marker. Uses the shared {@link createPill} renderer, so it is
+ * the same fixed 48×18 oblong shape as {@link import('./FieldGoalMarker')}. The
+ * custom renderer centers it on the statement notch above (it is no longer
+ * dynamically sized).
  */
-export class FieldProofStatus extends Field<string> {
+export class FieldProofStatus extends Field<string> implements GoalPositionMarker {
   private status_: ProofStatus = 'unknown';
-  private renderWidth_ = FieldProofStatus.DEFAULT_WIDTH;
-  private bgRect_: SVGRectElement | null = null;
-  private iconElement_: SVGTextElement | null = null;
-  private onClickHandler_: ((blockId: string, fieldName: string) => void) | null = null;
-
-  static readonly DEFAULT_WIDTH = 50;
-  static readonly HEIGHT = 24;
+  private pill_: PillElements | null = null;
+  // Goal-position-marker state.
+  private target_ = '';
+  private selected_ = false;
 
   EDITABLE = false;
   SERIALIZABLE = false;
@@ -45,44 +42,23 @@ export class FieldProofStatus extends Field<string> {
   }
 
   protected initView(): void {
-    const Svg = blockly.utils.Svg;
-    this.bgRect_ = blockly.utils.dom.createSvgElement(
-      Svg.RECT,
-      {
-        'x': '0',
-        'y': '0',
-        'height': String(FieldProofStatus.HEIGHT),
-        'rx': String(FieldProofStatus.HEIGHT / 2),
-        'ry': String(FieldProofStatus.HEIGHT / 2),
-      },
-      this.fieldGroup_,
-    );
-    this.iconElement_ = blockly.utils.dom.createSvgElement(
-      Svg.TEXT,
-      {
-        'y': String(FieldProofStatus.HEIGHT / 2),
-        'dominant-baseline': 'central',
-        'text-anchor': 'middle',
-        'font-weight': 'bold',
-        'pointer-events': 'none',
-      },
-      this.fieldGroup_,
-    );
+    this.pill_ = createPill(this.fieldGroup_ as SVGGElement);
     this.redraw_();
   }
 
-  /** Re-apply geometry (width) and per-status styling to the SVG. */
   private redraw_(): void {
-    if (!this.bgRect_ || !this.iconElement_) return;
-    const style = STATUS_STYLES[this.status_];
-    const w = this.renderWidth_;
-    this.bgRect_.setAttribute('width', String(w));
-    this.bgRect_.setAttribute('fill', style.fill);
-    this.bgRect_.setAttribute('fill-opacity', style.fillOpacity);
-    this.iconElement_.setAttribute('x', String(w / 2));
-    this.iconElement_.setAttribute('font-size', style.fontSize);
-    this.iconElement_.setAttribute('fill', style.textFill);
-    this.iconElement_.textContent = style.text;
+    if (!this.pill_) return;
+    const s = STATUS_STYLES[this.status_];
+    updatePill(this.pill_, {
+      fill: s.fill,
+      fillOpacity: s.fillOpacity,
+      text: s.text,
+      textFill: s.textFill,
+      fontSize: s.fontSize,
+      // Selection ring (keeps the status color visible underneath).
+      stroke: this.selected_ ? '#1565c0' : 'none',
+      strokeWidth: this.selected_ ? '2' : '0',
+    });
   }
 
   setStatus(status: ProofStatus): void {
@@ -94,10 +70,12 @@ export class FieldProofStatus extends Field<string> {
     return this.status_;
   }
 
-  /** Set the rendered width. Called by the custom renderer to match the
-   * notch of the preceding statement input. */
-  setRenderWidth(width: number): void {
-    this.renderWidth_ = Math.max(width);
+  getTarget(): string {
+    return this.target_;
+  }
+
+  setSelected(selected: boolean): void {
+    this.selected_ = selected;
     this.redraw_();
   }
 
@@ -106,32 +84,24 @@ export class FieldProofStatus extends Field<string> {
   }
 
   protected showEditor_(): void {
-    if (this.onClickHandler_) {
-      const block = this.getSourceBlock();
-      this.onClickHandler_(block ? block.id : '', this.name ?? '');
-    } else {
-      console.log('[FieldProofStatus] clicked, no handler set');
-    }
-  }
-
-  setOnClick(handler: (blockId: string, fieldName: string) => void): void {
-    this.onClickHandler_ = handler;
+    const block = this.getSourceBlock();
+    dispatchMarkerClick(block ? block.id : '', this.target_);
   }
 
   getSize(): blockly.utils.Size {
-    return new blockly.utils.Size(this.renderWidth_ ?? FieldProofStatus.DEFAULT_WIDTH, FieldProofStatus.HEIGHT);
+    return new blockly.utils.Size(PILL_WIDTH, PILL_HEIGHT);
   }
 
   protected get size_(): blockly.utils.Size {
-    return new blockly.utils.Size(this.renderWidth_ ?? FieldProofStatus.DEFAULT_WIDTH, FieldProofStatus.HEIGHT);
+    return new blockly.utils.Size(PILL_WIDTH, PILL_HEIGHT);
   }
 
   protected set size_(_newValue: blockly.utils.Size) {
-    // Width is renderer-driven, height is fixed — ignore external resize.
+    // Fixed size — ignore external resize attempts.
   }
 
   protected updateSize_(): void {
-    // Size is managed via renderWidth_, nothing to recompute.
+    // Fixed size, nothing to recompute.
   }
 
   saveState(): null {
@@ -139,11 +109,13 @@ export class FieldProofStatus extends Field<string> {
   }
 
   loadState(_state: unknown): void {
-    // Status is ephemeral, not serialized.
+    // Status/selection are ephemeral, not serialized.
   }
 
-  static fromJson(_options: FieldConfig): FieldProofStatus {
-    return new FieldProofStatus();
+  static fromJson(options: FieldConfig): FieldProofStatus {
+    const field = new FieldProofStatus();
+    field.target_ = (options as { target?: string }).target ?? '';
+    return field;
   }
 }
 

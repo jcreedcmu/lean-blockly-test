@@ -5,8 +5,10 @@ import type { ContextMenuRegistry, BlockSvg } from 'blockly'
 import * as blocks from './blocks'
 import { FieldTheoremStatement } from './blocks'
 import { toolbox as defaultToolbox, filterToolbox } from './toolbox'
-import { workspaceToLean, WorkspaceToLeanResult, SourceInfo } from './workspaceToLean'
+import { workspaceToLean, WorkspaceToLeanResult, SourceInfo, emptyArmId } from './workspaceToLean'
 import { FieldProofStatus, ProofStatus } from './FieldProofStatus'
+import './FieldGoalMarker'
+import { setMarkerClickHandler, isGoalPositionMarker } from './goalMarker'
 import { CUSTOM_RENDERER_NAME } from './customRenderer'
 import type { Affordance } from './LevelEvaluator'
 
@@ -152,6 +154,34 @@ function useBlockly(
 
     blockly.ContextMenuRegistry.registry.register(showGoalsMenuItem);
 
+    // Goal-marker pills: clicking one selects a proof position. The pill
+    // reports (blockId, target); we resolve that to a source location via the
+    // input's child (or the synthesized empty-arm placeholder) and `sourceInfo`.
+    setMarkerClickHandler((blockId, target) => {
+      const { sourceInfo } = workspaceToLean(blockly.serialization.workspaces.save(ws));
+      const byId = new Map(sourceInfo.map((s) => [s.id, s] as const));
+      let key = blockId;
+      if (target) {
+        const child = ws.getBlockById(blockId)?.getInput(target)?.connection?.targetBlock();
+        key = child ? child.id : emptyArmId(blockId, target);
+      }
+      const location = byId.get(key);
+
+      // Highlight the clicked marker, clear the rest (any marker field type).
+      for (const b of ws.getAllBlocks(false)) {
+        for (const input of b.inputList) {
+          for (const field of input.fieldRow) {
+            if (isGoalPositionMarker(field)) {
+              field.setSelected(b.id === blockId && field.getTarget() === target);
+            }
+          }
+        }
+      }
+
+      // Slice 1: just report the resolved location. Slice 2 queries the goal here.
+      console.log('[goal-marker] select', { blockId, target, key, location });
+    });
+
     function changeListener(e: blockly.Events.Abstract) {
       // Only re-evaluate when block content actually changes, not on
       // UI events like selections, flyout toggles, or viewport changes.
@@ -165,6 +195,7 @@ function useBlockly(
     return () => {
       ws.removeChangeListener(changeListener);
       blockly.ContextMenuRegistry.registry.unregister('showGoalState');
+      setMarkerClickHandler(null);
       ws.dispose();
       wsRef.current = null;
     };

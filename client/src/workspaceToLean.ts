@@ -51,6 +51,16 @@ function text(t: string): CodeChunk {
   return { text: t };
 }
 
+/**
+ * Synthetic `sourceInfo` id for an empty statement-input arm. When a tactic
+ * synthesizes a placeholder (e.g. `· skip`) for an empty sub-proof, emit it as
+ * a chunk keyed by this id so the arm has an addressable source position. The
+ * goal-marker resolver reconstructs the same key.
+ */
+export function emptyArmId(blockId: string, inputName: string): string {
+  return `${blockId}::${inputName}`;
+}
+
 function inputBlock(input: { block?: SerializedBlock; shadow?: SerializedBlock } | undefined): SerializedBlock | undefined {
   return input?.block ?? input?.shadow;
 }
@@ -392,10 +402,11 @@ function blockToChunks(
 
       // Replace first indent with bullet for each body. If a branch is
       // entirely empty, emit `· skip` so it parses and produces an
-      // unsolved-goals diagnostic at that branch.
-      const bulletize = (bodyChunks: CodeChunk[]): CodeChunk[] => {
+      // unsolved-goals diagnostic at that branch — keyed by a synthetic id so
+      // the (empty) arm remains an addressable position for goal markers.
+      const bulletize = (bodyChunks: CodeChunk[], inputName: string): CodeChunk[] => {
         if (bodyChunks.length === 0) {
-          return [text(`${indent}· skip\n`)];
+          return [chunk(`${indent}· skip\n`, emptyArmId(blockId, inputName))];
         }
         if (bodyChunks.length > 0 && bodyChunks[0].text === indent + '  ') {
           return [text(`${indent}· `), ...bodyChunks.slice(1)];
@@ -406,8 +417,8 @@ function blockToChunks(
       chunks = [
         ...indentChunk,
         chunk(`constructor\n`, blockId),
-        ...bulletize(body1Chunks),
-        ...bulletize(body2Chunks),
+        ...bulletize(body1Chunks, 'BODY1'),
+        ...bulletize(body2Chunks, 'BODY2'),
       ];
       break;
     }

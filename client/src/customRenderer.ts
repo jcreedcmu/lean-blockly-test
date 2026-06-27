@@ -98,10 +98,9 @@ class CustomRenderInfo extends blockly.zelos.RenderInfo {
       const stmtRow = statementRowAbove(this.rows, i);
       if (!stmtRow) continue;
       const stmt = statementInputElem(stmtRow)!;
-      const { center, width } = notchBounds(stmt);
-      elem.field.setRenderWidth(width);
-      elem.width = width;
-      elem.xPos = center - width / 2;
+      const { center } = notchBounds(stmt);
+      // The pill is a fixed size now — just center it horizontally on the notch.
+      elem.xPos = center - elem.width / 2;
       // Vertical: `layoutField_` places the field at `centerline - height/2`,
       // so this puts the pill's top a fixed `PILL_BELOW_SLOT` below the slot
       // bottom — a landmark that's consistent across blocks.
