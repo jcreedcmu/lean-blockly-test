@@ -794,15 +794,10 @@ function defineTactics() {
     },
     {
       "type": "tactic_conv",
-      "tooltip": "Zoom into a subexpression of the goal with conv",
+      "tooltip": "Enter conv mode to rewrite a subexpression of the goal",
       "helpUrl": "conv",
-      "message0": "conv enter [%1] %2 %3",
+      "message0": "conv => %1 %2",
       "args0": [
-        {
-          "type": "field_label_serializable",
-          "name": "ENTER_PATH",
-          "text": ""
-        },
         {
           "type": "input_dummy"
         },
@@ -810,6 +805,22 @@ function defineTactics() {
           "type": "input_statement",
           "name": "BODY",
           "check": "tactic"
+        }
+      ],
+      "previousStatement": "tactic",
+      "nextStatement": "tactic",
+      "style": "logic_blocks"
+    },
+    {
+      "type": "tactic_enter",
+      "tooltip": "Navigate into a subexpression. Only valid inside a conv block.",
+      "helpUrl": "conv",
+      "message0": "enter %1",
+      "args0": [
+        {
+          "type": "field_monospace_input",
+          "name": "ENTER_PATH",
+          "text": "[]"
         }
       ],
       "previousStatement": "tactic",

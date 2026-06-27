@@ -318,16 +318,21 @@ function blockToChunks(
     }
 
     case 'tactic_conv': {
-      // `ENTER_PATH` holds the comma-separated `enter` args (e.g. "1, 2")
-      // precomputed by the server's `getConvTargets` RPC.
-      const path = fields['ENTER_PATH'] ?? '';
       const bodyChunks = blockToChunks(inputBlock(inputs['BODY']), indent + '  ');
       chunks = [
         ...indentChunk,
         chunk(`conv =>\n`, blockId),
-        text(`${indent}  enter [${path}]\n`),
-        ...bodyChunks,
+        ...bodyOrSkip(bodyChunks, indent + '  '),
       ];
+      break;
+    }
+
+    case 'tactic_enter': {
+      // `ENTER_PATH` holds the bracketed `enter` list (e.g. "[1, c]"),
+      // precomputed by the server's `getConvTargets` RPC. Only valid inside
+      // a `conv` block; used elsewhere it errors in Lean (intentionally).
+      const path = fields['ENTER_PATH'] ?? '[]';
+      chunks = [...indentChunk, chunk(`enter ${path}\n`, blockId)];
       break;
     }
 

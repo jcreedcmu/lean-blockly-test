@@ -41,8 +41,9 @@ export type BlocklyHandle = {
    * there's no bare-drag mode here — the only drag surfaces are the
    * affordance buttons — so `affordance` is required. */
   startGoalDrag: (e: React.MouseEvent, affordance: Affordance) => void;
-  /** Start a drag of a `conv` block pre-populated with the given `enter`
-   * args (e.g. `['1', '2']`), originating from a goal subexpression. */
+  /** Start a drag of a `conv` block containing an `enter` block pre-populated
+   * with the given `enter` args (e.g. `['1', 'c']`), originating from a goal
+   * subexpression. */
   startConvDrag: (enterArgs: string[], e: React.MouseEvent) => void;
   /** True if the user is currently dragging a block. */
   isDragging: () => boolean;
@@ -320,11 +321,17 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
     },
     startConvDrag: (enterArgs: string[], e: React.MouseEvent) => {
       startBlockDrag(e, (ws) => {
-        const block = ws.newBlock('tactic_conv') as BlockSvg;
-        block.setFieldValue(enterArgs.join(', '), 'ENTER_PATH');
-        block.initSvg();
-        block.render();
-        return block;
+        // An `enter` tactic carrying the bracketed path, nested inside a
+        // `conv` block: dragging out gives `conv => enter [1, c]`.
+        const enterBlock = ws.newBlock('tactic_enter') as BlockSvg;
+        enterBlock.setFieldValue(`[${enterArgs.join(', ')}]`, 'ENTER_PATH');
+        enterBlock.initSvg();
+        enterBlock.render();
+        const conv = ws.newBlock('tactic_conv') as BlockSvg;
+        conv.getInput('BODY')!.connection!.connect(enterBlock.previousConnection!);
+        conv.initSvg();
+        conv.render();
+        return conv;
       });
     },
     isDragging: () => wsRef.current?.isDragging() ?? false,
