@@ -12,8 +12,8 @@ type StatusDecoration = { text: string; fill: string };
 
 /** The text decoration drawn to the right of the pill, conveying good/bad. */
 const STATUS_DECORATION: Record<ProofStatus, StatusDecoration> = {
-  complete: { text: '✓', fill: '#2e7d32' },     // good
-  incomplete: { text: 'sorry', fill: '#d11' },  // bad
+  complete: { text: '✓', fill: '#fff' },     // good
+  incomplete: { text: '✕', fill: '#fff' },  // bad
   unknown: { text: '', fill: 'rgba(0,0,0,0)' }, // nothing yet
 };
 
