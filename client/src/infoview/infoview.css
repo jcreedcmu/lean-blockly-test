@@ -223,6 +223,43 @@
   border-radius: 2px;
 }
 
+/* Subexpression-hierarchy proof-of-concept */
+.subexpr-tree {
+  margin-top: 6px;
+  font-family: monospace;
+}
+
+.subexpr-tree-path {
+  min-height: 16px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #555;
+}
+
+.subexpr-tree-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 2;
+}
+
+/* Each tagged subexpression becomes a nested bordered box; boxes stay inline
+   so the term reads the same left-to-right, just wrapped in visible nesting. */
+.subexpr-box {
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 3px;
+  padding: 0 2px;
+  margin: 1px;
+  vertical-align: middle;
+}
+
+/* Highlight is driven by explicit `current` state (innermost box only), not
+   by CSS :hover (which would tint every ancestor under the cursor). */
+.subexpr-box-current {
+  border-color: rgba(0, 122, 204, 0.8);
+  background-color: rgba(0, 122, 204, 0.12);
+}
+
 /* Diff status styling */
 .diff-wasChanged,
 .diff-willChange {

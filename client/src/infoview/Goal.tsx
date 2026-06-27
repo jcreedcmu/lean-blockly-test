@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { InteractiveGoal, InteractiveHypothesisBundle } from '@leanprover/infoview-api';
 import { Hyp, type HypInteractionProps } from './Hyp';
 import { InteractiveCode } from './InteractiveCode';
+import { SubexprTree } from './SubexprTree';
 import type { Affordance, GoalInfo } from '../LevelEvaluator';
 
 export interface GoalFilterState {
@@ -179,6 +180,11 @@ export function Goal({
             );
           })}
         </div>
+      </div>
+
+      <div className="hyp-group goal-tree-poc">
+        <div className="hyp-group-title">Goal structure (PoC)</div>
+        <SubexprTree fmt={goal.type} />
       </div>
     </div>
   );
