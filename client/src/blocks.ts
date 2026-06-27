@@ -325,7 +325,7 @@ function defineMisc() {
   // never drag a term into them, so they read as fields rather than sockets.
   blockly.defineBlocksWithJsonArray([{
     'type': 'tactic_intro',
-    'message0': 'intro %1 %2 %3 %4',
+    'message0': '%1 intro %2 %3 %4',
     'args0': [
       { 'type': 'field_goal_marker', 'name': 'GOAL_AT' },
       { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },

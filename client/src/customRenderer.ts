@@ -1,6 +1,7 @@
 import * as blockly from 'blockly';
 import type { BlockSvg } from 'blockly';
 import { FieldProofStatus } from './FieldProofStatus';
+import { isGoalPositionMarker } from './goalMarker';
 
 type Row = blockly.blockRendering.Row;
 type Measurable = blockly.blockRendering.Measurable;
@@ -108,6 +109,47 @@ class CustomRenderInfo extends blockly.zelos.RenderInfo {
       elem.centerline = slotBottom + PILL_BELOW_SLOT + elem.height / 2;
     }
   }
+
+  /**
+   * Faithful copy of zelos `adjustXPosition_`, with our marker pills added to
+   * the label/image skip list. zelos pushes a leading non-label field out past
+   * the previous-statement notch (to `NOTCH_OFFSET_LEFT + NOTCH_WIDTH`); labels
+   * and images are exempt. We exempt goal markers too, so a leading marker pill
+   * stays tucked at the left like text instead of indenting the whole block.
+   */
+  adjustXPosition_(): void {
+    const startX = this.constants_.NOTCH_OFFSET_LEFT + this.constants_.NOTCH_WIDTH;
+    let b = startX;
+    for (let e = 2; e < this.rows.length - 1; e += 2) {
+      const prev = this.rows[e - 1] as Row & { followsStatement?: boolean };
+      const f = this.rows[e];
+      const next = this.rows[e + 1] as Row & { precedesStatement?: boolean };
+      const follows = e === 2 ? this.topRow.hasPreviousConnection : !!prev.followsStatement;
+      const precedes = e + 2 >= this.rows.length - 1
+        ? this.bottomRow.hasNextConnection
+        : !!next.precedesStatement;
+      if (Types.isInputRow(f) && f.hasStatement) {
+        f.measure();
+        b = f.width - (f.getLastInput()?.width ?? 0) + startX;
+      } else if (follows && (e === 2 || precedes) && Types.isInputRow(f) && !f.hasStatement) {
+        let x = (f as Row & { xPos: number }).xPos;
+        let spacer: Measurable | null = null;
+        for (const h of f.elements) {
+          if (Types.isSpacer(h)) spacer = h;
+          if (spacer && (Types.isField(h) || Types.isInput(h)) && x < b) {
+            const field = (h as { field?: unknown }).field;
+            const decoration = Types.isField(h)
+              && (field instanceof blockly.FieldLabel
+                || field instanceof blockly.FieldImage
+                || isGoalPositionMarker(field));
+            if (!decoration) spacer.width += b - x;
+          }
+          x += h.width;
+        }
+      }
+    }
+  }
+
 }
 
 class CustomRenderer extends blockly.zelos.Renderer {
