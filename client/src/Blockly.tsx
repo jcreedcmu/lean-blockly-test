@@ -41,6 +41,9 @@ export type BlocklyHandle = {
    * there's no bare-drag mode here — the only drag surfaces are the
    * affordance buttons — so `affordance` is required. */
   startGoalDrag: (e: React.MouseEvent, affordance: Affordance) => void;
+  /** Start a drag of a `conv` block pre-populated with the given `enter`
+   * args (e.g. `['1', '2']`), originating from a goal subexpression. */
+  startConvDrag: (enterArgs: string[], e: React.MouseEvent) => void;
   /** True if the user is currently dragging a block. */
   isDragging: () => boolean;
   /** Select a toolbox category by display name, opening its flyout. */
@@ -313,6 +316,15 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
             return block;
           }
         }
+      });
+    },
+    startConvDrag: (enterArgs: string[], e: React.MouseEvent) => {
+      startBlockDrag(e, (ws) => {
+        const block = ws.newBlock('tactic_conv') as BlockSvg;
+        block.setFieldValue(enterArgs.join(', '), 'ENTER_PATH');
+        block.initSvg();
+        block.render();
+        return block;
       });
     },
     isDragging: () => wsRef.current?.isDragging() ?? false,

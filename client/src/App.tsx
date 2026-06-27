@@ -443,6 +443,7 @@ function App() {
             allowedAffordances={getAllowedAffordances(currentLevel.permissions)}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}
             onGoalDragStart={(e, affordance) => blocklyRef.current?.startGoalDrag(e, affordance)}
+            onSubexprDrag={(enterArgs, e) => blocklyRef.current?.startConvDrag(enterArgs, e)}
           />
         )}
         {diagnostics.length > 0 && (

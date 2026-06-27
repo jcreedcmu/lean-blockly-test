@@ -184,7 +184,11 @@ export function Goal({
 
       <div className="hyp-group goal-tree-poc">
         <div className="hyp-group-title">Goal structure (PoC)</div>
-        <SubexprTree fmt={goal.type} />
+        <SubexprTree
+          fmt={goal.type}
+          convTargets={goalInfo?.convTargets}
+          onSubexprDrag={interactionProps.onSubexprDrag}
+        />
       </div>
     </div>
   );

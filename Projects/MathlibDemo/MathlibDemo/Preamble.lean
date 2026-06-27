@@ -338,7 +338,7 @@ def getConvTargets (p : ConvTargetParams) :
   `#guard_msgs` mismatch, its message shows the actual output to paste in.
 -/
 section ConvPathTests
-open Lean Qq
+open Lean Qq Meta
 
 private def egArith : Q(Prop) := q((2 : Nat) + 3 = 5)
 private def egForall : Q(Prop) := q(∀ n : Nat, n = n)
@@ -362,5 +362,50 @@ private def egForall : Q(Prop) := q(∀ n : Nat, n = n)
 
 /-- info: some #["n"] -/        -- body of `∀ n, n = n` (enter the binder by name)
 #guard_msgs in #eval convArgsForPos egForall (.fromString! "/1")
+
+/- A realistic goal with a deeply-nested target subexpression. Rather than
+   hand-write the `SubExpr.Pos` of `x ^ 3` (impractical at this depth), we
+   locate it by its pretty-printed form and check the conv path. -/
+
+/-- Position of the first subexpression of `e` whose pretty-printed form
+    (spaces removed) equals `needle`, descending only where `conv` can reach
+    (app fn/arg, binder bodies) — matching `convArgsForPos`. -/
+private partial def findSubexprPos (needle : String) (e : Expr)
+    (pos : SubExpr.Pos := .root) : MetaM (Option SubExpr.Pos) := do
+  let isMatch ← (try return (← ppExpr e).pretty.replace " " "" == needle
+                 catch _ => return false)
+  if isMatch then return some pos
+  match e with
+  | .app f a =>
+    match ← findSubexprPos needle f pos.pushAppFn with
+    | some r => return some r
+    | none   => findSubexprPos needle a pos.pushAppArg
+  | .lam _ _ b _     => findSubexprPos needle b pos.pushBindingBody
+  | .forallE _ _ b _ => findSubexprPos needle b pos.pushBindingBody
+  | .mdata _ b       => findSubexprPos needle b pos
+  | _ => return none
+
+/-- The goal `∃ c, (x+y)^4 = …`, with `x y : ℝ` introduced as local
+    variables so the target has the same shape the player sees. -/
+private def withExpansionGoal (k : Expr → MetaM (Option (Array String))) :
+    MetaM (Option (Array String)) := do
+  let p : Q(Prop) := q(∀ x y : ℝ, ∃ c : ℝ,
+    (x + y) ^ 4 = x ^ 4 + 4 * x ^ 3 * y + c * x ^ 2 * y ^ 2 + 4 * x * y ^ 3 + y ^ 4)
+  forallTelescope p fun _ body => k body
+
+private def convForSubterm (needle : String) : MetaM (Option (Array String)) :=
+  withExpansionGoal fun body => do
+    match ← findSubexprPos needle body with
+    | some pos => convArgsForPos body pos
+    | none     => return none
+
+-- NOTE: the two expected values below are predicted by hand; confirm/adjust
+-- against the build's `#guard_msgs` report on first run.
+
+/-- info: some #["1", "c", "1"] -/   -- `(x + y) ^ 4`, the lhs of the equation
+#guard_msgs in #eval convForSubterm "(x+y)^4"
+
+/-- info: some #["1", "c", "2", "1", "1", "1", "2", "1", "2"] -/   -- the `x ^ 3`
+#guard_msgs in #eval convForSubterm "x^3"
 
 end ConvPathTests

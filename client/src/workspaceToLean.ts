@@ -317,6 +317,20 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_conv': {
+      // `ENTER_PATH` holds the comma-separated `enter` args (e.g. "1, 2")
+      // precomputed by the server's `getConvTargets` RPC.
+      const path = fields['ENTER_PATH'] ?? '';
+      const bodyChunks = blockToChunks(inputBlock(inputs['BODY']), indent + '  ');
+      chunks = [
+        ...indentChunk,
+        chunk(`conv =>\n`, blockId),
+        text(`${indent}  enter [${path}]\n`),
+        ...bodyChunks,
+      ];
+      break;
+    }
+
     case 'tactic_have': {
       const name = fields['NAME'] ?? 'h';
       const type = fields['TYPE'] ?? 'True';

@@ -791,6 +791,30 @@ function defineTactics() {
       "previousStatement": "tactic",
       "nextStatement": "tactic",
       "style": "procedure_blocks"
+    },
+    {
+      "type": "tactic_conv",
+      "tooltip": "Zoom into a subexpression of the goal with conv",
+      "helpUrl": "conv",
+      "message0": "conv enter [%1] %2 %3",
+      "args0": [
+        {
+          "type": "field_label_serializable",
+          "name": "ENTER_PATH",
+          "text": ""
+        },
+        {
+          "type": "input_dummy"
+        },
+        {
+          "type": "input_statement",
+          "name": "BODY",
+          "check": "tactic"
+        }
+      ],
+      "previousStatement": "tactic",
+      "nextStatement": "tactic",
+      "style": "logic_blocks"
     }
   ]);
 

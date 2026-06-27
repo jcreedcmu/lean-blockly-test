@@ -23,6 +23,7 @@ import type {
   InteractiveGoal,
   InteractiveDiagnostic,
   TaggedText,
+  SubexprInfo,
   MsgEmbed,
 } from '@leanprover/infoview-api';
 import {
@@ -102,6 +103,9 @@ export interface GoalInfo {
   mvarId: string;
   hyps: Map<string, HypInfo>;
   target: { affordances: Affordance[] };
+  /** subexprPos → `conv` `enter` args, for the goal-target subexpressions
+   * that are valid conv targets (partial; from the `getConvTargets` RPC). */
+  convTargets: Map<string, string[]>;
 }
 
 /** mvarId → GoalInfo, for every leaf goal in the current evaluation. */
@@ -316,6 +320,25 @@ export class LevelEvaluator {
     const callPos: Position = { line: this.preludeLineCount, character: 0 };
     for (const { goal } of leafGoals) {
       if (!goal.ctx || !goal.mvarId) continue;
+
+      // Ask the server for `conv` navigation args for the goal-target
+      // subexpressions the client renders (partial; valid conv targets only).
+      const convTargets = new Map<string, string[]>();
+      try {
+        const positions = collectSubexprPositions(goal.type);
+        if (positions.length > 0) {
+          const conv = await this.session.widgetRpcCall<ConvTargetsResult>(
+            this.uri,
+            'getConvTargets',
+            { ctx: goal.ctx, mvarId: goal.mvarId, positions },
+            callPos,
+          );
+          for (const t of conv.targets) convTargets.set(t.pos, t.enter);
+        }
+      } catch (err) {
+        logError(TAG, 'getConvTargets failed:', err);
+      }
+
       try {
         const result = await this.session.widgetRpcCall<GoalInfoResult>(
           this.uri,
@@ -334,6 +357,7 @@ export class LevelEvaluator {
           mvarId: result.mvarId,
           hyps,
           target: { affordances: result.target.affordances },
+          convTargets,
         });
       } catch (err) {
         logError(TAG, 'getGoalInfo failed:', err);
@@ -385,4 +409,29 @@ interface GoalInfoResult {
   mvarId: string;
   hyps: Array<{ fvarId: string; isAssumption: boolean; affordances: Affordance[] }>;
   target: { affordances: Affordance[] };
+}
+
+// ── ConvTargets RPC payload type (internal to this module) ─────────
+
+interface ConvTargetsResult {
+  mvarId: string;
+  targets: Array<{ pos: string; enter: string[] }>;
+}
+
+/** Collect every tagged subexpression position (`subexprPos`) in a
+ * `CodeWithInfos`, in document order. These are exactly the positions the
+ * `getConvTargets` RPC evaluates. */
+function collectSubexprPositions(fmt: TaggedText<SubexprInfo>): string[] {
+  const out: string[] = [];
+  const walk = (tt: TaggedText<SubexprInfo>): void => {
+    if ('append' in tt) {
+      for (const child of tt.append) walk(child);
+    } else if ('tag' in tt) {
+      const pos = tt.tag[0].subexprPos;
+      if (typeof pos === 'string') out.push(pos);
+      walk(tt.tag[1]);
+    }
+  };
+  walk(fmt);
+  return out;
 }

@@ -260,6 +260,17 @@
   background-color: rgba(0, 122, 204, 0.12);
 }
 
+/* Boxes whose position is a valid conv target can be dragged to spawn a
+   pre-populated conv block. */
+.subexpr-box-draggable {
+  cursor: grab;
+  border-style: dashed;
+}
+
+.subexpr-box-draggable:active {
+  cursor: grabbing;
+}
+
 /* Diff status styling */
 .diff-wasChanged,
 .diff-willChange {

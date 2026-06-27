@@ -20,6 +20,9 @@ export interface HypInteractionProps {
   /** Start dragging a new block from the goal target's affordance. */
   onGoalDragStart?: (e: React.MouseEvent, affordance: Affordance) => void;
   onSubexprClick?: (info: SubexprInfo) => void;
+  /** Start dragging a `conv` block pre-populated with the given `enter`
+   * args, originating from a goal subexpression. */
+  onSubexprDrag?: (enterArgs: string[], e: React.MouseEvent) => void;
 }
 
 export interface HypProps extends HypInteractionProps {
