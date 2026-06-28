@@ -1,28 +1,44 @@
 import * as React from 'react';
-import { useState } from 'react';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { Goal, GoalFilterState, defaultGoalFilter } from './Goal';
 import type { HypInteractionProps } from './Hyp';
 import type { GoalInfoMap } from '../LevelEvaluator';
 
 export interface GoalsProps extends HypInteractionProps {
-  goals: InteractiveGoals;
+  /** The unsolved-goal leaves shown as the "Main Goal"/"Goal N" tabs. */
+  goals: InteractiveGoals | null;
+  /** The active tab index, or null when an `overrideGoal` is being shown
+   * (a selected pill that doesn't correspond to any unsolved-goal leaf). */
+  selectedGoal: number | null;
+  /** Select a tab (and, via App, the corresponding pill). */
+  onSelectGoal: (index: number) => void;
+  /** Goal to display when no tab is active (a pill with no leaf). */
+  overrideGoal?: InteractiveGoals | null;
   goalInfoMap?: GoalInfoMap;
   filter?: GoalFilterState;
 }
 
 /**
- * Renders a list of goals with tab selection when there are multiple goals.
+ * Controlled goal view. The "Main Goal"/"Goal N" tabs come from `goals` and the
+ * active one is `selectedGoal`; when `selectedGoal` is null the `overrideGoal`
+ * is shown with no tab active (the inspect-a-non-leaf-position case).
  */
 export function Goals({
   goals,
+  selectedGoal,
+  onSelectGoal,
+  overrideGoal,
   goalInfoMap,
   filter = defaultGoalFilter,
   ...interactionProps
 }: GoalsProps): React.ReactElement {
-  const [selectedGoal, setSelectedGoal] = useState(0);
+  const tabGoals = goals?.goals ?? [];
+  const displayed =
+    selectedGoal !== null
+      ? tabGoals[Math.min(selectedGoal, tabGoals.length - 1)]
+      : overrideGoal?.goals?.[0] ?? null;
 
-  if (!goals || goals.goals.length === 0) {
+  if (!displayed) {
     return (
       <div className="goals goals-empty">
         <span className="goals-message">No goals</span>
@@ -30,18 +46,15 @@ export function Goals({
     );
   }
 
-  const goalCount = goals.goals.length;
-  const currentGoal = goals.goals[Math.min(selectedGoal, goalCount - 1)];
-
   return (
     <div className="goals">
-      {goalCount > 1 && (
+      {tabGoals.length > 1 && (
         <div className="goals-tabs">
-          {goals.goals.map((_, i) => (
+          {tabGoals.map((_, i) => (
             <button
               key={i}
               className={`goals-tab ${i === selectedGoal ? 'active' : ''}`}
-              onClick={() => setSelectedGoal(i)}
+              onClick={() => onSelectGoal(i)}
             >
               {i === 0 ? 'Main Goal' : `Goal ${i + 1}`}
             </button>
@@ -51,16 +64,16 @@ export function Goals({
 
       <div className="goals-content">
         <Goal
-          goal={currentGoal}
-          goalInfo={currentGoal.mvarId ? goalInfoMap?.get(currentGoal.mvarId) : undefined}
+          goal={displayed}
+          goalInfo={displayed.mvarId ? goalInfoMap?.get(displayed.mvarId) : undefined}
           filter={filter}
           {...interactionProps}
         />
       </div>
 
-      {goalCount > 1 && (
+      {tabGoals.length > 1 && (
         <div className="goals-count">
-          {goalCount} goal{goalCount !== 1 ? 's' : ''}
+          {tabGoals.length} goal{tabGoals.length !== 1 ? 's' : ''}
         </div>
       )}
     </div>

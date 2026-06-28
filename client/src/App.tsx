@@ -11,8 +11,18 @@ import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { leanSession } from './LeanSession';
 import { LevelEvaluator, type EvaluationResult } from './LevelEvaluator';
-import { resolveProofStatuses, isGoalStateDiagnostic, locateDiagnostic } from './proofStatusResolve';
+import { resolveProofStatuses, isGoalStateDiagnostic, locateDiagnostic, pillForPosition } from './proofStatusResolve';
+import type { Pill } from './proofStatusResolve';
 import type { ContributionDiagnostic } from './LevelEvaluator';
+import type { MarkerLocation } from './markerResolve';
+
+// A unified goal selection: either one of the unsolved-goal leaves (a
+// "Main Goal"/"Goal N" tab) or a pill with no corresponding leaf (inspecting a
+// position in an already-correct part of the proof). Tab- and pill-selection
+// are two views of this single state.
+type GoalSelection =
+  | { kind: 'leaf'; index: number }
+  | { kind: 'pill'; blockId: string; target: string };
 import ReactMarkdown from 'react-markdown';
 import { Tutorial } from './Tutorial';
 import remarkGfm from 'remark-gfm';
@@ -43,6 +53,15 @@ function App() {
   const visitedLevelsRef = useRef<Set<string>>(new Set());
   // Whether the "Copied!" toast is visible.
   const [showCopiedToast, setShowCopiedToast] = useState(false);
+
+  // The unified goal selection (null until the first evaluation). `pillGoals`
+  // holds the goal queried for a 'pill' selection; `leafPills[i]` is the status
+  // pill governing leaf goal i (so a tab selection highlights the right pill and
+  // vice-versa). `markerSeqRef` drops stale async pill-goal queries.
+  const [selection, setSelection] = useState<GoalSelection | null>(null);
+  const [pillGoals, setPillGoals] = useState<InteractiveGoals | null>(null);
+  const [leafPills, setLeafPills] = useState<(Pill | null)[]>([]);
+  const markerSeqRef = useRef(0);
 
   const blocklyRef = useRef<BlocklyHandle>(null);
   const [goalsPanelWidth, setGoalsPanelWidth] = useState(300);
@@ -96,9 +115,12 @@ function App() {
     setEvaluating(false);
     setEvaluation(result);
 
-    // Map goal-state diagnostics back to per-pill proof statuses (each status
-    // pill ✓/✕ independently). Pure logic lives in `resolveProofStatuses`; the
-    // pill list + workspace come from the live Blockly workspace.
+    // A new evaluation means positions/goals have moved. Recompute the
+    // per-pill proof statuses and the leaf-goal → pill mapping, then reset the
+    // selection to the main goal so tabs and pills start in sync.
+    markerSeqRef.current++;
+    setPillGoals(null);
+    let newLeafPills: (Pill | null)[] = [];
     if (result && sourceInfo.length > 0 && blocklyRef.current) {
       const workspace = blocklyRef.current.saveWorkspace();
       const pills = blocklyRef.current.getProofStatusPills();
@@ -107,6 +129,9 @@ function App() {
           workspace, sourceInfo, pills, result.diagnostics,
         );
         blocklyRef.current.updateProofStatuses(statuses);
+        newLeafPills = result.leafGoals.map(
+          lg => pillForPosition(workspace, sourceInfo, pills, lg.position),
+        );
 
         // Debug: surface where goal-state diagnostics landed vs. how they were
         // attributed, so we can confirm the gap-anchor model empirically.
@@ -120,6 +145,10 @@ function App() {
         }
       }
     }
+    setLeafPills(newLeafPills);
+    const hasLeaves = (result?.leafGoals.length ?? 0) > 0;
+    setSelection(hasLeaves ? { kind: 'leaf', index: 0 } : null);
+    blocklyRef.current?.setSelectedMarker(hasLeaves ? (newLeafPills[0] ?? null) : null);
   }, []);
 
   // Pending code to evaluate once the Lean session becomes ready.
@@ -281,6 +310,57 @@ function App() {
     if (source) blocklyRef.current.flashDiagnosticSource(source);
   }
 
+  // Select leaf goal `i` — highlights its tab and the pill that governs it.
+  function selectLeaf(index: number) {
+    markerSeqRef.current++;
+    setSelection({ kind: 'leaf', index });
+    setPillGoals(null);
+    blocklyRef.current?.setSelectedMarker(leafPills[index] ?? null);
+  }
+
+  // Return to the default selection (the main goal, or nothing if the proof
+  // has no unsolved goals).
+  function applyDefaultSelection() {
+    markerSeqRef.current++;
+    const hasLeaves = (evaluation?.leafGoals.length ?? 0) > 0;
+    setSelection(hasLeaves ? { kind: 'leaf', index: 0 } : null);
+    setPillGoals(null);
+    blocklyRef.current?.setSelectedMarker(hasLeaves ? (leafPills[0] ?? null) : null);
+  }
+
+  // Clicking a goal-position pill. If it governs an unsolved-goal leaf, this
+  // selects that goal's tab. Otherwise it shows the goal queried at the pill's
+  // position with no tab active; re-clicking it returns to the default.
+  function onMarkerSelect(location: MarkerLocation | undefined, blockId: string, target: string) {
+    const leafIndex = leafPills.findIndex(p => p?.blockId === blockId && p?.target === target);
+    if (leafIndex >= 0) {
+      selectLeaf(leafIndex);
+      return;
+    }
+    const isSame = selection?.kind === 'pill'
+      && selection.blockId === blockId && selection.target === target;
+    if (isSame || !location) {
+      applyDefaultSelection();
+      return;
+    }
+    const seq = ++markerSeqRef.current;
+    setSelection({ kind: 'pill', blockId, target });
+    setPillGoals(null);
+    blocklyRef.current?.setSelectedMarker({ blockId, target });
+
+    const ev = evaluatorRef.current;
+    if (!ev) return;
+    const pos = { line: location.startLineCol[0], character: location.startLineCol[1] };
+    void (async () => {
+      try {
+        const goals = await ev.goalsAtContributionPosition(pos);
+        if (markerSeqRef.current === seq) setPillGoals(goals);
+      } catch (err) {
+        console.error('[marker] goal query failed', err);
+      }
+    })();
+  }
+
   function onBlocklyChange(result: WorkspaceToLeanResult) {
     const { leanCode, sourceInfo } = result;
     latestSourceInfoRef.current = sourceInfo;
@@ -372,6 +452,10 @@ function App() {
   const goalsForView: InteractiveGoals | null = evaluation
     ? { goals: evaluation.leafGoals.map(lg => lg.goal) }
     : null;
+  // The tabs come from the leaf goals; the active tab and any pill-override
+  // goal come from the unified selection.
+  const selectedTab = selection?.kind === 'leaf' ? selection.index : null;
+  const overrideGoal = selection?.kind === 'pill' ? pillGoals : null;
   const goalInfoMap = evaluation?.goalInfoMap ?? new Map();
   const diagnostics = evaluation?.diagnostics ?? [];
 
@@ -430,30 +514,7 @@ function App() {
         style={{ flexGrow: 1 }}
         onBlocklyChange={onBlocklyChange}
         onRequestGoals={onRequestGoals}
-        onMarkerSelect={(location, blockId, target) => {
-          // Slice 2 / step 1: confirm position math + the goal-at-position RPC.
-          const ev = evaluatorRef.current;
-          if (!ev || !location) {
-            console.log('[marker] unresolved', { blockId, target, location });
-            return;
-          }
-          const toPos = (lc: [number, number]) => ({ line: lc[0], character: lc[1] });
-          void (async () => {
-            try {
-              const start = await ev.goalsAtContributionPosition(toPos(location.startLineCol));
-              const end = await ev.goalsAtContributionPosition(toPos(location.endLineCol));
-              console.log('[marker] goals at position', {
-                blockId, target,
-                startPos: location.startLineCol, endPos: location.endLineCol,
-                startCount: start?.goals?.length ?? null,
-                endCount: end?.goals?.length ?? null,
-                start, end,
-              });
-            } catch (err) {
-              console.error('[marker] goal query failed', err);
-            }
-          })();
-        }}
+        onMarkerSelect={onMarkerSelect}
         initialData={levelStates[nav.worldId][nav.levelIndex]}
         allowedBlocks={allowedBlocks}
       />
@@ -485,6 +546,9 @@ function App() {
         ) : (
           <Goals
             goals={goalsForView}
+            selectedGoal={selectedTab}
+            onSelectGoal={selectLeaf}
+            overrideGoal={overrideGoal}
             goalInfoMap={goalInfoMap}
             allowedAffordances={getAllowedAffordances(currentLevel.permissions)}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}

@@ -15,6 +15,7 @@ import {
   resolveProofStatuses,
   isGoalStateDiagnostic,
   locateDiagnostic,
+  pillForPosition,
   type Pill,
   type DiagnosticLike,
 } from '../src/proofStatusResolve';
@@ -178,5 +179,21 @@ describe('locateDiagnostic', () => {
 
   test('a diagnostic contained by no range → null', () => {
     expect(locateDiagnostic(ws, sourceInfo, blockRanges, pills, diag(99, 0))).toBeNull();
+  });
+});
+
+describe('pillForPosition', () => {
+  test('a position inside an arm → that arm’s pill', () => {
+    expect(pillForPosition(ws, sourceInfo, pills, { line: 5, character: 4 }))
+      .toEqual({ blockId: 'C', target: 'BODY2' });
+  });
+
+  test('a position at the `:= by` line → the lemma pill', () => {
+    expect(pillForPosition(ws, sourceInfo, pills, { line: 0, character: 0 }))
+      .toEqual({ blockId: 'L', target: 'LEMMA_PROOF' });
+  });
+
+  test('a position governed by no pill → null', () => {
+    expect(pillForPosition(ws, sourceInfo, pills, { line: 99, character: 0 })).toBeNull();
   });
 });

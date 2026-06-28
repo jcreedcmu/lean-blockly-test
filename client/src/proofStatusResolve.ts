@@ -66,15 +66,14 @@ function regionContainsLine(loc: MarkerLocation, line: number): boolean {
 }
 
 /**
- * The pill whose governed region best matches a diagnostic: among regions that
- * enclose the diagnostic's start line, the *innermost* (smallest line span),
- * tie-broken by latest start line. Returns undefined if none encloses it.
+ * The pill whose governed region best encloses the given line: among regions
+ * that enclose it, the *innermost* (smallest line span), tie-broken by latest
+ * start line. Returns undefined if none encloses it.
  */
-function bestPillForDiagnostic(
+function bestPillRegionForLine(
   pills: PillRegion[],
-  diag: DiagnosticLike,
+  line: number,
 ): PillRegion | undefined {
-  const line = diag.range.start.line;
   let best: PillRegion | undefined;
   for (const p of pills) {
     if (!p.region || !regionContainsLine(p.region, line)) continue;
@@ -92,6 +91,32 @@ function bestPillForDiagnostic(
     }
   }
   return best;
+}
+
+function bestPillForDiagnostic(
+  pills: PillRegion[],
+  diag: DiagnosticLike,
+): PillRegion | undefined {
+  return bestPillRegionForLine(pills, diag.range.start.line);
+}
+
+/**
+ * The status pill governing a contribution position — the innermost whose
+ * governed region encloses it — or null. Used to map a leaf goal back to its
+ * pill so the goal tabs and pill selection stay in sync.
+ */
+export function pillForPosition(
+  workspace: BlocklyState,
+  sourceInfo: SourceInfo[],
+  pills: Pill[],
+  position: Point,
+): Pill | null {
+  const pillRegions: PillRegion[] = pills.map((p) => ({
+    ...p,
+    region: governedRegion(workspace, sourceInfo, p.blockId, p.target),
+  }));
+  const best = bestPillRegionForLine(pillRegions, position.line);
+  return best ? { blockId: best.blockId, target: best.target } : null;
 }
 
 export interface ResolveResult {

@@ -47,6 +47,9 @@ export type BlocklyHandle = {
   /** Briefly flash the source a diagnostic was attributed to — either a
    * specific status pill or (fallback) a whole block. */
   flashDiagnosticSource: (source: DiagnosticSource) => void;
+  /** Highlight a single goal-position marker (pill) as selected, clearing all
+   * others. Pass null to clear the selection entirely. */
+  setSelectedMarker: (sel: { blockId: string; target: string } | null) => void;
   /** For each entry, look up the lemma block whose THEOREM_NAME matches
    * the key and set its THEOREM_DECLARATION field's display override.
    * The override can be a multi-line string (rendered with tspans).
@@ -183,35 +186,10 @@ function useBlockly(
     // input's child (or the synthesized empty-arm placeholder) and `sourceInfo`.
     setMarkerClickHandler((blockId, target) => {
       const state = blockly.serialization.workspaces.save(ws);
-      const { leanCode, sourceInfo } = workspaceToLean(state);
+      const { sourceInfo } = workspaceToLean(state);
       const location = resolveMarkerLocation(state, sourceInfo, blockId, target);
-
-      // Debug: mark the resolved span in the generated contribution text so the
-      // pill→position mapping is visible. End is inserted first so it doesn't
-      // shift the start column.
-      if (location) {
-        const mark = (s: string, [line, col]: [number, number], m: string): string => {
-          const lines = s.split('\n');
-          if (line < 0 || line >= lines.length) return s;
-          lines[line] = lines[line].slice(0, col) + m + lines[line].slice(col);
-          return lines.join('\n');
-        };
-        let marked = mark(leanCode, location.endLineCol, '/-«end»-/');
-        marked = mark(marked, location.startLineCol, '/-«start»-/');
-        console.log(`[marker] position in text (${blockId}/${target || 'self'}):\n${marked}`);
-      }
-
-      // Highlight the clicked marker, clear the rest (any marker field type).
-      for (const b of ws.getAllBlocks(false)) {
-        for (const input of b.inputList) {
-          for (const field of input.fieldRow) {
-            if (isGoalPositionMarker(field)) {
-              field.setSelected(b.id === blockId && field.getTarget() === target);
-            }
-          }
-        }
-      }
-
+      // App owns the selection (toggle + goal query) and drives the highlight
+      // back through `setSelectedMarker`.
       markerSelectRef.current?.(location, blockId, target);
     });
 
@@ -298,6 +276,18 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
           for (const field of input.fieldRow) {
             if (field instanceof FieldProofStatus) {
               field.setStatus('unknown');
+            }
+          }
+        }
+      }
+    },
+    setSelectedMarker: (sel: { blockId: string; target: string } | null) => {
+      if (!wsRef.current) return;
+      for (const b of wsRef.current.getAllBlocks(false)) {
+        for (const input of b.inputList) {
+          for (const field of input.fieldRow) {
+            if (isGoalPositionMarker(field)) {
+              field.setSelected(!!sel && b.id === sel.blockId && field.getTarget() === sel.target);
             }
           }
         }
