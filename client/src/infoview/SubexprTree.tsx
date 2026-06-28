@@ -16,10 +16,10 @@ export interface SubexprTreeProps {
   current?: CurrentNode | null;
   /** Notified whenever the current node changes (hover or extrinsic). */
   onCurrentChange?: (node: CurrentNode | null) => void;
-  /** subexprPos → `conv` `enter` args, from the `getConvTargets` RPC. A box
+  /** subexprPos → `conv` `enter` args, from the `getConvTargets` RPC. A span
    * is draggable iff its position has an entry here. */
   convTargets?: Map<string, string[]>;
-  /** Start dragging a `conv` block populated with the given `enter` args. */
+  /** Start dragging an `enter` block populated with the given `enter` args. */
   onSubexprDrag?: (enterArgs: string[], e: React.MouseEvent) => void;
 }
 
@@ -31,10 +31,11 @@ interface RenderCtx {
 }
 
 /**
- * Render a goal's `CodeWithInfos` as nested bordered boxes mirroring the
- * term's subexpression hierarchy. Boxes whose position is a valid `conv`
- * target are draggable: dragging one spawns a `conv` block pre-populated with
- * the navigation path.
+ * Render a goal's `CodeWithInfos` as plain inline text — by default it reads
+ * exactly like the normal goal view, with the subexpression hierarchy latent in
+ * nested spans rather than shown with borders. Hovering highlights the
+ * innermost subexpression under the cursor; spans whose position is a valid
+ * `conv` target are draggable, spawning a bare `enter` block with that path.
  */
 export function SubexprTree({
   fmt, current, onCurrentChange, convTargets, onSubexprDrag,
@@ -47,25 +48,9 @@ export function SubexprTree({
     onCurrentChange?.(node);
   };
 
-  const currentEnter = value?.pos != null ? convTargets?.get(value.pos) : undefined;
   const ctx: RenderCtx = { current: value, setCurrent, convTargets, onSubexprDrag };
 
-  return (
-    <div className="subexpr-tree">
-      <div className="subexpr-tree-path">
-        {value == null
-          ? '(hover a subexpression)'
-          : currentEnter
-            ? `conv ⇒ enter [${currentEnter.join(', ')}]  (drag to insert)`
-            : value.pos != null && value.pos !== ''
-              ? `${value.pos} — no conv target`
-              : '(current node has no subexprPos)'}
-      </div>
-      <div className="subexpr-tree-body">
-        {renderNode(fmt, '', null, ctx, 0)}
-      </div>
-    </div>
-  );
+  return <span className="subexpr-tree">{renderNode(fmt, '', null, ctx, 0)}</span>;
 }
 
 function renderNode(
@@ -100,25 +85,26 @@ function renderNode(
     const draggable = !!(enter && ctx.onSubexprDrag);
 
     const className =
-      'subexpr-box'
-      + (isCurrent ? ' subexpr-box-current' : '')
-      + (draggable ? ' subexpr-box-draggable' : '');
+      'subexpr-span'
+      // Only highlight the hovered subexpression when it's a valid conv target.
+      + (isCurrent && draggable ? ' subexpr-span-current' : '')
+      + (draggable ? ' subexpr-span-draggable' : '');
 
     return (
-      <div
+      <span
         key={key}
         className={className}
-        // mouseenter/leave (not over/out): entering makes this box current,
-        // leaving restores the enclosing box, so the innermost box wins.
+        // mouseenter/leave (not over/out): entering makes this span current,
+        // leaving restores the enclosing span, so the innermost span wins.
         onMouseEnter={() => ctx.setCurrent(self)}
         onMouseLeave={() => ctx.setCurrent(parent)}
-        // stopPropagation so the innermost draggable box owns the drag.
+        // stopPropagation so the innermost draggable span owns the drag.
         onMouseDown={draggable
           ? (e) => { e.stopPropagation(); ctx.onSubexprDrag!(enter!, e); }
           : undefined}
       >
         {renderNode(content, myPath, self, ctx, 0)}
-      </div>
+      </span>
     );
   }
 

@@ -232,51 +232,30 @@
 }
 
 /* Subexpression-hierarchy proof-of-concept */
+/* Renders the goal as plain inline text; the subexpression hierarchy is latent
+   in nested spans (no borders), so by default it reads like the normal goal. */
 .subexpr-tree {
-  margin-top: 6px;
   font-family: monospace;
-}
-
-.subexpr-tree-path {
-  min-height: 16px;
-  margin-bottom: 4px;
-  font-size: 11px;
-  color: #555;
-}
-
-.subexpr-tree-body {
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 2;
 }
 
-/* Each tagged subexpression becomes a nested bordered box; boxes stay inline
-   so the term reads the same left-to-right, just wrapped in visible nesting. */
-.subexpr-box {
-  display: inline-block;
-  border: 1px solid rgba(0, 0, 0, 0.18);
+.subexpr-span {
   border-radius: 3px;
-  padding: 0 2px;
-  margin: 1px;
-  vertical-align: middle;
 }
 
-/* Highlight is driven by explicit `current` state (innermost box only), not
-   by CSS :hover (which would tint every ancestor under the cursor). */
-.subexpr-box-current {
-  border-color: rgba(0, 122, 204, 0.8);
+/* Highlight the innermost hovered subexpression, driven by explicit `current`
+   state (not CSS :hover, which would tint every ancestor under the cursor).
+   `outline` keeps the highlight from shifting the surrounding text. */
+.subexpr-span-current {
   background-color: rgba(0, 122, 204, 0.12);
+  outline: 1px solid rgba(0, 122, 204, 0.8);
 }
 
-/* Boxes whose position is a valid conv target can be dragged to spawn a
-   pre-populated conv block. */
-.subexpr-box-draggable {
-  cursor: grab;
-  border-style: dashed;
-}
-
-.subexpr-box-draggable:active {
-  cursor: grabbing;
+/* Spans whose position is a valid conv target can be dragged to spawn a bare
+   `enter` block carrying that path. */
+.subexpr-span-draggable {
+  cursor: pointer;
 }
 
 /* Diff status styling */

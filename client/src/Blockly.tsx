@@ -64,10 +64,10 @@ export type BlocklyHandle = {
    * there's no bare-drag mode here — the only drag surfaces are the
    * affordance buttons — so `affordance` is required. */
   startGoalDrag: (e: React.MouseEvent, affordance: Affordance) => void;
-  /** Start a drag of a `conv` block containing an `enter` block pre-populated
-   * with the given `enter` args (e.g. `['1', 'c']`), originating from a goal
-   * subexpression. */
-  startConvDrag: (enterArgs: string[], e: React.MouseEvent) => void;
+  /** Start a drag of a bare `enter` block pre-populated with the given `enter`
+   * args (e.g. `['1', 'c']`), originating from a goal subexpression. Drop it
+   * inside a `conv` block to navigate. */
+  startEnterDrag: (enterArgs: string[], e: React.MouseEvent) => void;
   /** True if the user is currently dragging a block. */
   isDragging: () => boolean;
   /** Select a toolbox category by display name, opening its flyout. */
@@ -406,19 +406,15 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
         }
       });
     },
-    startConvDrag: (enterArgs: string[], e: React.MouseEvent) => {
+    startEnterDrag: (enterArgs: string[], e: React.MouseEvent) => {
       startBlockDrag(e, (ws) => {
-        // An `enter` tactic carrying the bracketed path, nested inside a
-        // `conv` block: dragging out gives `conv => enter [1, c]`.
+        // A bare `enter` tactic carrying the bracketed path (e.g.
+        // `enter [1, c]`), to be dropped inside a `conv` block.
         const enterBlock = ws.newBlock('tactic_enter') as BlockSvg;
         enterBlock.setFieldValue(`[${enterArgs.join(', ')}]`, 'ENTER_PATH');
         enterBlock.initSvg();
         enterBlock.render();
-        const conv = ws.newBlock('tactic_conv') as BlockSvg;
-        conv.getInput('BODY')!.connection!.connect(enterBlock.previousConnection!);
-        conv.initSvg();
-        conv.render();
-        return conv;
+        return enterBlock;
       });
     },
     isDragging: () => wsRef.current?.isDragging() ?? false,
