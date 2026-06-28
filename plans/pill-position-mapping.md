@@ -52,6 +52,21 @@ Backward only needs to catch **goal-state diagnostics** (unsolved goals), which
 land in these gaps — not tactic-interior errors (a type error on a tactic),
 which are out of scope for pill mapping.
 
+### One pill, two granularities (forward narrow, backward broad)
+
+In practice a pill needs *two* ranges, not one:
+
+- **Forward** (click → goal RPC) uses the **narrow** anchor — the `skip` line
+  itself (`resolveMarkerLocation`). Any position in it yields the arm's
+  end-state.
+- **Backward** (diagnostic → pill) uses a **broad governed region** — the arm's
+  whole body span, from its first tactic (or the block's `:= by` header, for a
+  wrapper proof) down to the anchor (`governedRegion`). A goal-state diagnostic
+  can be reported anywhere in that span (at the bullet, at `by`, at the
+  anchor), so the narrow range alone would miss it. Among regions enclosing the
+  diagnostic, the **innermost** wins, so an arm's diagnostic attributes to the
+  arm pill rather than the enclosing lemma pill.
+
 ### Disjointness is a target, not a hard requirement
 
 Liberal `skip` insertion should keep ranges disjoint in practice (e.g. a
@@ -98,27 +113,33 @@ the goal view, never matched to pills.
 
 ## Suggested implementation order
 
-1. **Codegen emits gap ranges + `skip` anchors.** In `workspaceToLean`, at each
-   pill's gap (per the per-block rules above), emit a no-op `skip` and record a
-   narrow range keyed by `(blockId, target)`. Output these `pillRanges`
-   alongside `sourceInfo`. Unit-test the emitted ranges (extend
-   `workspaceToLean.test.ts`): each pill gets a gap range, intro's is before /
-   constructor-arm's after / lemma's after the whole proof.
-2. **Forward uses `pillRanges`.** Replace `resolveMarkerLocation`'s arm-span
-   computation with a lookup into `pillRanges` (keep it as a thin adapter so
-   `Blockly.tsx`/`App.tsx` call sites are unchanged). Query goals at a position
-   inside the gap.
-3. **Rework the backward pass, per-pill + defensive.** Replace the per-block
-   line-overlap in `App.runEvaluation`: restrict to **goal-state** diagnostics,
-   match each to the `pillRanges` entry containing it (innermost on overlap,
-   never throw), and set status per `(blockId, target)`. Make
-   `updateProofStatuses` key on `(blockId, target)` so sibling arm pills differ.
-   Test the matching (containing, overlap→innermost, no-match).
+1. **Codegen emits `skip` anchors** (DONE for lemma + constructor; intro needs
+   none — self-anchored). `bodyWithSkipAnchor` always ends a lemma proof with a
+   `skip` keyed by `emptyArmId(blockId, target)`; the constructor `bulletize`
+   appends a per-arm `skip`. `have`/`show`/`transform`/`conv` not yet migrated.
+2. **Forward uses the anchor** (DONE). `resolveMarkerLocation` prefers the
+   `emptyArmId` anchor when present, falling back to first-start…last-end span
+   for un-migrated arms. Call sites unchanged.
+3. **Backward pass, per-pill + defensive** (DONE). `proofStatusResolve.ts`
+   (pure, tested): restrict to goal-state diagnostics (`unsolved goals`,
+   severity 1), match each to the innermost `governedRegion` enclosing it,
+   never throw (unmatched are surfaced for debugging). `Blockly` enumerates
+   live pills (`getProofStatusPills`) and applies status per `(blockId,
+   target)`. `App.runEvaluation` wires it + logs diagnostics-vs-regions so the
+   gap-anchor model can be confirmed against real Lean output.
 4. **Forward selection display (slice-2 steps 2–3).** Lift selection into
    `App`, query the selected pill's position, show that goal in the panel
    (replacing the current console.log debug).
 
-## Estimated effort
+## Open questions / follow-ups
 
-Steps 1–3: ~a day incl. tests (codegen gap emission + per-pill defensive
-backward matching). Step 4 is the slice-2 display work, separate.
+- **Does the lemma pill aggregate?** With innermost matching, an incomplete arm
+  flips only the arm pill; the lemma pill stays ✓ unless Lean *also* reports a
+  lemma-level `unsolved goals`. The debug logging in `App.runEvaluation` will
+  show whether that happens; if not, decide whether the lemma pill should
+  reflect "any governed sub-pill incomplete".
+- **Migrate have/show/transform** to the trailing-anchor model (they currently
+  use the arm-span fallback for both directions).
+- **Forward query column**: the filled-arm anchor range starts at column 0 of
+  the `skip` line; when wiring the real goal display, target the `skip` token's
+  column precisely.

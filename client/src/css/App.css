@@ -379,3 +379,23 @@
   85%  { opacity: 1; }
   100% { opacity: 0; }
 }
+
+/* Flash a diagnostic's source with a glowing border that escalates
+   white -> yellow -> red when its message is clicked. Shared by block flashes
+   (applied to the block's SVG root) and pill flashes (applied to the pill rect)
+   for ~700ms — see Blockly.flashDiagnosticSource and pill.flashPillError. */
+@keyframes flash-error {
+  0%   { filter: none; }
+  15%  { filter: drop-shadow(0 0 0.45rem #ffffff) drop-shadow(0 0 0.2rem #ffffff); }
+  45%  { filter: drop-shadow(0 0 0.45rem #ffeb3b) drop-shadow(0 0 0.2rem #ffeb3b); }
+  75%  { filter: drop-shadow(0 0 0.45rem #e53935) drop-shadow(0 0 0.2rem #e53935); }
+  100% { filter: none; }
+}
+.flashError {
+  animation: flash-error 0.7s ease-in-out 1;
+}
+
+/* Clicking a diagnostic message locates its source in the workspace. */
+.diagnostic {
+  cursor: pointer;
+}

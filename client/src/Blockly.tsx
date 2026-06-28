@@ -8,7 +8,7 @@ import { toolbox as defaultToolbox, filterToolbox } from './toolbox'
 import { workspaceToLean, WorkspaceToLeanResult, SourceInfo } from './workspaceToLean'
 import { resolveMarkerLocation, MarkerLocation } from './markerResolve'
 import { FieldProofStatus } from './FieldProofStatus'
-import type { Pill, PillStatus } from './proofStatusResolve'
+import type { Pill, PillStatus, DiagnosticSource } from './proofStatusResolve'
 import './FieldGoalMarker'
 import { setMarkerClickHandler, isGoalPositionMarker } from './goalMarker'
 import { CUSTOM_RENDERER_NAME } from './customRenderer'
@@ -44,6 +44,9 @@ export type BlocklyHandle = {
   /** Apply per-pill statuses, addressing each pill by (blockId, target). */
   updateProofStatuses: (statuses: PillStatus[]) => void;
   clearProofStatuses: () => void;
+  /** Briefly flash the source a diagnostic was attributed to — either a
+   * specific status pill or (fallback) a whole block. */
+  flashDiagnosticSource: (source: DiagnosticSource) => void;
   /** For each entry, look up the lemma block whose THEOREM_NAME matches
    * the key and set its THEOREM_DECLARATION field's display override.
    * The override can be a multi-line string (rendered with tspans).
@@ -298,6 +301,24 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
             }
           }
         }
+      }
+    },
+    flashDiagnosticSource: (source: DiagnosticSource) => {
+      const block = wsRef.current?.getBlockById(source.blockId);
+      if (!block) return;
+      if (source.kind === 'pill') {
+        for (const input of block.inputList) {
+          for (const field of input.fieldRow) {
+            if (field instanceof FieldProofStatus && field.getTarget() === source.target) {
+              field.flashError();
+            }
+          }
+        }
+      } else {
+        const svg = (block as BlockSvg).getSvgRoot();
+        if (!svg) return;
+        svg.classList.add('flashError');
+        setTimeout(() => svg.classList.remove('flashError'), 700);
       }
     },
     setTheoremDisplays: (displays: Map<string, TheoremBlockDisplay>) => {

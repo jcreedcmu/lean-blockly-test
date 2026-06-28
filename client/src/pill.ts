@@ -29,3 +29,13 @@ export function updatePill(bg: SVGRectElement, selected: boolean): void {
   bg.setAttribute('fill', selected ? '#1565c0' : '#ffffff');
   bg.setAttribute('stroke', selected ? '#1565c0' : '#888888');
 }
+
+/**
+ * Briefly flash the pill with the shared red error glow — the same effect used
+ * for block flashes (the `flashError` class in App.css). Adds the class, then
+ * removes it after the animation. Leaves the pill's own fill/decoration intact.
+ */
+export function flashPillError(bg: SVGRectElement): void {
+  bg.classList.add('flashError');
+  setTimeout(() => bg.classList.remove('flashError'), 700);
+}

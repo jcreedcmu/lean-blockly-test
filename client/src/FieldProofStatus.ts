@@ -1,7 +1,7 @@
 import * as blockly from 'blockly';
 import { Field, FieldConfig } from 'blockly';
 import { dispatchMarkerClick, GoalPositionMarker } from './goalMarker';
-import { PILL_WIDTH, PILL_HEIGHT, createPill, updatePill } from './pill';
+import { PILL_WIDTH, PILL_HEIGHT, createPill, updatePill, flashPillError } from './pill';
 
 export type ProofStatus = 'unknown' | 'complete' | 'incomplete';
 
@@ -82,6 +82,11 @@ export class FieldProofStatus extends Field<string> implements GoalPositionMarke
   setSelected(selected: boolean): void {
     this.selected_ = selected;
     this.redraw_();
+  }
+
+  /** Briefly flash the pill with the shared red error glow. */
+  flashError(): void {
+    if (this.pill_) flashPillError(this.pill_);
   }
 
   isClickable(): boolean {

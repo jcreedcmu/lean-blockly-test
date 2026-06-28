@@ -11,7 +11,8 @@ import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { leanSession } from './LeanSession';
 import { LevelEvaluator, type EvaluationResult } from './LevelEvaluator';
-import { resolveProofStatuses, isGoalStateDiagnostic } from './proofStatusResolve';
+import { resolveProofStatuses, isGoalStateDiagnostic, locateDiagnostic } from './proofStatusResolve';
+import type { ContributionDiagnostic } from './LevelEvaluator';
 import ReactMarkdown from 'react-markdown';
 import { Tutorial } from './Tutorial';
 import remarkGfm from 'remark-gfm';
@@ -269,6 +270,17 @@ function App() {
     }
   }
 
+  // Clicking a diagnostic flashes where it came from: the status pill it's
+  // attributed to, or (fallback) the narrowest block containing its position.
+  function onDiagnosticClick(d: ContributionDiagnostic) {
+    const workspace = blocklyRef.current?.saveWorkspace();
+    if (!workspace || !blocklyRef.current) return;
+    const { sourceInfo, blockRanges } = workspaceToLean(workspace);
+    const pills = blocklyRef.current.getProofStatusPills();
+    const source = locateDiagnostic(workspace, sourceInfo, blockRanges, pills, d);
+    if (source) blocklyRef.current.flashDiagnosticSource(source);
+  }
+
   function onBlocklyChange(result: WorkspaceToLeanResult) {
     const { leanCode, sourceInfo } = result;
     latestSourceInfoRef.current = sourceInfo;
@@ -483,7 +495,12 @@ function App() {
         {diagnostics.length > 0 && (
           <div className="diagnostics">
             {diagnostics.map((d, i) => (
-              <div key={i} className={`diagnostic severity-${d.severity ?? 1}`}>
+              <div
+                key={i}
+                className={`diagnostic severity-${d.severity ?? 1}`}
+                onClick={() => onDiagnosticClick(d)}
+                title="Click to locate in the workspace"
+              >
                 {d.message}
               </div>
             ))}

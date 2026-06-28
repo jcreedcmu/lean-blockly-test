@@ -14,6 +14,7 @@
 import {
   resolveProofStatuses,
   isGoalStateDiagnostic,
+  locateDiagnostic,
   type Pill,
   type DiagnosticLike,
 } from '../src/proofStatusResolve';
@@ -79,6 +80,15 @@ const pills: Pill[] = [
   { blockId: 'C', target: 'BODY2' },
 ];
 
+// Broad per-block spans (as computeBlockRanges would produce), nesting L ⊇ C ⊇
+// {t1, t2}. Used by locateDiagnostic's block-range fallback.
+const blockRanges: SourceInfo[] = [
+  si('L', [0, 0], [6, 6]),
+  si('C', [1, 2], [5, 8]),
+  si('t1', [2, 4], [2, 9]),
+  si('t2', [4, 4], [4, 9]),
+];
+
 function statusOf(
   r: ReturnType<typeof resolveProofStatuses>,
   blockId: string,
@@ -141,4 +151,32 @@ test('a pill whose region cannot be resolved is left unknown', () => {
     [],
   );
   expect(statusOf(r, 'nope', 'PROOF')).toBe('unknown');
+});
+
+describe('locateDiagnostic', () => {
+  test('goal-state diagnostic in an arm → that arm’s pill', () => {
+    expect(locateDiagnostic(ws, sourceInfo, blockRanges, pills, diag(5, 4)))
+      .toEqual({ kind: 'pill', blockId: 'C', target: 'BODY2' });
+  });
+
+  test('goal-state diagnostic at the `:= by` line → the lemma pill', () => {
+    expect(locateDiagnostic(ws, sourceInfo, blockRanges, pills, diag(0, 0)))
+      .toEqual({ kind: 'pill', blockId: 'L', target: 'LEMMA_PROOF' });
+  });
+
+  test('non-goal-state diagnostic on a tactic → narrowest block (the tactic)', () => {
+    const err = diag(2, 4, 'type mismatch\n…');
+    expect(locateDiagnostic(ws, sourceInfo, blockRanges, pills, err))
+      .toEqual({ kind: 'block', blockId: 't1' });
+  });
+
+  test('non-goal-state diagnostic on the header line → narrowest block (the lemma)', () => {
+    const err = diag(0, 0, 'unexpected token\n…');
+    expect(locateDiagnostic(ws, sourceInfo, blockRanges, pills, err))
+      .toEqual({ kind: 'block', blockId: 'L' });
+  });
+
+  test('a diagnostic contained by no range → null', () => {
+    expect(locateDiagnostic(ws, sourceInfo, blockRanges, pills, diag(99, 0))).toBeNull();
+  });
 });
