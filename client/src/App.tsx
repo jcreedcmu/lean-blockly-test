@@ -14,7 +14,7 @@ import { LevelEvaluator, type EvaluationResult } from './LevelEvaluator';
 import { resolveProofStatuses, isGoalStateDiagnostic, locateDiagnostic, pillForPosition } from './proofStatusResolve';
 import type { Pill } from './proofStatusResolve';
 import type { ContributionDiagnostic } from './LevelEvaluator';
-import type { MarkerLocation } from './markerResolve';
+import { resolveMarkerLocation, type MarkerLocation } from './markerResolve';
 
 // A unified goal selection: either one of the unsolved-goal leaves (a
 // "Main Goal"/"Goal N" tab) or a pill with no corresponding leaf (inspecting a
@@ -65,6 +65,12 @@ function App() {
   const [pillPending, setPillPending] = useState(false);
   const [leafPills, setLeafPills] = useState<(Pill | null)[]>([]);
   const markerSeqRef = useRef(0);
+  // Mirror the current selection/mapping so runEvaluation (empty deps) can read
+  // the latest values to preserve the selection across edits.
+  const selectionRef = useRef(selection);
+  selectionRef.current = selection;
+  const leafPillsRef = useRef(leafPills);
+  leafPillsRef.current = leafPills;
 
   const blocklyRef = useRef<BlocklyHandle>(null);
   const [goalsPanelWidth, setGoalsPanelWidth] = useState(300);
@@ -118,41 +124,65 @@ function App() {
     setEvaluating(false);
     setEvaluation(result);
 
-    // A new evaluation means positions/goals have moved. Recompute the
-    // per-pill proof statuses and the leaf-goal → pill mapping, then reset the
-    // selection to the main goal so tabs and pills start in sync.
-    markerSeqRef.current++;
-    setPillGoals(null);
-    setPillPending(false);
-    let newLeafPills: (Pill | null)[] = [];
-    if (result && sourceInfo.length > 0 && blocklyRef.current) {
-      const workspace = blocklyRef.current.saveWorkspace();
-      const pills = blocklyRef.current.getProofStatusPills();
-      if (workspace) {
-        const { statuses, unmatched } = resolveProofStatuses(
-          workspace, sourceInfo, pills, result.diagnostics,
-        );
-        blocklyRef.current.updateProofStatuses(statuses);
-        newLeafPills = result.leafGoals.map(
-          lg => pillForPosition(workspace, sourceInfo, pills, lg.position),
-        );
+    // The pill the user had selected, by stable (blockId, target) identity, so
+    // we can keep it selected across edits rather than snapping to the main goal.
+    const sel = selectionRef.current;
+    const prevKey: Pill | null =
+      sel?.kind === 'pill' ? { blockId: sel.blockId, target: sel.target }
+      : sel?.kind === 'leaf' ? (leafPillsRef.current[sel.index] ?? null)
+      : null;
 
-        // Debug: surface where goal-state diagnostics landed vs. how they were
-        // attributed, so we can confirm the gap-anchor model empirically.
-        const goalDiags = result.diagnostics.filter(isGoalStateDiagnostic);
-        console.log('[proof-status] goal diags:', goalDiags.map(d => ({
-          start: d.range.start, end: d.range.end, msg: d.message.slice(0, 48),
-        })));
-        console.log('[proof-status] statuses:', statuses);
-        if (unmatched.length) {
-          console.warn('[proof-status] unmatched goal diags:', unmatched.map(d => d.range.start));
-        }
+    // Recompute per-pill proof statuses and the leaf-goal → pill mapping.
+    markerSeqRef.current++;
+    setPillPending(false);
+    const workspace = blocklyRef.current?.saveWorkspace() ?? null;
+    let newLeafPills: (Pill | null)[] = [];
+    if (result && sourceInfo.length > 0 && workspace && blocklyRef.current) {
+      const pills = blocklyRef.current.getProofStatusPills();
+      const { statuses, unmatched } = resolveProofStatuses(
+        workspace, sourceInfo, pills, result.diagnostics,
+      );
+      blocklyRef.current.updateProofStatuses(statuses);
+      newLeafPills = result.leafGoals.map(
+        lg => pillForPosition(workspace, sourceInfo, pills, lg.position),
+      );
+
+      // Debug: surface where goal-state diagnostics landed vs. how they were
+      // attributed, so we can confirm the gap-anchor model empirically.
+      const goalDiags = result.diagnostics.filter(isGoalStateDiagnostic);
+      console.log('[proof-status] goal diags:', goalDiags.map(d => ({
+        start: d.range.start, end: d.range.end, msg: d.message.slice(0, 48),
+      })));
+      console.log('[proof-status] statuses:', statuses);
+      if (unmatched.length) {
+        console.warn('[proof-status] unmatched goal diags:', unmatched.map(d => d.range.start));
       }
     }
     setLeafPills(newLeafPills);
-    const hasLeaves = (result?.leafGoals.length ?? 0) > 0;
-    setSelection(hasLeaves ? { kind: 'leaf', index: 0 } : null);
-    blocklyRef.current?.setSelectedMarker(hasLeaves ? (newLeafPills[0] ?? null) : null);
+
+    // Restore the selection by pill identity: prefer the leaf the pill now
+    // governs; else, if the pill still resolves, keep it as a bare position;
+    // else fall back to the main goal.
+    const restoredLeaf = prevKey
+      ? newLeafPills.findIndex(p => p?.blockId === prevKey.blockId && p?.target === prevKey.target)
+      : -1;
+    const restoredLoc = (prevKey && restoredLeaf < 0 && workspace)
+      ? resolveMarkerLocation(workspace, sourceInfo, prevKey.blockId, prevKey.target)
+      : undefined;
+    if (restoredLeaf >= 0) {
+      setSelection({ kind: 'leaf', index: restoredLeaf });
+      setPillGoals(null);
+      blocklyRef.current?.setSelectedMarker(prevKey);
+    } else if (prevKey && restoredLoc) {
+      setSelection({ kind: 'pill', blockId: prevKey.blockId, target: prevKey.target });
+      blocklyRef.current?.setSelectedMarker(prevKey);
+      queryPillGoalAt(restoredLoc, false);
+    } else {
+      const hasLeaves = newLeafPills.length > 0;
+      setSelection(hasLeaves ? { kind: 'leaf', index: 0 } : null);
+      setPillGoals(null);
+      blocklyRef.current?.setSelectedMarker(hasLeaves ? (newLeafPills[0] ?? null) : null);
+    }
   }, []);
 
   // Pending code to evaluate once the Lean session becomes ready.
@@ -325,6 +355,30 @@ function App() {
     return null;
   }
 
+  // Query the goal at a pill's position and show it, keeping the prior goal
+  // dimmed until the RPC resolves. `seed` re-seeds the dimmed goal from the
+  // current view (on click); pass false to keep whatever's shown (on restore).
+  function queryPillGoalAt(location: MarkerLocation, seed: boolean) {
+    const seq = ++markerSeqRef.current;
+    if (seed) setPillGoals(currentContentGoals());
+    setPillPending(true);
+    const ev = evaluatorRef.current;
+    if (!ev) { setPillPending(false); return; }
+    const pos = { line: location.startLineCol[0], character: location.startLineCol[1] };
+    void (async () => {
+      try {
+        const goals = await ev.goalsAtContributionPosition(pos);
+        if (markerSeqRef.current === seq) {
+          setPillGoals(goals);
+          setPillPending(false);
+        }
+      } catch (err) {
+        console.error('[marker] goal query failed', err);
+        if (markerSeqRef.current === seq) setPillPending(false);
+      }
+    })();
+  }
+
   // Select leaf goal `i` — highlights its tab and the pill that governs it.
   function selectLeaf(index: number) {
     markerSeqRef.current++;
@@ -360,28 +414,9 @@ function App() {
       applyDefaultSelection();
       return;
     }
-    const seq = ++markerSeqRef.current;
-    // Keep showing the previous goal (dimmed) until the query resolves.
-    setPillGoals(currentContentGoals());
-    setPillPending(true);
     setSelection({ kind: 'pill', blockId, target });
     blocklyRef.current?.setSelectedMarker({ blockId, target });
-
-    const ev = evaluatorRef.current;
-    if (!ev) { setPillPending(false); return; }
-    const pos = { line: location.startLineCol[0], character: location.startLineCol[1] };
-    void (async () => {
-      try {
-        const goals = await ev.goalsAtContributionPosition(pos);
-        if (markerSeqRef.current === seq) {
-          setPillGoals(goals);
-          setPillPending(false);
-        }
-      } catch (err) {
-        console.error('[marker] goal query failed', err);
-        if (markerSeqRef.current === seq) setPillPending(false);
-      }
-    })();
+    queryPillGoalAt(location, true);
   }
 
   function onBlocklyChange(result: WorkspaceToLeanResult) {
