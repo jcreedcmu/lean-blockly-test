@@ -191,6 +191,7 @@
   background: #f3e5f5;
 }
 
+/*
 .hyp-name.inserted {
   background-color: #d4edda;
 }
@@ -199,6 +200,7 @@
   background-color: #f8d7da;
   text-decoration: line-through;
 }
+*/
 
 .hyp-name.inaccessible {
   color: #999;
