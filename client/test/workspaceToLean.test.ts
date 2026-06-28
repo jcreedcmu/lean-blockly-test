@@ -431,4 +431,55 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
       expect(tacticInfo!.endLineCol).toEqual([2, 0]); // ends after newline
     });
   });
+
+  describe('broad block ranges', () => {
+    // Generated text:
+    //   theorem foo : T := by      line 0   block L
+    //     constructor              line 1   block C
+    //     · rfl                    line 2   block r1
+    //       skip                   line 3   (C BODY1 anchor)
+    //     · rfl                    line 4   block r2
+    //       skip                   line 5   (C BODY2 anchor)
+    //     skip                     line 6   (L LEMMA_PROOF anchor)
+    const ws = workspace({
+      type: 'lemma',
+      id: 'L',
+      fields: { THEOREM_NAME: 'foo', THEOREM_DECLARATION: ': T' },
+      inputs: {
+        LEMMA_PROOF: {
+          block: {
+            type: 'tactic_constructor',
+            id: 'C',
+            inputs: {
+              BODY1: { block: { type: 'tactic_refl', id: 'r1' } },
+              BODY2: { block: { type: 'tactic_refl', id: 'r2' } },
+            },
+          },
+        },
+      },
+    });
+
+    test('a block range covers its whole rendered subtree, anchors included', () => {
+      const { blockRanges } = workspaceToLean(ws);
+      const byId = new Map(blockRanges.map(b => [b.id, b]));
+      // Lemma spans the theorem line through its trailing `skip` anchor.
+      expect(byId.get('L')).toMatchObject({ startLineCol: [0, 0], endLineCol: [7, 0] });
+      // Constructor spans the `constructor` keyword through its second arm's
+      // `skip`, but NOT the lemma's trailing skip on line 6.
+      expect(byId.get('C')).toMatchObject({ startLineCol: [1, 2], endLineCol: [6, 0] });
+    });
+
+    test('ranges nest by containment and a leaf covers only its own line', () => {
+      const { blockRanges } = workspaceToLean(ws);
+      const byId = new Map(blockRanges.map(b => [b.id, b]));
+      const L = byId.get('L')!, C = byId.get('C')!, r1 = byId.get('r1')!;
+      // r1 is just the first `rfl` line — not the synthesized arm skip below it.
+      expect(r1).toMatchObject({ startLineCol: [2, 4], endLineCol: [3, 0] });
+      // Containment: L ⊇ C ⊇ r1.
+      const encloses = (a: typeof L, b: typeof L) =>
+        a.startLineCol[0] <= b.startLineCol[0] && b.endLineCol[0] <= a.endLineCol[0];
+      expect(encloses(L, C)).toBe(true);
+      expect(encloses(C, r1)).toBe(true);
+    });
+  });
 });

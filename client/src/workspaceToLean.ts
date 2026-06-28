@@ -38,7 +38,14 @@ export type SourceInfo = {
 
 export type WorkspaceToLeanResult = {
   leanCode: string;
+  /** Narrow per-id ranges: each block's own emitted tokens, plus the synthetic
+   * `emptyArmId` anchor ids. Pill ranges are derived from these. */
   sourceInfo: SourceInfo[];
+  /** Broad per-block spans: each block's entire rendered text, including
+   * descendant blocks and synthesized `skip` anchors. These nest
+   * hierarchically; used to attribute a diagnostic to the narrowest containing
+   * block when no pill range covers it. */
+  blockRanges: SourceInfo[];
 };
 
 // Helper to create a chunk with block ID
@@ -527,7 +534,7 @@ function trimTrailingNewline(chunks: CodeChunk[]): CodeChunk[] {
 /**
  * Flatten chunks into a string and compute source info.
  */
-function flattenChunks(chunks: CodeChunk[]): WorkspaceToLeanResult {
+function flattenChunks(chunks: CodeChunk[]): { leanCode: string; sourceInfo: SourceInfo[] } {
   let leanCode = '';
   let line = 0;
   let col = 0;
@@ -583,6 +590,60 @@ function flattenChunks(chunks: CodeChunk[]): WorkspaceToLeanResult {
 }
 
 /**
+ * Compute a broad textual span for each block: the bounding box of its own
+ * (narrow) range plus those of all its descendants and its synthesized `skip`
+ * anchors. These nest hierarchically — a diagnostic not covered by any pill
+ * range can be blamed on the narrowest block range that contains it.
+ *
+ * Derived purely from the narrow `sourceInfo` + the block tree; no extra data
+ * threaded through codegen. A block contributes nothing if it (and its
+ * descendants) emitted no tracked text, so unrendered inputs can't over-extend
+ * a span.
+ */
+function computeBlockRanges(topBlocks: SerializedBlock[], sourceInfo: SourceInfo[]): SourceInfo[] {
+  type Range = { start: [number, number]; end: [number, number] };
+  const narrow = new Map(sourceInfo.map((s) => [s.id, s]));
+  const out: SourceInfo[] = [];
+
+  const before = (a: [number, number], b: [number, number]) =>
+    a[0] < b[0] || (a[0] === b[0] && a[1] < b[1]);
+  const asRange = (s: SourceInfo | undefined): Range | undefined =>
+    s ? { start: s.startLineCol, end: s.endLineCol } : undefined;
+  const merge = (a: Range | undefined, b: Range | undefined): Range | undefined => {
+    if (!a) return b;
+    if (!b) return a;
+    return {
+      start: before(a.start, b.start) ? a.start : b.start,
+      end: before(a.end, b.end) ? b.end : a.end,
+    };
+  };
+
+  const visit = (block: SerializedBlock): Range | undefined => {
+    const id = block.id;
+    let r = asRange(id ? narrow.get(id) : undefined);
+    // Synthesized `skip` anchors this block emits are keyed `${id}::${input}`.
+    if (id) {
+      for (const s of sourceInfo) {
+        if (s.id.startsWith(`${id}::`)) r = merge(r, asRange(s));
+      }
+    }
+    // Children: each input slot's block, plus that block's next-chain.
+    for (const input of Object.values(block.inputs ?? {})) {
+      for (let c = input.block ?? input.shadow; c; c = c.next?.block) {
+        r = merge(r, visit(c));
+      }
+    }
+    if (id && r) out.push({ id, startLineCol: r.start, endLineCol: r.end });
+    return r;
+  };
+
+  for (const top of topBlocks) {
+    for (let b: SerializedBlock | undefined = top; b; b = b.next?.block) visit(b);
+  }
+  return out;
+}
+
+/**
  * Convert a serialized Blockly workspace to Lean code with source mapping.
  *
  * @param workspace - The serialized workspace state (from blockly.serialization.workspaces.save)
@@ -607,5 +668,7 @@ export function workspaceToLean(workspace: BlocklyState): WorkspaceToLeanResult 
     }
   }
 
-  return flattenChunks(allChunks);
+  const { leanCode, sourceInfo } = flattenChunks(allChunks);
+  const blockRanges = computeBlockRanges(lemmaBlocks, sourceInfo);
+  return { leanCode, sourceInfo, blockRanges };
 }
