@@ -94,7 +94,8 @@ describe('workspaceToLean', () => {
       expect(leanCode).toBe(
         'theorem foo (x : ℝ) : x = x := by\n' +
         '  have h : x = x := by\n' +
-        '    skip\n'
+        '    skip\n' +
+        '  skip\n'
       );
     });
 
@@ -107,7 +108,8 @@ describe('workspaceToLean', () => {
         'theorem split (p q : Prop) (hp : p) (hq : q) : p ∧ q := by\n' +
         '  constructor\n' +
         '  · skip\n' +
-        '  · skip\n'
+        '  · skip\n' +
+        '  skip\n'
       );
     });
 
@@ -134,7 +136,8 @@ describe('workspaceToLean', () => {
       const { leanCode } = workspaceToLean(ws);
       expect(leanCode).toBe(
         'theorem refl_example (x : ℝ) : x = x := by\n' +
-        '  rfl\n'
+        '  rfl\n' +
+        '  skip\n'
       );
     });
 
@@ -145,7 +148,8 @@ describe('workspaceToLean', () => {
       const { leanCode } = workspaceToLean(ws);
       expect(leanCode).toBe(
         'theorem simp_example (x : ℝ) : x = x := by\n' +
-        '  simp\n'
+        '  simp\n' +
+        '  skip\n'
       );
     });
 
@@ -181,7 +185,8 @@ describe('workspaceToLean', () => {
       const { leanCode } = workspaceToLean(ws);
       expect(leanCode).toBe(
         'theorem rewrite_example (x : ℝ) (h : x = 5) : x = 5 := by\n' +
-        '  rewrite [h]\n'
+        '  rewrite [h]\n' +
+        '  skip\n'
       );
       expect(leanCode).not.toContain('rw [h]');
     });
@@ -290,7 +295,8 @@ describe('workspaceToLean', () => {
       const { leanCode } = workspaceToLean(ws);
       expect(leanCode).toBe(
         'theorem rewrite_at_example (x y : ℝ) (h : x = y) (h2 : x = x) : x = x := by\n' +
-        '  rewrite [h] at h2\n'
+        '  rewrite [h] at h2\n' +
+        '  skip\n'
       );
     });
 
@@ -309,7 +315,8 @@ describe('workspaceToLean', () => {
       const { leanCode } = workspaceToLean(ws);
       expect(leanCode).toBe(
         'theorem intro_many (p q r : Prop) : p → q → r → p := by\n' +
-        '  intro hp hq hr\n'
+        '  intro hp hq hr\n' +
+        '  skip\n'
       );
     });
 
@@ -332,7 +339,8 @@ describe('workspaceToLean', () => {
       const { leanCode } = workspaceToLean(ws);
       expect(leanCode).toBe(
         'theorem use_many : ∃ x : ℝ, ∃ y : ℝ, x = y := by\n' +
-        '  use a, b, c\n'
+        '  use a, b, c\n' +
+        '  skip\n'
       );
     });
   });
@@ -349,6 +357,7 @@ describe('workspaceToLean', () => {
 
     const expectedOutput = `theorem away (y : ℝ) (hy : y ≠ 1) : (y^2 - 1) / (y - 1) = y + 1 := by
   grind
+  skip
 
 theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
   unfold FunLimAt
@@ -357,6 +366,7 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
   use ε
   constructor
   · linarith
+    skip
   · intro y
     intro hy
     intro hy2
@@ -365,6 +375,8 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
     rewrite [show y + 1 - 2 = y - 1 by
         grind]
     exact hy2
+    skip
+  skip
 `;
 
     test('converts the example workspace to expected Lean code', () => {

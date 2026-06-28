@@ -125,6 +125,26 @@ function bodyOrSkip(
 }
 
 /**
+ * Like `bodyOrSkip`, but **always** ends the body with a `skip` anchor — even
+ * when the body is non-empty. This gives the body's *end* an observable,
+ * addressable position (keyed by `emptyArmId`) for the status pill that governs
+ * it: querying goals at the trailing `skip` yields the proof's end-state ("no
+ * goals" when complete, the remaining goal when not), and an `unsolved goals`
+ * diagnostic for an incomplete body lands in that same gap.
+ *
+ * `skip` is a no-op even with no goals, so the trailing anchor is safe after a
+ * complete proof. See `plans/pill-position-mapping.md`.
+ */
+function bodyWithSkipAnchor(
+  bodyChunks: CodeChunk[],
+  indent: string,
+  blockId: string,
+  inputName: string,
+): CodeChunk[] {
+  return [...bodyChunks, chunk(`${indent}skip\n`, emptyArmId(blockId, inputName))];
+}
+
+/**
  * Generate code chunks from a single block and its children.
  */
 function blockToChunks(
@@ -152,7 +172,7 @@ function blockToChunks(
       // THEOREM_DECLARATION should contain the full signature, e.g. "(a b : ℕ) : a + b = b + a"
       chunks = [
         chunk(`theorem ${name} ${declaration} := by\n`, blockId),
-        ...bodyOrSkip(proofChunks, indent + '  ', blockId, 'LEMMA_PROOF'),
+        ...bodyWithSkipAnchor(proofChunks, indent + '  ', blockId, 'LEMMA_PROOF'),
       ];
       break;
     }
@@ -407,18 +427,20 @@ function blockToChunks(
       const body1Chunks = blockToChunks(inputBlock(inputs['BODY1']), indent + '  ');
       const body2Chunks = blockToChunks(inputBlock(inputs['BODY2']), indent + '  ');
 
-      // Replace first indent with bullet for each body. If a branch is
-      // entirely empty, emit `· skip` so it parses and produces an
-      // unsolved-goals diagnostic at that branch — keyed by a synthetic id so
-      // the (empty) arm remains an addressable position for goal markers.
+      // Replace first indent with bullet for each body, and always append a
+      // trailing `skip` anchor (keyed by a synthetic id) so the arm's end is an
+      // observable, addressable position for its status pill — an empty branch
+      // becomes `· skip`, a filled one ends with a `skip` continuation line.
       const bulletize = (bodyChunks: CodeChunk[], inputName: string): CodeChunk[] => {
         if (bodyChunks.length === 0) {
-          return [chunk(`${indent}· skip\n`, emptyArmId(blockId, inputName))];
+          // Empty arm: the bullet carries the `skip` anchor → `· skip`.
+          return [text(`${indent}· `), chunk(`skip\n`, emptyArmId(blockId, inputName))];
         }
-        if (bodyChunks.length > 0 && bodyChunks[0].text === indent + '  ') {
-          return [text(`${indent}· `), ...bodyChunks.slice(1)];
-        }
-        return bodyChunks;
+        // Filled arm: bullet the first tactic, append a `skip` continuation.
+        const bulleted = bodyChunks[0].text === indent + '  '
+          ? [text(`${indent}· `), ...bodyChunks.slice(1)]
+          : bodyChunks;
+        return [...bulleted, chunk(`${indent}  skip\n`, emptyArmId(blockId, inputName))];
       };
 
       chunks = [

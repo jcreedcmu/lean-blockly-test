@@ -46,11 +46,15 @@ function lastInChain(block: SerializedBlock): SerializedBlock {
  * Resolve a goal-position marker (`blockId` + `target`) to a source range in
  * the generated contribution text:
  *
- * - no `target` → the block's own range.
- * - `target` (a statement-input name) with content → the span from the first
- *   child's start to the **last** child's end (walking the `.next` chain).
- * - `target` whose arm is empty → the synthesized placeholder position the
- *   codegen emits under `emptyArmId`.
+ * - no `target` → the block's own range (e.g. `intro`, whose start is the
+ *   goal-entering position the marker names).
+ * - `target` with a codegen `skip` anchor → that anchor's range. This is the
+ *   narrow constant-goal position at the arm's end. Blocks on the
+ *   trailing-anchor model (lemma, constructor arms) always emit it; empty arms
+ *   of any block always emit it too.
+ * - `target` with content but **no** anchor (blocks not yet migrated, e.g.
+ *   have/show/transform) → the span from the first child's start to the
+ *   **last** child's end (walking the `.next` chain).
  *
  * Pure over the serialized workspace + `sourceInfo`, so it is unit-testable
  * without a live Blockly workspace. Returns undefined if the block or position
@@ -71,14 +75,17 @@ export function resolveMarkerLocation(
     return range(byId.get(blockId));
   }
 
+  // Prefer the codegen-emitted `skip` anchor for this arm, when present. It's
+  // the canonical narrow range; always present for empty arms and for arms of
+  // blocks migrated to the trailing-anchor model.
+  const anchor = byId.get(emptyArmId(blockId, target));
+  if (anchor) return range(anchor);
+
+  // Fallback (un-migrated non-empty arm): span first child's start to last
+  // child's end.
   const block = findBlockInWorkspace(workspace, blockId);
   const first = block?.inputs?.[target]?.block;
-  if (!first) {
-    // Empty arm: the placeholder the codegen emits, keyed synthetically.
-    return range(byId.get(emptyArmId(blockId, target)));
-  }
-
-  // Non-empty arm: span the first child's start to the last child's end.
+  if (!first) return undefined;
   const last = lastInChain(first);
   const startInfo = first.id ? byId.get(first.id) : undefined;
   const endInfo = last.id ? byId.get(last.id) : undefined;

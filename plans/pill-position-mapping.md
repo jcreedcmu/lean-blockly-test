@@ -20,27 +20,56 @@ core problem this plan fixes.
 
 ## Core idea: one canonical per-pill range
 
-When we compute the lean text from the blocks workspace, we should
-very naturally, at the same time, produce *textual ranges* (i.e. beginning line/col and ending line/col) for each pill
-that exists in any block. The invariants that must hold of this data
-are:
-- the ranges are all disjoint.
-- if R is the range for pill P, then *any* RPC querying for goals at a position in range R
-  should produce the same goal state, and this should be logically the goal state "at pill P".
-- if we get a diagnostic that says it occurs at position LC, then there is at most one
-  range R that includes it, and if LC is logically at a particular pill P, then range R
-  is associated with pill P.
+When we compute the Lean text from the blocks workspace, we should — at the
+same time — produce a *textual range* (begin line/col, end line/col) for each
+pill in any block. Target invariants:
 
-This means we are free to arbitrarily pick the start of the range in
-the forward direction.
+- the ranges are disjoint;
+- if R is the range for pill P, then *any* goal RPC at a position in R returns
+  the same goal state, which is logically "the goal at P";
+- a diagnostic at position LC falls in at most one range R, and if LC is
+  logically at pill P then R is P's range.
+
+### How we make these hold: constant-goal gaps, anchored by `skip`
+
+A pill's range is a **constant-goal gap** — an inter-step region (mostly
+whitespace/comments) where no tactic runs, so the goal is constant. *Which* gap
+a pill names is **per block type**:
+
+- **intro** (and other leaf position markers) → the gap *before* the tactic
+  (the goal entering it).
+- **constructor arm** (status pill) → the gap *after* that arm (where Lean
+  reports `unsolved goals` if the arm is incomplete).
+- **lemma** (status pill) → the gap *after* the whole proof.
+
+To keep these gaps distinct and addressable — and to aid debugging — the
+codegen inserts a no-op **`skip`** at each pill's gap, and the pill's range is
+the region around its `skip`. `skip` is a no-op even with **no goals**
+(verified: `by trivial; skip` and trailing `skip`s in completed `·` blocks both
+elaborate clean), so it's safe after complete proofs and changes no goal state.
+
+Backward only needs to catch **goal-state diagnostics** (unsolved goals), which
+land in these gaps — not tactic-interior errors (a type error on a tactic),
+which are out of scope for pill mapping.
+
+### Disjointness is a target, not a hard requirement
+
+Liberal `skip` insertion should keep ranges disjoint in practice (e.g. a
+lemma-proved-by-trailing-constructor gets its own `skip` for the lemma gap,
+distinct from the last arm's). But overlaps **must not be fatal**: if a position
+falls in several ranges, pick deterministically (innermost) and carry on. The
+game must never break because the gap reasoning was imperfect.
 
 ## Where the current code is
 
-**Forward — already exact and per-pill:**
+**Forward — exact and per-pill, but uses the *wrong* (wide) range:**
 - `markerResolve.ts` `resolveMarkerLocation(workspace, sourceInfo, blockId,
   target)` → a target-aware contribution range (arm span via the `.next`
   chain, synthesized empty-arm placeholder via `emptyArmId`, or the block's
-  own range for self-anchored pills).
+  own range for self-anchored pills). This computes the *span of the tactics*,
+  not the constant-goal gap — so its range is wide and won't satisfy the
+  invariants. The narrow-gap model above replaces this arm-span logic with a
+  lookup into codegen-emitted gap ranges.
 - `LevelEvaluator.goalsAtContributionPosition(pos)` offsets by
   `preludeLineCount` → document position.
 - `LeanSessionManager.getGoalsAtPosition(uri, pos)` → `$/lean/rpc/call` for
@@ -67,24 +96,29 @@ Separately, `LevelEvaluator` `leafGoals` carry positions
 (`translatePositionToContribution(diag.range.start)`) but are only listed in
 the goal view, never matched to pills.
 
-.
-
 ## Suggested implementation order
 
-1. **Enumerate pills + ranges.** A helper that walks the workspace for every
-   `GoalPositionMarker` field, resolves each via `resolveMarkerLocation`, and
-   returns `{ blockId, target, range }[]`. Pure-ish; unit-testable like
-   `markerResolve.test.ts`.
-2. **Rework the backward pass (Strategy A).** Replace the per-block overlap in
-   `App.runEvaluation` with per-pill best-match against those ranges; make
-   `updateProofStatuses` set status per `(blockId, target)` rather than per
-   block (so sibling arm pills can differ). Add tests for the matching
-   heuristic (containing, nearest, tolerance, no-match).
-3. **Forward selection (slice-2 steps 2–3).** Lift selection into `App`, query
-   the selected pill's position, and show that goal in the panel.
-4. **(Optional) Strategy B** for selected-pill or all-pill precise status.
+1. **Codegen emits gap ranges + `skip` anchors.** In `workspaceToLean`, at each
+   pill's gap (per the per-block rules above), emit a no-op `skip` and record a
+   narrow range keyed by `(blockId, target)`. Output these `pillRanges`
+   alongside `sourceInfo`. Unit-test the emitted ranges (extend
+   `workspaceToLean.test.ts`): each pill gets a gap range, intro's is before /
+   constructor-arm's after / lemma's after the whole proof.
+2. **Forward uses `pillRanges`.** Replace `resolveMarkerLocation`'s arm-span
+   computation with a lookup into `pillRanges` (keep it as a thin adapter so
+   `Blockly.tsx`/`App.tsx` call sites are unchanged). Query goals at a position
+   inside the gap.
+3. **Rework the backward pass, per-pill + defensive.** Replace the per-block
+   line-overlap in `App.runEvaluation`: restrict to **goal-state** diagnostics,
+   match each to the `pillRanges` entry containing it (innermost on overlap,
+   never throw), and set status per `(blockId, target)`. Make
+   `updateProofStatuses` key on `(blockId, target)` so sibling arm pills differ.
+   Test the matching (containing, overlap→innermost, no-match).
+4. **Forward selection display (slice-2 steps 2–3).** Lift selection into
+   `App`, query the selected pill's position, show that goal in the panel
+   (replacing the current console.log debug).
 
 ## Estimated effort
 
-Steps 1–2: ~half a day incl. tests (mostly the matching heuristic + making
-status per-pill). Steps 3–4 are the slice-2 display work, separate.
+Steps 1–3: ~a day incl. tests (codegen gap emission + per-pill defensive
+backward matching). Step 4 is the slice-2 display work, separate.

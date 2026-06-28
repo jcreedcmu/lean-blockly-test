@@ -34,7 +34,9 @@ function si(id: string, start: [number, number], end: [number, number]): SourceI
   return { id, startLineCol: start, endLineCol: end };
 }
 
-// A constructor with a 3-tactic BODY1 and an empty BODY2.
+// A constructor with a 3-tactic BODY1 and an empty BODY2. Under the
+// trailing-anchor model the codegen emits a `skip` anchor at the end of each
+// arm, keyed by `emptyArmId`: BODY1's after t3, BODY2's as the `· skip` bullet.
 const ws = workspace({
   type: 'tactic_constructor',
   id: 'C',
@@ -46,7 +48,8 @@ const sourceInfo: SourceInfo[] = [
   si('t1', [5, 2], [5, 8]),
   si('t2', [6, 2], [6, 10]),
   si('t3', [7, 2], [7, 6]),
-  si(emptyArmId('C', 'BODY2'), [8, 2], [8, 8]),
+  si(emptyArmId('C', 'BODY1'), [8, 4], [8, 8]),
+  si(emptyArmId('C', 'BODY2'), [9, 4], [9, 8]),
 ];
 
 // ── Tests ───────────────────────────────────────────────────────────
@@ -58,35 +61,43 @@ test('self (no target) → the block’s own range', () => {
   });
 });
 
-test('multi-tactic arm → first tactic start … LAST tactic end', () => {
+test('filled arm → its `skip` anchor (not the tactic span)', () => {
+  // The anchor is the canonical narrow range at the arm's end, regardless of
+  // how many tactics precede it.
   expect(resolveMarkerLocation(ws, sourceInfo, 'C', 'BODY1')).toEqual({
-    startLineCol: [5, 2], // t1 start
-    endLineCol: [7, 6],   // t3 end (not t1 end — this is the bug being fixed)
+    startLineCol: [8, 4],
+    endLineCol: [8, 8],
   });
 });
 
-test('single-tactic arm → that tactic’s range', () => {
+test('single-tactic arm → its `skip` anchor', () => {
   const ws1 = workspace({
     type: 'tactic_constructor',
     id: 'D',
     inputs: { BODY1: { block: chain('only') } },
   });
-  const si1 = [si('D', [0, 0], [0, 5]), si('only', [1, 2], [1, 9])];
+  const si1 = [
+    si('D', [0, 0], [0, 5]),
+    si('only', [1, 2], [1, 9]),
+    si(emptyArmId('D', 'BODY1'), [2, 4], [2, 8]),
+  ];
   expect(resolveMarkerLocation(ws1, si1, 'D', 'BODY1')).toEqual({
-    startLineCol: [1, 2],
-    endLineCol: [1, 9],
+    startLineCol: [2, 4],
+    endLineCol: [2, 8],
   });
 });
 
-test('empty arm → the synthesized placeholder position', () => {
+test('empty arm → the synthesized `skip` anchor position', () => {
   expect(resolveMarkerLocation(ws, sourceInfo, 'C', 'BODY2')).toEqual({
-    startLineCol: [8, 2],
-    endLineCol: [8, 8],
+    startLineCol: [9, 4],
+    endLineCol: [9, 8],
   });
 });
 
-test('nested arm (block id inside another arm) is found', () => {
-  // `C` contains t1→t2→t3; give t2 its own arm BODY and resolve through it.
+test('un-migrated arm with no anchor → first-start … last-end span (fallback)', () => {
+  // `have` is not on the trailing-anchor model, so its filled PROOF arm has no
+  // `emptyArmId` entry and resolves via the arm-span fallback (first child's
+  // start to the LAST child's end).
   const nested = workspace({
     type: 'tactic_constructor',
     id: 'C',
