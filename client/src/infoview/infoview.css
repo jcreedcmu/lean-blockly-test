@@ -42,6 +42,12 @@
 
 .goals-content {
   padding: 0.5em 0;
+  transition: opacity 0.12s ease-in;
+}
+
+/* Stale goal while a position query is in flight: dim rather than blank. */
+.goals-content.pending {
+  opacity: 0.45;
 }
 
 .goals-count {

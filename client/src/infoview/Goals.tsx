@@ -14,6 +14,9 @@ export interface GoalsProps extends HypInteractionProps {
   onSelectGoal: (index: number) => void;
   /** Goal to display when no tab is active (a pill with no leaf). */
   overrideGoal?: InteractiveGoals | null;
+  /** When true, the displayed goal is stale (a position query is in flight) —
+   * render it dimmed rather than blanking the panel. */
+  pending?: boolean;
   goalInfoMap?: GoalInfoMap;
   filter?: GoalFilterState;
 }
@@ -28,6 +31,7 @@ export function Goals({
   selectedGoal,
   onSelectGoal,
   overrideGoal,
+  pending = false,
   goalInfoMap,
   filter = defaultGoalFilter,
   ...interactionProps
@@ -62,7 +66,7 @@ export function Goals({
         </div>
       )}
 
-      <div className="goals-content">
+      <div className={`goals-content${pending ? ' pending' : ''}`}>
         <Goal
           goal={displayed}
           goalInfo={displayed.mvarId ? goalInfoMap?.get(displayed.mvarId) : undefined}

@@ -60,6 +60,9 @@ function App() {
   // vice-versa). `markerSeqRef` drops stale async pill-goal queries.
   const [selection, setSelection] = useState<GoalSelection | null>(null);
   const [pillGoals, setPillGoals] = useState<InteractiveGoals | null>(null);
+  // True while a pill's goal query is in flight: keep showing the previous goal
+  // dimmed instead of blanking the panel.
+  const [pillPending, setPillPending] = useState(false);
   const [leafPills, setLeafPills] = useState<(Pill | null)[]>([]);
   const markerSeqRef = useRef(0);
 
@@ -120,6 +123,7 @@ function App() {
     // selection to the main goal so tabs and pills start in sync.
     markerSeqRef.current++;
     setPillGoals(null);
+    setPillPending(false);
     let newLeafPills: (Pill | null)[] = [];
     if (result && sourceInfo.length > 0 && blocklyRef.current) {
       const workspace = blocklyRef.current.saveWorkspace();
@@ -310,10 +314,22 @@ function App() {
     if (source) blocklyRef.current.flashDiagnosticSource(source);
   }
 
+  // The goal currently shown in the panel, used to keep displaying something
+  // (dimmed) while a new pill's goal is being fetched.
+  function currentContentGoals(): InteractiveGoals | null {
+    if (selection?.kind === 'leaf' && evaluation) {
+      const g = evaluation.leafGoals[selection.index]?.goal;
+      return g ? { goals: [g] } : null;
+    }
+    if (selection?.kind === 'pill') return pillGoals;
+    return null;
+  }
+
   // Select leaf goal `i` — highlights its tab and the pill that governs it.
   function selectLeaf(index: number) {
     markerSeqRef.current++;
     setSelection({ kind: 'leaf', index });
+    setPillPending(false);
     setPillGoals(null);
     blocklyRef.current?.setSelectedMarker(leafPills[index] ?? null);
   }
@@ -324,6 +340,7 @@ function App() {
     markerSeqRef.current++;
     const hasLeaves = (evaluation?.leafGoals.length ?? 0) > 0;
     setSelection(hasLeaves ? { kind: 'leaf', index: 0 } : null);
+    setPillPending(false);
     setPillGoals(null);
     blocklyRef.current?.setSelectedMarker(hasLeaves ? (leafPills[0] ?? null) : null);
   }
@@ -344,19 +361,25 @@ function App() {
       return;
     }
     const seq = ++markerSeqRef.current;
+    // Keep showing the previous goal (dimmed) until the query resolves.
+    setPillGoals(currentContentGoals());
+    setPillPending(true);
     setSelection({ kind: 'pill', blockId, target });
-    setPillGoals(null);
     blocklyRef.current?.setSelectedMarker({ blockId, target });
 
     const ev = evaluatorRef.current;
-    if (!ev) return;
+    if (!ev) { setPillPending(false); return; }
     const pos = { line: location.startLineCol[0], character: location.startLineCol[1] };
     void (async () => {
       try {
         const goals = await ev.goalsAtContributionPosition(pos);
-        if (markerSeqRef.current === seq) setPillGoals(goals);
+        if (markerSeqRef.current === seq) {
+          setPillGoals(goals);
+          setPillPending(false);
+        }
       } catch (err) {
         console.error('[marker] goal query failed', err);
+        if (markerSeqRef.current === seq) setPillPending(false);
       }
     })();
   }
@@ -549,6 +572,7 @@ function App() {
             selectedGoal={selectedTab}
             onSelectGoal={selectLeaf}
             overrideGoal={overrideGoal}
+            pending={pillPending}
             goalInfoMap={goalInfoMap}
             allowedAffordances={getAllowedAffordances(currentLevel.permissions)}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}
