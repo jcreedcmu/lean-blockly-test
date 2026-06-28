@@ -343,6 +343,25 @@ describe('workspaceToLean', () => {
         '  skip\n'
       );
     });
+
+    test('conv emits a post-conv `skip` anchor for the trailing goal marker', () => {
+      const ws = workspace(
+        lemma('c', ': a = a', {
+          type: 'tactic_conv',
+          id: 'conv-1',
+          inputs: {
+            BODY: {
+              block: { type: 'tactic_enter', id: 'enter-1', fields: { ENTER_PATH: '[1]' } },
+            },
+          },
+        }),
+      );
+      const { leanCode, sourceInfo } = workspaceToLean(ws);
+      // The trailing `skip` is the last conv step (conv mode, body indent).
+      expect(leanCode).toContain('  conv =>\n    enter [1]\n    skip\n');
+      // …and is addressable for the trailing (AFTER) marker.
+      expect(sourceInfo.some(s => s.id === emptyArmId('conv-1', 'AFTER'))).toBe(true);
+    });
   });
 
   // ── Ported from the previous client/test/test-workspaceToLean.ts ────

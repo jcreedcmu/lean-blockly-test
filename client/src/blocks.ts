@@ -804,8 +804,13 @@ function defineTactics() {
       "type": "tactic_conv",
       "tooltip": "Enter conv mode to rewrite a subexpression of the goal",
       "helpUrl": "conv",
-      "message0": "conv => %1 %2",
+      "message0": "%1 conv => %2 %3 %4 %5",
       "args0": [
+        {
+          "type": "field_goal_marker",
+          "name": "GOAL_AT",
+          "target": "BODY"
+        },
         {
           "type": "input_dummy"
         },
@@ -813,6 +818,15 @@ function defineTactics() {
           "type": "input_statement",
           "name": "BODY",
           "check": "tactic"
+        },
+        {
+          "type": "field_goal_marker",
+          "name": "GOAL_AFTER",
+          "target": "AFTER"
+        },
+        {
+          "type": "input_dummy",
+          "name": "AFTER_ROW"
         }
       ],
       "previousStatement": "tactic",

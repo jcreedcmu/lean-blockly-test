@@ -367,6 +367,10 @@ function blockToChunks(
         ...indentChunk,
         chunk(`conv =>\n`, blockId),
         ...bodyOrSkip(bodyChunks, indent + '  ', blockId, 'BODY'),
+        // A no-op `skip` as the last conv step (conv mode, body indent) gives
+        // the goal after the conv navigation an addressable position for the
+        // trailing marker.
+        chunk(`${indent}  skip\n`, emptyArmId(blockId, 'AFTER')),
       ];
       break;
     }

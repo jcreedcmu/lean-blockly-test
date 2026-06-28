@@ -1,6 +1,5 @@
 import * as blockly from 'blockly';
 import type { BlockSvg } from 'blockly';
-import { FieldProofStatus } from './FieldProofStatus';
 import { isGoalPositionMarker } from './goalMarker';
 
 type Row = blockly.blockRendering.Row;
@@ -9,7 +8,7 @@ type StatementInput = blockly.blockRendering.StatementInput;
 const Types = blockly.blockRendering.Types;
 
 /** Extra vertical space (px) added to the leg directly below a statement
- * input that carries a proof-status indicator, to give the pill room. */
+ * input that carries a marker pill, to give the pill room. */
 const PROOF_STATUS_LEG_EXTRA = 0;
 
 /** Distance (px) from the bottom of the proof slot to the top of the pill.
@@ -18,14 +17,13 @@ const PROOF_STATUS_LEG_EXTRA = 0;
  * anchoring here gives a uniform notch→pill gap. */
 const PILL_BELOW_SLOT = 16;
 
-/** A Field measurable known to wrap a FieldProofStatus. */
-type ProofStatusElem = Measurable & { field: FieldProofStatus };
-
-/** The proof-status Field measurable on a row, if it has one. */
-function proofStatusElem(row: Row): ProofStatusElem | null {
+/** The goal-marker Field measurable on a row (a status pill or a goal marker),
+ * if it has one. Both report size `PILL_WIDTH × PILL_HEIGHT`, so the same
+ * notch-centering applies to either. */
+function markerElem(row: Row): Measurable | null {
   for (const elem of row.elements) {
-    if (Types.isField(elem) && (elem as { field: unknown }).field instanceof FieldProofStatus) {
-      return elem as unknown as ProofStatusElem;
+    if (Types.isField(elem) && isGoalPositionMarker((elem as { field: unknown }).field)) {
+      return elem;
     }
   }
   return null;
@@ -78,23 +76,24 @@ class CustomRenderInfo extends blockly.zelos.RenderInfo {
    */
   getSpacerRowHeight_(prev: Row, next: Row): number {
     const base = super.getSpacerRowHeight_(prev, next);
-    if (prev.hasStatement && proofStatusElem(next)) {
+    if (prev.hasStatement && markerElem(next)) {
       return base + PROOF_STATUS_LEG_EXTRA;
     }
     return base;
   }
 
   /**
-   * Size each proof-status field to the notch of the statement input it
-   * reports on, center it horizontally on that notch, and place it a fixed
-   * distance below the bottom of the proof slot vertically. Done after the
-   * base pass has computed widths/positions; the drawer reads these
-   * afterwards.
+   * Center each marker pill that sits directly below a statement input on that
+   * input's notch, a fixed distance below the bottom of the slot. Shared by the
+   * constructor's per-arm status pills and the conv block's trailing goal
+   * marker. Markers NOT below a statement input (leading inline pills like
+   * `intro`'s) have no statement row above and are left where they are. Done
+   * after the base pass; the drawer reads these afterwards.
    */
   finalize_(): void {
     super.finalize_();
     for (let i = 0; i < this.rows.length; i++) {
-      const elem = proofStatusElem(this.rows[i]);
+      const elem = markerElem(this.rows[i]);
       if (!elem) continue;
       const stmtRow = statementRowAbove(this.rows, i);
       if (!stmtRow) continue;
