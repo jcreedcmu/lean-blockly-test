@@ -11,7 +11,7 @@ import './infoview/infoview.css';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { leanSession } from './LeanSession';
 import { LevelEvaluator, type EvaluationResult } from './LevelEvaluator';
-import type { ProofStatus } from './FieldProofStatus';
+import { resolveProofStatuses, isGoalStateDiagnostic } from './proofStatusResolve';
 import ReactMarkdown from 'react-markdown';
 import { Tutorial } from './Tutorial';
 import remarkGfm from 'remark-gfm';
@@ -95,19 +95,29 @@ function App() {
     setEvaluating(false);
     setEvaluation(result);
 
-    // Map diagnostics back to per-block proof statuses.
+    // Map goal-state diagnostics back to per-pill proof statuses (each status
+    // pill ✓/✕ independently). Pure logic lives in `resolveProofStatuses`; the
+    // pill list + workspace come from the live Blockly workspace.
     if (result && sourceInfo.length > 0 && blocklyRef.current) {
-      const errorDiags = result.diagnostics.filter(d => d.severity === 1);
-      const statuses = new Map<string, ProofStatus>();
-      for (const si of sourceInfo) {
-        const blockStartLine = si.startLineCol[0];
-        const blockEndLine = si.endLineCol[0];
-        const hasError = errorDiags.some(d =>
-          d.range.start.line <= blockEndLine && d.range.end.line >= blockStartLine,
+      const workspace = blocklyRef.current.saveWorkspace();
+      const pills = blocklyRef.current.getProofStatusPills();
+      if (workspace) {
+        const { statuses, unmatched } = resolveProofStatuses(
+          workspace, sourceInfo, pills, result.diagnostics,
         );
-        statuses.set(si.id, hasError ? 'incomplete' : 'complete');
+        blocklyRef.current.updateProofStatuses(statuses);
+
+        // Debug: surface where goal-state diagnostics landed vs. how they were
+        // attributed, so we can confirm the gap-anchor model empirically.
+        const goalDiags = result.diagnostics.filter(isGoalStateDiagnostic);
+        console.log('[proof-status] goal diags:', goalDiags.map(d => ({
+          start: d.range.start, end: d.range.end, msg: d.message.slice(0, 48),
+        })));
+        console.log('[proof-status] statuses:', statuses);
+        if (unmatched.length) {
+          console.warn('[proof-status] unmatched goal diags:', unmatched.map(d => d.range.start));
+        }
       }
-      blocklyRef.current.updateProofStatuses(statuses);
     }
   }, []);
 

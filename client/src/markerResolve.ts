@@ -92,3 +92,62 @@ export function resolveMarkerLocation(
   if (!startInfo || !endInfo) return undefined;
   return { startLineCol: startInfo.startLineCol, endLineCol: endInfo.endLineCol };
 }
+
+/**
+ * The *governed region* of a status pill: the broad source span a goal-state
+ * diagnostic must fall within to be attributed to this pill. Unlike
+ * {@link resolveMarkerLocation} (which gives the narrow constant-goal *anchor*
+ * for the forward query), this spans the arm's whole body so a diagnostic
+ * reported anywhere from the arm's first tactic down to the trailing `skip`
+ * anchor still matches.
+ *
+ * - constructor arm (`BODY1`/`BODY2`): the bullet's first tactic … the arm's
+ *   anchor (the two arms get disjoint regions — neither claims the shared
+ *   `constructor` line).
+ * - wrapper proof (`LEMMA_PROOF`/`PROOF` on lemma/have/show/transform): the
+ *   block's own header line (so a diagnostic at `:= by` is included) … the
+ *   proof's end.
+ *
+ * Returns undefined for a position marker (no `target`) or when ranges can't be
+ * resolved. Pure over the serialized workspace + `sourceInfo`.
+ */
+export function governedRegion(
+  workspace: BlocklyState,
+  sourceInfo: SourceInfo[],
+  blockId: string,
+  target: string,
+): MarkerLocation | undefined {
+  if (!target) return undefined;
+  const byId = new Map(sourceInfo.map((s) => [s.id, s]));
+
+  const anchor = byId.get(emptyArmId(blockId, target));
+  const block = findBlockInWorkspace(workspace, blockId);
+  const first = block?.inputs?.[target]?.block;
+
+  let startLineCol: [number, number] | undefined;
+  let endLineCol: [number, number] | undefined;
+
+  if (first) {
+    const startInfo = first.id ? byId.get(first.id) : undefined;
+    const last = lastInChain(first);
+    const endInfo = last.id ? byId.get(last.id) : undefined;
+    startLineCol = startInfo?.startLineCol;
+    endLineCol = (anchor ?? endInfo)?.endLineCol;
+  } else if (anchor) {
+    // Empty arm: the region is just the synthesized `skip` line.
+    startLineCol = anchor.startLineCol;
+    endLineCol = anchor.endLineCol;
+  }
+
+  // A wrapper proof's pill governs the whole block: extend the region up to the
+  // block's header so a `:= by`-positioned diagnostic is attributed here. Arm
+  // pills (BODY1/BODY2) must NOT swallow the shared `constructor` line.
+  const isArm = target === 'BODY1' || target === 'BODY2';
+  if (!isArm) {
+    const own = byId.get(blockId);
+    if (own) startLineCol = own.startLineCol;
+  }
+
+  if (!startLineCol || !endLineCol) return undefined;
+  return { startLineCol, endLineCol };
+}

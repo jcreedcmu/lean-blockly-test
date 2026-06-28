@@ -7,7 +7,8 @@ import { FieldTheoremStatement } from './blocks'
 import { toolbox as defaultToolbox, filterToolbox } from './toolbox'
 import { workspaceToLean, WorkspaceToLeanResult, SourceInfo } from './workspaceToLean'
 import { resolveMarkerLocation, MarkerLocation } from './markerResolve'
-import { FieldProofStatus, ProofStatus } from './FieldProofStatus'
+import { FieldProofStatus } from './FieldProofStatus'
+import type { Pill, PillStatus } from './proofStatusResolve'
 import './FieldGoalMarker'
 import { setMarkerClickHandler, isGoalPositionMarker } from './goalMarker'
 import { CUSTOM_RENDERER_NAME } from './customRenderer'
@@ -37,7 +38,11 @@ export type MarkerSelectHandler = (
 export type BlocklyHandle = {
   loadWorkspace: (data: BlocklyState) => void;
   saveWorkspace: () => BlocklyState | null;
-  updateProofStatuses: (statuses: Map<string, ProofStatus>) => void;
+  /** Enumerate the live proof-status pills (block id + governed target).
+   * Read from the live workspace because pill fields aren't serialized. */
+  getProofStatusPills: () => Pill[];
+  /** Apply per-pill statuses, addressing each pill by (blockId, target). */
+  updateProofStatuses: (statuses: PillStatus[]) => void;
   clearProofStatuses: () => void;
   /** For each entry, look up the lemma block whose THEOREM_NAME matches
    * the key and set its THEOREM_DECLARATION field's display override.
@@ -255,14 +260,28 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
       }
       return null;
     },
-    updateProofStatuses: (statuses: Map<string, ProofStatus>) => {
+    getProofStatusPills: () => {
+      const pills: Pill[] = [];
+      if (!wsRef.current) return pills;
+      for (const block of wsRef.current.getAllBlocks(false)) {
+        for (const input of block.inputList) {
+          for (const field of input.fieldRow) {
+            if (field instanceof FieldProofStatus) {
+              pills.push({ blockId: block.id, target: field.getTarget() });
+            }
+          }
+        }
+      }
+      return pills;
+    },
+    updateProofStatuses: (statuses: PillStatus[]) => {
       if (!wsRef.current) return;
-      for (const [blockId, status] of statuses) {
+      for (const { blockId, target, status } of statuses) {
         const block = wsRef.current.getBlockById(blockId);
         if (!block) continue;
         for (const input of block.inputList) {
           for (const field of input.fieldRow) {
-            if (field instanceof FieldProofStatus) {
+            if (field instanceof FieldProofStatus && field.getTarget() === target) {
               field.setStatus(status);
             }
           }
