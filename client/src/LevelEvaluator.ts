@@ -324,21 +324,7 @@ export class LevelEvaluator {
 
       // Ask the server for `conv` navigation args for the goal-target
       // subexpressions the client renders (partial; valid conv targets only).
-      const convTargets = new Map<string, string[]>();
-      try {
-        const positions = collectSubexprPositions(goal.type);
-        if (positions.length > 0) {
-          const conv = await this.session.widgetRpcCall<ConvTargetsResult>(
-            this.uri,
-            'getConvTargets',
-            { ctx: goal.ctx, mvarId: goal.mvarId, positions },
-            callPos,
-          );
-          for (const t of conv.targets) convTargets.set(t.pos, t.enter);
-        }
-      } catch (err) {
-        logError(TAG, 'getConvTargets failed:', err);
-      }
+      const convTargets = await this.convTargetsForGoal(goal);
 
       try {
         const result = await this.session.widgetRpcCall<GoalInfoResult>(
@@ -398,6 +384,33 @@ export class LevelEvaluator {
       character: pos.character,
     };
     return this.session.getGoalsAtPosition(this.uri, docPos);
+  }
+
+  /**
+   * The `conv` navigation args (`enter` paths), keyed by subexprPos, for the
+   * goal-target subexpressions of a single goal. Used both for leaf goals at
+   * evaluation time and for a goal queried at an arbitrary (e.g. conv-mode)
+   * position. Returns an empty map on missing context or RPC failure.
+   */
+  async convTargetsForGoal(goal: InteractiveGoal): Promise<Map<string, string[]>> {
+    const convTargets = new Map<string, string[]>();
+    if (!goal.ctx || !goal.mvarId) return convTargets;
+    try {
+      const positions = collectSubexprPositions(goal.type);
+      if (positions.length > 0) {
+        const callPos: Position = { line: this.preludeLineCount, character: 0 };
+        const conv = await this.session.widgetRpcCall<ConvTargetsResult>(
+          this.uri,
+          'getConvTargets',
+          { ctx: goal.ctx, mvarId: goal.mvarId, positions },
+          callPos,
+        );
+        for (const t of conv.targets) convTargets.set(t.pos, t.enter);
+      }
+    } catch (err) {
+      logError(TAG, 'getConvTargets failed:', err);
+    }
+    return convTargets;
   }
 
   // ── Coordinate translation ──────────────────────────────────────

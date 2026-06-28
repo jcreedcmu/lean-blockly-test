@@ -63,6 +63,10 @@ function App() {
   // True while a pill's goal query is in flight: keep showing the previous goal
   // dimmed instead of blanking the panel.
   const [pillPending, setPillPending] = useState(false);
+  // Conv `enter` targets for the displayed goal, set only when the selected
+  // pill is on a conv block. Defined (even if empty) ⇒ render the draggable
+  // subexpression view in place of the goal text; undefined ⇒ normal text.
+  const [pillConvTargets, setPillConvTargets] = useState<Map<string, string[]> | undefined>(undefined);
   const [leafPills, setLeafPills] = useState<(Pill | null)[]>([]);
   const markerSeqRef = useRef(0);
   // Mirror the current selection/mapping so runEvaluation (empty deps) can read
@@ -172,15 +176,18 @@ function App() {
     if (restoredLeaf >= 0) {
       setSelection({ kind: 'leaf', index: restoredLeaf });
       setPillGoals(null);
+      setPillConvTargets(undefined);
       blocklyRef.current?.setSelectedMarker(prevKey);
     } else if (prevKey && restoredLoc) {
+      const isConv = blocklyRef.current?.getBlockType(prevKey.blockId) === 'tactic_conv';
       setSelection({ kind: 'pill', blockId: prevKey.blockId, target: prevKey.target });
       blocklyRef.current?.setSelectedMarker(prevKey);
-      queryPillGoalAt(restoredLoc, false);
+      queryPillGoalAt(restoredLoc, false, isConv);
     } else {
       const hasLeaves = newLeafPills.length > 0;
       setSelection(hasLeaves ? { kind: 'leaf', index: 0 } : null);
       setPillGoals(null);
+      setPillConvTargets(undefined);
       blocklyRef.current?.setSelectedMarker(hasLeaves ? (newLeafPills[0] ?? null) : null);
     }
   }, []);
@@ -358,19 +365,28 @@ function App() {
   // Query the goal at a pill's position and show it, keeping the prior goal
   // dimmed until the RPC resolves. `seed` re-seeds the dimmed goal from the
   // current view (on click); pass false to keep whatever's shown (on restore).
-  function queryPillGoalAt(location: MarkerLocation, seed: boolean) {
+  // `isConv` (pill on a conv block) additionally fetches the conv `enter`
+  // targets so the goal renders as the draggable subexpression view.
+  function queryPillGoalAt(location: MarkerLocation, seed: boolean, isConv: boolean) {
     const seq = ++markerSeqRef.current;
     if (seed) setPillGoals(currentContentGoals());
     setPillPending(true);
+    // Switch to the conv view immediately (empty until targets load); plain
+    // text otherwise.
+    setPillConvTargets(isConv ? new Map() : undefined);
     const ev = evaluatorRef.current;
     if (!ev) { setPillPending(false); return; }
     const pos = { line: location.startLineCol[0], character: location.startLineCol[1] };
     void (async () => {
       try {
         const goals = await ev.goalsAtContributionPosition(pos);
-        if (markerSeqRef.current === seq) {
-          setPillGoals(goals);
-          setPillPending(false);
+        if (markerSeqRef.current !== seq) return;
+        setPillGoals(goals);
+        setPillPending(false);
+        if (isConv) {
+          const g = goals?.goals?.[0];
+          const targets = g ? await ev.convTargetsForGoal(g) : new Map<string, string[]>();
+          if (markerSeqRef.current === seq) setPillConvTargets(targets);
         }
       } catch (err) {
         console.error('[marker] goal query failed', err);
@@ -385,6 +401,7 @@ function App() {
     setSelection({ kind: 'leaf', index });
     setPillPending(false);
     setPillGoals(null);
+    setPillConvTargets(undefined);
     blocklyRef.current?.setSelectedMarker(leafPills[index] ?? null);
   }
 
@@ -396,12 +413,14 @@ function App() {
     setSelection(hasLeaves ? { kind: 'leaf', index: 0 } : null);
     setPillPending(false);
     setPillGoals(null);
+    setPillConvTargets(undefined);
     blocklyRef.current?.setSelectedMarker(hasLeaves ? (leafPills[0] ?? null) : null);
   }
 
   // Clicking a goal-position pill. If it governs an unsolved-goal leaf, this
   // selects that goal's tab. Otherwise it shows the goal queried at the pill's
-  // position with no tab active; re-clicking it returns to the default.
+  // position with no tab active; re-clicking it returns to the default. A pill
+  // on a conv block renders the goal as the draggable subexpression view.
   function onMarkerSelect(location: MarkerLocation | undefined, blockId: string, target: string) {
     const leafIndex = leafPills.findIndex(p => p?.blockId === blockId && p?.target === target);
     if (leafIndex >= 0) {
@@ -414,9 +433,10 @@ function App() {
       applyDefaultSelection();
       return;
     }
+    const isConv = blocklyRef.current?.getBlockType(blockId) === 'tactic_conv';
     setSelection({ kind: 'pill', blockId, target });
     blocklyRef.current?.setSelectedMarker({ blockId, target });
-    queryPillGoalAt(location, true);
+    queryPillGoalAt(location, true, isConv);
   }
 
   function onBlocklyChange(result: WorkspaceToLeanResult) {
@@ -608,6 +628,7 @@ function App() {
             onSelectGoal={selectLeaf}
             overrideGoal={overrideGoal}
             pending={pillPending}
+            convGoalTargets={pillConvTargets}
             goalInfoMap={goalInfoMap}
             allowedAffordances={getAllowedAffordances(currentLevel.permissions)}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}

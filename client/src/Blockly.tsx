@@ -38,6 +38,8 @@ export type MarkerSelectHandler = (
 export type BlocklyHandle = {
   loadWorkspace: (data: BlocklyState) => void;
   saveWorkspace: () => BlocklyState | null;
+  /** The block type for a given id (e.g. `tactic_conv`), or undefined. */
+  getBlockType: (blockId: string) => string | undefined;
   /** Enumerate the live proof-status pills (block id + governed target).
    * Read from the live workspace because pill fields aren't serialized. */
   getProofStatusPills: () => Pill[];
@@ -241,6 +243,7 @@ export const Blockly = forwardRef<BlocklyHandle, BlocklyProps>((props, ref) => {
       }
       return null;
     },
+    getBlockType: (blockId: string) => wsRef.current?.getBlockById(blockId)?.type,
     getProofStatusPills: () => {
       const pills: Pill[] = [];
       if (!wsRef.current) return pills;

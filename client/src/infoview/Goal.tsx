@@ -31,6 +31,9 @@ export interface GoalProps extends HypInteractionProps {
   /** Server-extracted info about this specific goal. Absent when the
    * `getGoalInfo` RPC hasn't populated yet or failed for this mvarId. */
   goalInfo?: GoalInfo;
+  /** Conv `enter` targets for a conv-mode goal. Defined (even if empty) ⇒
+   * render the target as the draggable subexpression view instead of text. */
+  convGoalTargets?: Map<string, string[]>;
   filter?: GoalFilterState;
 }
 
@@ -107,6 +110,7 @@ function renderHypGroup(
 export function Goal({
   goal,
   goalInfo,
+  convGoalTargets,
   filter = defaultGoalFilter,
   ...interactionProps
 }: GoalProps): React.ReactElement {
@@ -162,33 +166,38 @@ export function Goal({
       <div className="hyp-group goal-target">
         <div className="hyp-group-title">Goal</div>
         <div>
-          <span className="goal-type">
-            <InteractiveCode fmt={goal.type} onSubexprClick={interactionProps.onSubexprClick} />
-          </span>
-          {interactionProps.onGoalDragStart && goalInfo?.target.affordances.map((a) => {
-            if (a.kind !== 'use' && a.kind !== 'intro') return null;
-            if (interactionProps.allowedAffordances &&
-                !interactionProps.allowedAffordances.has(a.kind)) return null;
-            return (
-              <span
-                key={a.kind}
-                className={`goal-action goal-action-${a.kind}`}
-                onMouseDown={(e) => interactionProps.onGoalDragStart!(e, a)}
-              >
-                {a.kind}
+          {convGoalTargets !== undefined ? (
+            // Conv-mode goal: the target is the draggable subexpression view —
+            // dragging a subexpression spawns a bare `enter` block.
+            <span className="goal-type">
+              <SubexprTree
+                fmt={goal.type}
+                convTargets={convGoalTargets}
+                onSubexprDrag={interactionProps.onSubexprDrag}
+              />
+            </span>
+          ) : (
+            <>
+              <span className="goal-type">
+                <InteractiveCode fmt={goal.type} onSubexprClick={interactionProps.onSubexprClick} />
               </span>
-            );
-          })}
+              {interactionProps.onGoalDragStart && goalInfo?.target.affordances.map((a) => {
+                if (a.kind !== 'use' && a.kind !== 'intro') return null;
+                if (interactionProps.allowedAffordances &&
+                    !interactionProps.allowedAffordances.has(a.kind)) return null;
+                return (
+                  <span
+                    key={a.kind}
+                    className={`goal-action goal-action-${a.kind}`}
+                    onMouseDown={(e) => interactionProps.onGoalDragStart!(e, a)}
+                  >
+                    {a.kind}
+                  </span>
+                );
+              })}
+            </>
+          )}
         </div>
-      </div>
-
-      <div className="hyp-group goal-tree-poc">
-        <div className="hyp-group-title">Goal structure (PoC)</div>
-        <SubexprTree
-          fmt={goal.type}
-          convTargets={goalInfo?.convTargets}
-          onSubexprDrag={interactionProps.onSubexprDrag}
-        />
       </div>
     </div>
   );

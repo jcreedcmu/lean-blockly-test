@@ -17,6 +17,9 @@ export interface GoalsProps extends HypInteractionProps {
   /** When true, the displayed goal is stale (a position query is in flight) —
    * render it dimmed rather than blanking the panel. */
   pending?: boolean;
+  /** Conv `enter` targets for the displayed goal. Defined (even if empty) ⇒
+   * the goal is conv-mode: render it as the draggable subexpression view. */
+  convGoalTargets?: Map<string, string[]>;
   goalInfoMap?: GoalInfoMap;
   filter?: GoalFilterState;
 }
@@ -32,6 +35,7 @@ export function Goals({
   onSelectGoal,
   overrideGoal,
   pending = false,
+  convGoalTargets,
   goalInfoMap,
   filter = defaultGoalFilter,
   ...interactionProps
@@ -70,6 +74,7 @@ export function Goals({
         <Goal
           goal={displayed}
           goalInfo={displayed.mvarId ? goalInfoMap?.get(displayed.mvarId) : undefined}
+          convGoalTargets={convGoalTargets}
           filter={filter}
           {...interactionProps}
         />
