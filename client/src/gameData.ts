@@ -214,6 +214,7 @@ export const gameData: GameData = {
     { id: 'RealAnalysisStory', name: 'Tutorial World', levels: levelsFor('RealAnalysisStory'), dependsOn: [] },
     { id: 'L1Pset', name: 'Pset 1', levels: levelsFor('L1Pset'), dependsOn: ['RealAnalysisStory'] },
     { id: 'NewtonsCalculationOfPi', name: "Newton's Computation of π", levels: levelsFor('NewtonsCalculationOfPi'), dependsOn: ['RealAnalysisStory'] },
+    { id: 'Conversion', name: 'Conversion', levels: levelsFor('Conversion'), dependsOn: ['RealAnalysisStory'] },
   ],
 };
 
