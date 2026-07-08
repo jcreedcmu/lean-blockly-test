@@ -75,6 +75,17 @@
   user-select: none;
 }
 
+.navbar-debug-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85em;
+  color: #666;
+  cursor: pointer;
+  user-select: none;
+  margin-right: 8px;
+}
+
 .navbar-btn {
   background: none;
   border: 1px solid #ccc;

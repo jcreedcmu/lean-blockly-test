@@ -53,6 +53,13 @@ function App() {
   const visitedLevelsRef = useRef<Set<string>>(new Set());
   // Whether the "Copied!" toast is visible.
   const [showCopiedToast, setShowCopiedToast] = useState(false);
+  // Debug toggle: when on, per-level permission gating is bypassed so every
+  // tactic and affordance is available. This only neutralizes the permissions
+  // input; downstream gating (e.g. conv-mode's rewrite-only restriction) still
+  // applies. Persisted so it survives reloads.
+  const [debugAll, setDebugAll] = useState<boolean>(
+    () => localStorage.getItem('debugAll') === 'true'
+  );
 
   // The unified goal selection (null until the first evaluation). `pillGoals`
   // holds the goal queried for a 'pill' selection; `leafPills[i]` is the status
@@ -515,9 +522,13 @@ function App() {
   const currentLevel = nav.kind === 'playing'
     ? currentWorld?.levels[nav.levelIndex]
     : undefined;
+  // Debug mode bypasses gating by pretending the level has no permission
+  // restrictions; `getAllowedBlocks`/`getAllowedAffordances` both treat
+  // undefined as "allow everything".
+  const effectivePermissions = debugAll ? undefined : currentLevel?.permissions;
   const allowedBlocks = useMemo(
-    () => getAllowedBlocks(currentLevel?.permissions),
-    [currentLevel?.permissions]
+    () => getAllowedBlocks(effectivePermissions),
+    [effectivePermissions]
   );
 
   // proofComplete: null while checking, true on success, false otherwise.
@@ -591,6 +602,20 @@ function App() {
         </span>
       </div>
       <div className="navbar-right">
+        <label
+          className="navbar-debug-toggle"
+          title="Debug: ignore level permissions and enable all tactics & affordances"
+        >
+          <input
+            type="checkbox"
+            checked={debugAll}
+            onChange={(e) => {
+              setDebugAll(e.target.checked);
+              localStorage.setItem('debugAll', String(e.target.checked));
+            }}
+          />
+          Allow All
+        </label>
         <button
           className="navbar-btn navbar-prev-level-btn"
           disabled={nav.levelIndex === 0}
@@ -648,7 +673,7 @@ function App() {
             pending={pillPending}
             convGoalTargets={pillConvTargets}
             goalInfoMap={goalInfoMap}
-            allowedAffordances={getAllowedAffordances(currentLevel.permissions)}
+            allowedAffordances={getAllowedAffordances(effectivePermissions)}
             onHypDragStart={(name, e, mode) => blocklyRef.current?.startHypDrag(name, e, mode)}
             onGoalDragStart={(e, affordance) => blocklyRef.current?.startGoalDrag(e, affordance)}
             onSubexprDrag={(enterArgs, e) => blocklyRef.current?.startEnterDrag(enterArgs, e)}
