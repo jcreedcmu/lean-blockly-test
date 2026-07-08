@@ -3,10 +3,22 @@ import { FieldLabelSerializable, FieldTextInput, FieldConfig } from 'blockly';
 import { attachAbbreviationRewriter } from './abbreviations';
 import './FieldProofStatus';
 import './FieldGoalMarker';
+import { applyBeforePills } from './beforePills';
 
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
 */
+
+// Aliased so `defineBlocksWithBeforePills` can call the real Blockly API
+// without the project-wide `defineBlocksWithJsonArray(` → wrapper rewrite
+// turning it into infinite recursion.
+const defineBlocksRaw = blockly.defineBlocksWithJsonArray.bind(blockly);
+
+/** Like `blockly.defineBlocksWithJsonArray`, but first gives leaf tactics a
+ * left "before" goal-marker pill (see {@link applyBeforePills}). */
+function defineBlocksWithBeforePills(defs: Array<Record<string, unknown>>): void {
+  defineBlocksRaw(applyBeforePills(defs));
+}
 
 /**
  * Custom field for theorem statements with monospace styling.
@@ -147,7 +159,7 @@ export function defineBlocks() {
 }
 
 function defineTermTheorems() {
-  blockly.defineBlocksWithJsonArray([
+  defineBlocksWithBeforePills([
     {
       'type': 'term_archprop',
       'message0': 'ArchProp %1',
@@ -311,7 +323,7 @@ function defineMisc() {
     }
     return definition;
   }
-  blockly.defineBlocksWithJsonArray(singleArgTactics.map(single_arg_tactic));
+  defineBlocksWithBeforePills(singleArgTactics.map(single_arg_tactic));
 
   if (!blockly.Extensions.isRegistered('multi_arg_tactic_buttons')) {
     blockly.Extensions.registerMutator(
@@ -323,7 +335,7 @@ function defineMisc() {
 
   // `intro` uses square text-field slots (new names being introduced); you
   // never drag a term into them, so they read as fields rather than sockets.
-  blockly.defineBlocksWithJsonArray([{
+  defineBlocksWithBeforePills([{
     'type': 'tactic_intro',
     'message0': '%1 intro %2 %3 %4',
     'args0': [
@@ -391,7 +403,7 @@ function defineMisc() {
 }
 
 function defineLemma() {
-  blockly.defineBlocksWithJsonArray([
+  defineBlocksWithBeforePills([
     {
       'type': 'lemma',
       'extensions': ['lemma_init'],
@@ -441,7 +453,7 @@ function defineLemma() {
 }
 
 function defineProposition() {
-  blockly.defineBlocksWithJsonArray([
+  defineBlocksWithBeforePills([
     {
       'type': 'prop_declaration',
       'message0': '%1 : %2',
@@ -497,7 +509,7 @@ function defineProposition() {
 }
 
 function defineTactics() {
-  blockly.defineBlocksWithJsonArray([
+  defineBlocksWithBeforePills([
     {
       'type': 'tactic_refl',
       'message0': 'reflexivity',
@@ -1024,7 +1036,7 @@ function defineTactics() {
 }
 
 function defineSpecialize() {
-  blockly.defineBlocksWithJsonArray([
+  defineBlocksWithBeforePills([
     {
       'type': 'tactic_specialize',
       'message0': 'specialize %1 to (%2) %3 %4',
@@ -1180,7 +1192,7 @@ function defineCalc() {
     block.stepBubbleCounts_.splice(stepIdx, 1);
   }
 
-  blockly.defineBlocksWithJsonArray([{
+  defineBlocksWithBeforePills([{
     'type': 'tactic_calc',
     'message0': 'calc %1 : %2 %3 %4 using %5 %6',
     'args0': [
