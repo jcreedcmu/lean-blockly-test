@@ -194,7 +194,7 @@ function App() {
       const isConv = blocklyRef.current?.getBlockType(prevKey.blockId) === 'tactic_conv';
       setSelection({ kind: 'pill', blockId: prevKey.blockId, target: prevKey.target });
       blocklyRef.current?.setSelectedMarker(prevKey);
-      queryPillGoalAt(restoredLoc, false, isConv);
+      queryPillGoalAt(restoredLoc, isConv);
     } else {
       const hasLeaves = newLeafPills.length > 0;
       setSelection(hasLeaves ? { kind: 'leaf', index: 0 } : null);
@@ -364,55 +364,72 @@ function App() {
     if (source) blocklyRef.current.flashDiagnosticSource(source);
   }
 
-  // The goal currently shown in the panel, used to keep displaying something
-  // (dimmed) while a new pill's goal is being fetched.
-  function currentContentGoals(): InteractiveGoals | null {
+  // The goal currently shown in the panel, as a self-consistent bundle (goal +
+  // hyp-kind info + conv targets). Used to hold the current goal in place,
+  // fully rendered, while a newly-selected pill's goal is fetched — so the panel
+  // never shows a half-rendered intermediate state.
+  type ContentView = {
+    goals: InteractiveGoals | null;
+    info: GoalInfo | undefined;
+    conv: Map<string, string[]> | undefined;
+  };
+  function currentContentView(): ContentView {
     if (selection?.kind === 'leaf' && evaluation) {
       const g = evaluation.leafGoals[selection.index]?.goal;
-      return g ? { goals: [g] } : null;
+      return {
+        goals: g ? { goals: [g] } : null,
+        info: g?.mvarId ? evaluation.goalInfoMap.get(g.mvarId) : undefined,
+        conv: undefined,
+      };
     }
-    if (selection?.kind === 'pill') return pillGoals;
-    return null;
+    if (selection?.kind === 'pill') {
+      return { goals: pillGoals, info: pillGoalInfo, conv: pillConvTargets };
+    }
+    return { goals: null, info: undefined, conv: undefined };
   }
 
-  // Query the goal at a pill's position and show it, keeping the prior goal
-  // dimmed until the RPC resolves. `seed` re-seeds the dimmed goal from the
-  // current view (on click); pass false to keep whatever's shown (on restore).
-  // `isConv` (pill on a conv block) additionally fetches the conv `enter`
-  // targets so the goal renders as the draggable subexpression view.
-  function queryPillGoalAt(location: MarkerLocation, seed: boolean, isConv: boolean) {
+  // Query the goal at a pill's position and show it. The panel keeps displaying
+  // the currently-shown goal — fully rendered, NOT dimmed — until every piece of
+  // the new goal (goal + hyp split + conv targets) has been fetched, then swaps
+  // it in atomically. `seedView` freezes the current view in place for the
+  // duration (pass it on a fresh click; omit on restore, where pill state is
+  // already the thing to keep). `isConv` (pill on a conv block) additionally
+  // fetches the conv `enter` targets for the draggable subexpression view.
+  function queryPillGoalAt(location: MarkerLocation, isConv: boolean, seedView?: ContentView) {
     const seq = ++markerSeqRef.current;
-    if (seed) setPillGoals(currentContentGoals());
-    setPillPending(true);
-    // Switch to the conv view immediately (empty until targets load); plain
-    // text otherwise.
-    setPillConvTargets(isConv ? new Map() : undefined);
-    setPillGoalInfo(undefined);
+    if (seedView) {
+      setPillGoals(seedView.goals);
+      setPillGoalInfo(seedView.info);
+      setPillConvTargets(seedView.conv);
+    }
     const ev = evaluatorRef.current;
-    if (!ev) { setPillPending(false); return; }
+    if (!ev) return;
     const pos = { line: location.startLineCol[0], character: location.startLineCol[1] };
     void (async () => {
       try {
         const goals = await ev.goalsAtContributionPosition(pos);
         if (markerSeqRef.current !== seq) return;
-        setPillGoals(goals);
-        setPillPending(false);
         const g = goals?.goals?.[0];
-        // Fetch hyp kinds/affordances so pill goals split into
-        // OBJECTS/ASSUMPTIONS like leaf goals. `convTargetsForGoal` is
-        // re-run inside, but it's cheap and keeps the two paths uniform.
-        const info = g ? await ev.goalInfoForGoal(g) : null;
-        if (markerSeqRef.current === seq) setPillGoalInfo(info ?? undefined);
-        if (isConv) {
-          // Prefer the conv targets bundled in `info`; fall back to a direct
-          // fetch if `getGoalInfo` failed, so the draggable view still works.
-          const targets = info?.convTargets
-            ?? (g ? await ev.convTargetsForGoal(g) : new Map<string, string[]>());
-          if (markerSeqRef.current === seq) setPillConvTargets(targets);
-        }
+        // Fetch hyp kinds/affordances (for the OBJECTS/ASSUMPTIONS split) and,
+        // only when the pill is on a conv block, the conv drag targets — in
+        // parallel. Ordinary pills skip the (heavy) getConvTargets RPC entirely,
+        // which keeps switching between pills fast.
+        const [info, convTargets] = g
+          ? await Promise.all([
+              ev.goalInfoForGoal(g),
+              isConv ? ev.convTargetsForGoal(g) : Promise.resolve(undefined),
+            ])
+          : [null, undefined];
+        if (markerSeqRef.current !== seq) return;
+        // Commit all user-visible state together. React batches these into one
+        // render (React 19 + createRoot batches inside async callbacks), so the
+        // new goal appears fully formed — hyps split and conv view included —
+        // in a single swap with no intermediate frame.
+        setPillGoals(goals);
+        setPillGoalInfo(info ?? undefined);
+        setPillConvTargets(isConv ? (convTargets ?? new Map<string, string[]>()) : undefined);
       } catch (err) {
         console.error('[marker] goal query failed', err);
-        if (markerSeqRef.current === seq) setPillPending(false);
       }
     })();
   }
@@ -458,9 +475,12 @@ function App() {
       return;
     }
     const isConv = blocklyRef.current?.getBlockType(blockId) === 'tactic_conv';
+    // Capture the currently-shown goal BEFORE changing selection, so it stays
+    // fully rendered in place until the newly-clicked pill's goal is ready.
+    const seedView = currentContentView();
     setSelection({ kind: 'pill', blockId, target });
     blocklyRef.current?.setSelectedMarker({ blockId, target });
-    queryPillGoalAt(location, true, isConv);
+    queryPillGoalAt(location, isConv, seedView);
   }
 
   function onBlocklyChange(result: WorkspaceToLeanResult) {

@@ -108,9 +108,6 @@ export interface GoalInfo {
   mvarId: string;
   hyps: Map<string, HypInfo>;
   target: { affordances: Affordance[] };
-  /** subexprPos → `conv` `enter` args, for the goal-target subexpressions
-   * that are valid conv targets (partial; from the `getConvTargets` RPC). */
-  convTargets: Map<string, string[]>;
 }
 
 /** mvarId → GoalInfo, for every leaf goal in the current evaluation. */
@@ -363,19 +360,17 @@ export class LevelEvaluator {
   }
 
   /**
-   * Per-goal server-side info (hypothesis kinds + target/hyp affordances +
-   * conv navigation args) via the in-memory-prelude `getGoalInfo` RPC. The
-   * call position must be after the prelude so the method is registered.
+   * Per-goal server-side info (hypothesis kinds + target/hyp affordances) via
+   * the in-memory-prelude `getGoalInfo` RPC. The call position must be after
+   * the prelude so the method is registered. Conv navigation targets are a
+   * separate (heavier) RPC — see {@link convTargetsForGoal} — fetched only when
+   * a goal is actually rendered as the draggable conv view.
    * Used both for leaf goals at evaluation time and for a goal queried at an
    * arbitrary (e.g. conv-mode pill) position. Returns null on missing context
    * or RPC failure.
    */
   async goalInfoForGoal(goal: InteractiveGoal): Promise<GoalInfo | null> {
     if (!goal.ctx || !goal.mvarId) return null;
-
-    // Ask the server for `conv` navigation args for the goal-target
-    // subexpressions the client renders (partial; valid conv targets only).
-    const convTargets = await this.convTargetsForGoal(goal);
 
     try {
       const callPos: Position = { line: this.preludeLineCount, character: 0 };
@@ -396,7 +391,6 @@ export class LevelEvaluator {
         mvarId: result.mvarId,
         hyps,
         target: { affordances: result.target.affordances },
-        convTargets,
       };
     } catch (err) {
       logError(TAG, 'getGoalInfo failed:', err);
