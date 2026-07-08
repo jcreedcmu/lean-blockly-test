@@ -98,9 +98,10 @@ function renderNode(
         // leaving restores the enclosing span, so the innermost span wins.
         onMouseEnter={() => ctx.setCurrent(self)}
         onMouseLeave={() => ctx.setCurrent(parent)}
-        // stopPropagation so the innermost draggable span owns the drag.
+        // stopPropagation so the innermost draggable span owns the drag;
+        // preventDefault so mousedown doesn't also start a native text selection.
         onMouseDown={draggable
-          ? (e) => { e.stopPropagation(); ctx.onSubexprDrag!(enter!, e); }
+          ? (e) => { e.preventDefault(); e.stopPropagation(); ctx.onSubexprDrag!(enter!, e); }
           : undefined}
       >
         {renderNode(content, myPath, self, ctx, 0)}

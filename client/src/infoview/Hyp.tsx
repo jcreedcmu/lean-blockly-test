@@ -63,7 +63,9 @@ export function Hyp({ hyp, affordances, allowedAffordances, onHypNameClick, onHy
         className={className}
         data-hyp-name={name}
         onClick={onHypNameClick ? () => onHypNameClick(name, hyp) : undefined}
-        onMouseDown={onHypDragStart ? (e) => onHypDragStart(name, e) : undefined}
+        onMouseDown={onHypDragStart
+          ? (e) => { e.preventDefault(); onHypDragStart(name, e); }
+          : undefined}
         style={{ cursor: onHypDragStart ? 'grab' : onHypNameClick ? 'pointer' : undefined }}
       >
         {name}
