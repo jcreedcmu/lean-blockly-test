@@ -44,6 +44,10 @@ const DEFAULT_URI = 'file:///blockly/Blockly.lean';
 // live here.
 const DEFAULT_PRELUDE = `import MathlibDemo.Preamble
 
+-- Generated proofs include no-op skip anchors (gap markers); without this the
+-- unused-tactic linter would flag every one.
+set_option linter.unusedTactic false
+
 attribute [grind .] inv_lt_of_inv_lt₀
 attribute [grind =] one_mul
 attribute [grind =] Nat.cast_le._simp_1
