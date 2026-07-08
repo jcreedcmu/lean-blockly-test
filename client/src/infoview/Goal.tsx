@@ -41,6 +41,12 @@ function isInaccessibleName(name: string): boolean {
   return name.includes('\u271D');
 }
 
+// In conv mode the goal is a focused expression, not a `\u22A2` goal, so only
+// `rw` is applicable \u2014 apply/choose/specialize (hyp-side) and use/intro
+// (goal-side) are tactic-mode tactics that don't exist in conv. We keep the
+// bare hyp-name drag and subexpr `enter` drag, which aren't gated here.
+const CONV_ALLOWED_AFFORDANCES = new Set(['rewrite']);
+
 function filterHypotheses(
   hyps: InteractiveHypothesisBundle[],
   filter: GoalFilterState
@@ -112,11 +118,25 @@ export function Goal({
   goalInfo,
   convGoalTargets,
   filter = defaultGoalFilter,
-  ...interactionProps
+  ...rawInteractionProps
 }: GoalProps): React.ReactElement {
   if (!goal) {
     return <></>;
   }
+
+  // In conv mode, restrict hypothesis affordances to those valid in conv
+  // (intersect the level's allowed set with `rewrite`). Outside conv, pass the
+  // props through unchanged.
+  const isConv = convGoalTargets !== undefined;
+  const interactionProps: HypInteractionProps = isConv
+    ? {
+        ...rawInteractionProps,
+        allowedAffordances: rawInteractionProps.allowedAffordances
+          ? new Set([...rawInteractionProps.allowedAffordances]
+              .filter((k) => CONV_ALLOWED_AFFORDANCES.has(k)))
+          : CONV_ALLOWED_AFFORDANCES,
+      }
+    : rawInteractionProps;
 
   const filteredHyps = filterHypotheses(goal.hyps, filter);
   // Split multi-name bundles so each hypothesis gets its own row

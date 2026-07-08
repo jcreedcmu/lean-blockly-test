@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { InteractiveGoals } from '@leanprover/infoview-api';
 import { Goal, GoalFilterState, defaultGoalFilter } from './Goal';
 import type { HypInteractionProps } from './Hyp';
-import type { GoalInfoMap } from '../LevelEvaluator';
+import type { GoalInfo, GoalInfoMap } from '../LevelEvaluator';
 
 export interface GoalsProps extends HypInteractionProps {
   /** The unsolved-goal leaves shown as the "Main Goal"/"Goal N" tabs. */
@@ -14,6 +14,9 @@ export interface GoalsProps extends HypInteractionProps {
   onSelectGoal: (index: number) => void;
   /** Goal to display when no tab is active (a pill with no leaf). */
   overrideGoal?: InteractiveGoals | null;
+  /** Hyp kinds/affordances for `overrideGoal`, fetched with it. Leaf goals
+   * read from `goalInfoMap` instead; the override goal isn't in that map. */
+  overrideGoalInfo?: GoalInfo;
   /** When true, the displayed goal is stale (a position query is in flight) —
    * render it dimmed rather than blanking the panel. */
   pending?: boolean;
@@ -34,6 +37,7 @@ export function Goals({
   selectedGoal,
   onSelectGoal,
   overrideGoal,
+  overrideGoalInfo,
   pending = false,
   convGoalTargets,
   goalInfoMap,
@@ -41,10 +45,10 @@ export function Goals({
   ...interactionProps
 }: GoalsProps): React.ReactElement {
   const tabGoals = goals?.goals ?? [];
-  const displayed =
-    selectedGoal !== null
-      ? tabGoals[Math.min(selectedGoal, tabGoals.length - 1)]
-      : overrideGoal?.goals?.[0] ?? null;
+  const showingOverride = selectedGoal === null;
+  const displayed = showingOverride
+    ? overrideGoal?.goals?.[0] ?? null
+    : tabGoals[Math.min(selectedGoal, tabGoals.length - 1)];
 
   if (!displayed) {
     return (
@@ -73,7 +77,9 @@ export function Goals({
       <div className={`goals-content${pending ? ' pending' : ''}`}>
         <Goal
           goal={displayed}
-          goalInfo={displayed.mvarId ? goalInfoMap?.get(displayed.mvarId) : undefined}
+          goalInfo={showingOverride
+            ? overrideGoalInfo
+            : (displayed.mvarId ? goalInfoMap?.get(displayed.mvarId) : undefined)}
           convGoalTargets={convGoalTargets}
           filter={filter}
           {...interactionProps}

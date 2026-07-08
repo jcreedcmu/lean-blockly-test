@@ -13,7 +13,7 @@ import { leanSession } from './LeanSession';
 import { LevelEvaluator, type EvaluationResult } from './LevelEvaluator';
 import { resolveProofStatuses, isGoalStateDiagnostic, locateDiagnostic, pillForPosition } from './proofStatusResolve';
 import type { Pill } from './proofStatusResolve';
-import type { ContributionDiagnostic } from './LevelEvaluator';
+import type { ContributionDiagnostic, GoalInfo } from './LevelEvaluator';
 import { resolveMarkerLocation, type MarkerLocation } from './markerResolve';
 
 // A unified goal selection: either one of the unsolved-goal leaves (a
@@ -67,6 +67,10 @@ function App() {
   // pill is on a conv block. Defined (even if empty) ⇒ render the draggable
   // subexpression view in place of the goal text; undefined ⇒ normal text.
   const [pillConvTargets, setPillConvTargets] = useState<Map<string, string[]> | undefined>(undefined);
+  // Per-goal info (hypothesis kinds + affordances) for the queried pill goal,
+  // fetched alongside it so pill/conv goals split hyps into OBJECTS/ASSUMPTIONS
+  // just like leaf goals. Leaf goals read from `evaluation.goalInfoMap` instead.
+  const [pillGoalInfo, setPillGoalInfo] = useState<GoalInfo | undefined>(undefined);
   const [leafPills, setLeafPills] = useState<(Pill | null)[]>([]);
   const markerSeqRef = useRef(0);
   // Mirror the current selection/mapping so runEvaluation (empty deps) can read
@@ -177,6 +181,7 @@ function App() {
       setSelection({ kind: 'leaf', index: restoredLeaf });
       setPillGoals(null);
       setPillConvTargets(undefined);
+      setPillGoalInfo(undefined);
       blocklyRef.current?.setSelectedMarker(prevKey);
     } else if (prevKey && restoredLoc) {
       const isConv = blocklyRef.current?.getBlockType(prevKey.blockId) === 'tactic_conv';
@@ -188,6 +193,7 @@ function App() {
       setSelection(hasLeaves ? { kind: 'leaf', index: 0 } : null);
       setPillGoals(null);
       setPillConvTargets(undefined);
+      setPillGoalInfo(undefined);
       blocklyRef.current?.setSelectedMarker(hasLeaves ? (newLeafPills[0] ?? null) : null);
     }
   }, []);
@@ -374,6 +380,7 @@ function App() {
     // Switch to the conv view immediately (empty until targets load); plain
     // text otherwise.
     setPillConvTargets(isConv ? new Map() : undefined);
+    setPillGoalInfo(undefined);
     const ev = evaluatorRef.current;
     if (!ev) { setPillPending(false); return; }
     const pos = { line: location.startLineCol[0], character: location.startLineCol[1] };
@@ -383,9 +390,17 @@ function App() {
         if (markerSeqRef.current !== seq) return;
         setPillGoals(goals);
         setPillPending(false);
+        const g = goals?.goals?.[0];
+        // Fetch hyp kinds/affordances so pill goals split into
+        // OBJECTS/ASSUMPTIONS like leaf goals. `convTargetsForGoal` is
+        // re-run inside, but it's cheap and keeps the two paths uniform.
+        const info = g ? await ev.goalInfoForGoal(g) : null;
+        if (markerSeqRef.current === seq) setPillGoalInfo(info ?? undefined);
         if (isConv) {
-          const g = goals?.goals?.[0];
-          const targets = g ? await ev.convTargetsForGoal(g) : new Map<string, string[]>();
+          // Prefer the conv targets bundled in `info`; fall back to a direct
+          // fetch if `getGoalInfo` failed, so the draggable view still works.
+          const targets = info?.convTargets
+            ?? (g ? await ev.convTargetsForGoal(g) : new Map<string, string[]>());
           if (markerSeqRef.current === seq) setPillConvTargets(targets);
         }
       } catch (err) {
@@ -402,6 +417,7 @@ function App() {
     setPillPending(false);
     setPillGoals(null);
     setPillConvTargets(undefined);
+    setPillGoalInfo(undefined);
     blocklyRef.current?.setSelectedMarker(leafPills[index] ?? null);
   }
 
@@ -414,6 +430,7 @@ function App() {
     setPillPending(false);
     setPillGoals(null);
     setPillConvTargets(undefined);
+    setPillGoalInfo(undefined);
     blocklyRef.current?.setSelectedMarker(hasLeaves ? (leafPills[0] ?? null) : null);
   }
 
@@ -627,6 +644,7 @@ function App() {
             selectedGoal={selectedTab}
             onSelectGoal={selectLeaf}
             overrideGoal={overrideGoal}
+            overrideGoalInfo={pillGoalInfo}
             pending={pillPending}
             convGoalTargets={pillConvTargets}
             goalInfoMap={goalInfoMap}

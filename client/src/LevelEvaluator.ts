@@ -322,37 +322,9 @@ export class LevelEvaluator {
     // syntax) via the in-memory-prelude `getGoalInfo` RPC. Position
     // must be after the prelude so the method is registered.
     const goalInfoMap: GoalInfoMap = new Map();
-    const callPos: Position = { line: this.preludeLineCount, character: 0 };
     for (const { goal } of leafGoals) {
-      if (!goal.ctx || !goal.mvarId) continue;
-
-      // Ask the server for `conv` navigation args for the goal-target
-      // subexpressions the client renders (partial; valid conv targets only).
-      const convTargets = await this.convTargetsForGoal(goal);
-
-      try {
-        const result = await this.session.widgetRpcCall<GoalInfoResult>(
-          this.uri,
-          'getGoalInfo',
-          { ctx: goal.ctx, mvarId: goal.mvarId },
-          callPos,
-        );
-        const hyps = new Map<string, HypInfo>();
-        for (const h of result.hyps) {
-          hyps.set(h.fvarId, {
-            isAssumption: h.isAssumption,
-            affordances: h.affordances,
-          });
-        }
-        goalInfoMap.set(result.mvarId, {
-          mvarId: result.mvarId,
-          hyps,
-          target: { affordances: result.target.affordances },
-          convTargets,
-        });
-      } catch (err) {
-        logError(TAG, 'getGoalInfo failed:', err);
-      }
+      const info = await this.goalInfoForGoal(goal);
+      if (info) goalInfoMap.set(info.mvarId, info);
     }
 
     // `complete` must account for errors ANYWHERE in the file, not just
@@ -388,6 +360,48 @@ export class LevelEvaluator {
       character: pos.character,
     };
     return this.session.getGoalsAtPosition(this.uri, docPos);
+  }
+
+  /**
+   * Per-goal server-side info (hypothesis kinds + target/hyp affordances +
+   * conv navigation args) via the in-memory-prelude `getGoalInfo` RPC. The
+   * call position must be after the prelude so the method is registered.
+   * Used both for leaf goals at evaluation time and for a goal queried at an
+   * arbitrary (e.g. conv-mode pill) position. Returns null on missing context
+   * or RPC failure.
+   */
+  async goalInfoForGoal(goal: InteractiveGoal): Promise<GoalInfo | null> {
+    if (!goal.ctx || !goal.mvarId) return null;
+
+    // Ask the server for `conv` navigation args for the goal-target
+    // subexpressions the client renders (partial; valid conv targets only).
+    const convTargets = await this.convTargetsForGoal(goal);
+
+    try {
+      const callPos: Position = { line: this.preludeLineCount, character: 0 };
+      const result = await this.session.widgetRpcCall<GoalInfoResult>(
+        this.uri,
+        'getGoalInfo',
+        { ctx: goal.ctx, mvarId: goal.mvarId },
+        callPos,
+      );
+      const hyps = new Map<string, HypInfo>();
+      for (const h of result.hyps) {
+        hyps.set(h.fvarId, {
+          isAssumption: h.isAssumption,
+          affordances: h.affordances,
+        });
+      }
+      return {
+        mvarId: result.mvarId,
+        hyps,
+        target: { affordances: result.target.affordances },
+        convTargets,
+      };
+    } catch (err) {
+      logError(TAG, 'getGoalInfo failed:', err);
+      return null;
+    }
   }
 
   /**
