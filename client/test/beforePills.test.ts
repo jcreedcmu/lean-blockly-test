@@ -58,7 +58,7 @@ describe('prependGoalMarker', () => {
 
 describe('shouldGetBeforePill', () => {
   it('includes every tactic block, even ones with sub-proof pills', () => {
-    for (const type of ['tactic_unfold', 'tactic_apply', 'tactic_exact',
+    for (const type of ['tactic_unfold', 'tactic_apply', 'tactic_convert', 'tactic_exact',
       'tactic_use', 'tactic_rewrite', 'tactic_rewrite_at', 'tactic_choose',
       'tactic_at', 'tactic_refl', 'tactic_calc', 'tactic_have', 'tactic_show',
       'tactic_constructor', 'tactic_transform', 'tactic_other']) {

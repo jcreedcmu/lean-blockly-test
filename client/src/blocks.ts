@@ -204,6 +204,7 @@ type TacticProps = { name: string, msg: string };
 export const singleArgTactics: TacticProps[] = [
   { name: 'unfold', msg: 'unfold' },
   { name: 'apply', msg: 'apply' },
+  { name: 'convert', msg: 'convert' },
   { name: 'exact', msg: 'exactly' },
   { name: 'use', msg: 'use' },
 ];

@@ -451,7 +451,7 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
     });
   });
 
-  test('NAS theorem blocks emit applications with their explicit arguments', () => {
+  test('convert emits a NAS theorem application at the presentation depth', () => {
     const theoremTerm: Block = {
       type: 'term_nas_even_total_relation_counts',
       id: 'nas-even-total',
@@ -459,23 +459,22 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
         SET: { block: prop('Party') },
         SYMMETRY: { block: prop('Handshake_symm') },
         IRREFLEXIVITY: { block: prop('Handshake_irref') },
-        COUNT_IS: { block: prop('HandshakeCount_Is') },
       },
     };
-    const exact: Block = {
-      type: 'tactic_exact',
-      id: 'exact-nas-helper',
+    const convert: Block = {
+      type: 'tactic_convert',
+      id: 'convert-nas-helper',
       inputs: { ARG: { block: theoremTerm } },
     };
 
     const { leanCode } = workspaceToLean(
-      workspace(lemma('demo', ': Even total', exact)),
+      workspace(lemma('demo', ': Even total', convert)),
     );
 
     expect(leanCode).toBe(
       'theorem demo : Even total := by\n' +
-      '  exact even_sum_relation_counts (Party) (Handshake_symm) ' +
-      '(Handshake_irref) (HandshakeCount_Is)\n' +
+      '  convert even_sum_relation_fibers (Party) (Handshake_symm) ' +
+      '(Handshake_irref) using 3\n' +
       '  skip\n',
     );
   });

@@ -276,6 +276,17 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_convert': {
+      const argChunks = blockToChunks(inputBlock(inputs['ARG']), '');
+      chunks = [
+        ...indentChunk,
+        chunk(`convert `, blockId),
+        ...argChunks,
+        chunk(` using 3\n`, blockId),
+      ];
+      break;
+    }
+
     case 'tactic_intro': {
       const names = collectSequentialFields(fields, 'NAME', 'NAME_');
       const nameStr = names.join(' ');

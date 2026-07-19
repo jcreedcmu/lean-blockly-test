@@ -19,18 +19,17 @@ export type NasTheoremBlockSpec = {
 export const nasTheoremBlockSpecs: NasTheoremBlockSpec[] = [
   {
     type: 'term_nas_even_total_relation_counts',
-    theoremName: 'even_sum_relation_counts',
+    theoremName: 'even_sum_relation_fibers',
     message:
-      'even_sum_relation_counts  set %1  symmetry %2  irreflexivity %3  counts equal fibers %4',
+      'even_sum_relation_fibers  set %1  symmetry %2  irreflexivity %3',
     args: [
       { name: 'SET', defaultValue: 'Party' },
       { name: 'SYMMETRY', defaultValue: 'Handshake_symm' },
       { name: 'IRREFLEXIVITY', defaultValue: 'Handshake_irref' },
-      { name: 'COUNT_IS', defaultValue: 'HandshakeCount_Is' },
     ],
-    inline: false,
+    inline: true,
     tooltip:
-      'For a symmetric, irreflexive relation inferred from the supplied proofs, the sum of its finite-set fiber counts is even.',
+      'For a symmetric, irreflexive relation, the sum of the sizes of its finite-set fibers is even.',
   },
   {
     type: 'term_nas_split_even_odd',

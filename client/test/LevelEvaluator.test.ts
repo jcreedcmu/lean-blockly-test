@@ -13,7 +13,7 @@ describe('LevelEvaluator standalone source', () => {
 
     expect(source).toContain('import Mathlib\n');
     expect(source).not.toContain('import MathlibDemo.Preamble');
-    expect(source).toContain('theorem even_sum_relation_counts');
+    expect(source).toContain('theorem even_sum_relation_fibers');
     expect(source).toContain('theorem even_sum_even_terms');
     expect(source).toContain('theorem even_card_of_even_sum_over_odd_terms');
   });

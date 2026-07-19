@@ -62,16 +62,13 @@ private lemma even_card_symmetric_irreflexive_relation
       have hn : Even (2 * n) := by simp
       simpa [n, two_mul, add_assoc, add_comm, add_left_comm] using ih.add hn
 
-private lemma even_sum_relation_counts
+private lemma even_sum_relation_fibers
     {α : Type}
     (s : Finset α)
     {R : α → α → Prop}
     (hsymm : ∀ x y, R x y → R y x)
-    (hirref : ∀ x, ¬ R x x)
-    {Count : α → ℕ}
-    (Count_Is : ∀ x, Count x = {y ∈ s | R x y}.card) :
-    Even (∑ x ∈ s, Count x) := by
-  simp only [Count_Is]
+    (hirref : ∀ x, ¬ R x x) :
+    Even (∑ x ∈ s, {y ∈ s | R x y}.card) := by
   rw [sum_card_fibers_eq_card_relation s R]
   exact even_card_symmetric_irreflexive_relation s R hsymm hirref
 
@@ -173,9 +170,10 @@ Statement NumOddHandshakes_is_Even
   let OddPeople := Party.filter fun x => Odd (HandshakeCount x)
   let NumTotEven := ∑ x ∈ EvenPeople, HandshakeCount x
   let NumTotOdd := ∑ x ∈ OddPeople, HandshakeCount x
-  have NumTotHandshakes_is_Even : Even NumTotHandshakes :=
-    even_sum_relation_counts
-      Party Handshake_symm Handshake_irref HandshakeCount_Is
+  have NumTotHandshakes_is_Even : Even NumTotHandshakes := by
+    convert even_sum_relation_fibers
+      Party Handshake_symm Handshake_irref using 3
+    exact HandshakeCount_Is _
   have NumTot_split : NumTotHandshakes = NumTotEven + NumTotOdd :=
     sum_eq_sum_even_add_sum_odd Party HandshakeCount
   have NumTotEven_is_Even : Even NumTotEven :=
@@ -199,6 +197,7 @@ AllowBlock "tactic_at" "tactic_constructor" "tactic_have" "tactic_show"
 AllowBlock "tactic_conv" "tactic_sorry" "tactic_other" "tactic_refl"
 AllowBlock "tactic_ring_nf" "tactic_simp" "tactic_conclude" "tactic_rewrite_at"
 AllowBlock "tactic_transform" "tactic_exact" "prop_declaration" "prop"
+AllowBlock "tactic_convert"
 AllowBlock "term_nas_even_total_relation_counts"
 AllowBlock "term_nas_split_even_odd" "term_nas_even_sum_even_terms"
 AllowBlock "term_nas_even_right_of_split" "term_nas_even_card_odd_terms"

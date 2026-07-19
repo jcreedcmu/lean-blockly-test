@@ -50,6 +50,10 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
+      type: 'tactic_convert',
+    },
+    {
+      kind: 'block',
       type: 'tactic_unfold',
       inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
     },

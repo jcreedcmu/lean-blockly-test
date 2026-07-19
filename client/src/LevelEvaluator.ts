@@ -76,15 +76,13 @@ def FunCont (f : ℝ → ℝ) : Prop :=
 def SeqLim (a : ℕ → ℝ) (L : ℝ) : Prop :=
   ∀ ε > 0, ∃ N, ∀ n > N, |a n - L| < ε
 
-theorem even_sum_relation_counts
+theorem even_sum_relation_fibers
     {α : Type}
     (s : Finset α)
     {R : α → α → Prop}
     (hsymm : ∀ x y, R x y → R y x)
-    (hirref : ∀ x, ¬ R x x)
-    {Count : α → ℕ}
-    (Count_Is : ∀ x, Count x = {y ∈ s | R x y}.card) :
-    Even (∑ x ∈ s, Count x) := by sorry
+    (hirref : ∀ x, ¬ R x x) :
+    Even (∑ x ∈ s, {y ∈ s | R x y}.card) := by sorry
 
 theorem sum_eq_sum_even_add_sum_odd
     {α : Type}
