@@ -48,9 +48,8 @@ export function pillKey(blockId: string, target: string): string {
 }
 
 /**
- * A goal-state diagnostic is Lean's "unsolved goals" error. The only kind that
- * should drive a status pill (tactic-interior errors like type mismatches are
- * out of scope). Severity 1 (error) is required.
+ * A goal-state diagnostic is Lean's "unsolved goals" error. Severity 1
+ * (error) is required.
  */
 export function isGoalStateDiagnostic(d: DiagnosticLike): boolean {
   return (d.severity ?? 1) === 1 && d.message.includes('unsolved goals');
@@ -148,13 +147,17 @@ export function resolveProofStatuses(
     status.set(pillKey(p.blockId, p.target), p.region ? 'complete' : 'unknown');
   }
 
-  const goalDiags = diagnostics.filter(isGoalStateDiagnostic);
+  // Any error inside a governed subproof makes that proof incomplete. Lean can
+  // recover from a tactic error by synthesizing the requested `have`, so
+  // looking only for "unsolved goals" would incorrectly paint such a proof
+  // green and expose the recovered hypothesis in the outer goal.
+  const errorDiags = diagnostics.filter((d) => (d.severity ?? 1) === 1);
   const unmatched: DiagnosticLike[] = [];
-  for (const diag of goalDiags) {
+  for (const diag of errorDiags) {
     const match = bestPillForDiagnostic(pillRegions, diag);
     if (match) {
       status.set(pillKey(match.blockId, match.target), 'incomplete');
-    } else {
+    } else if (isGoalStateDiagnostic(diag)) {
       unmatched.push(diag);
     }
   }

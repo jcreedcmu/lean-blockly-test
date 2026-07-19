@@ -144,8 +144,7 @@ Title "The Handshake Lemma"
 Introduction "
 # The Handshake Lemma
 
-Experiment with a block proof that the number of partygoers who shook an odd
-number of hands is even.
+Prove that the number of partygoers shaking an odd number of hands, is even.
 "
 
 /-- The number of partygoers who shook an odd number of hands is even. -/

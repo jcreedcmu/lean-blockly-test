@@ -152,11 +152,13 @@ function App() {
     setPillPending(false);
     const workspace = blocklyRef.current?.saveWorkspace() ?? null;
     let newLeafPills: (Pill | null)[] = [];
+    let newPillStatuses: ReturnType<typeof resolveProofStatuses>['statuses'] = [];
     if (result && sourceInfo.length > 0 && workspace && blocklyRef.current) {
       const pills = blocklyRef.current.getProofStatusPills();
       const { statuses, unmatched } = resolveProofStatuses(
         workspace, sourceInfo, pills, result.diagnostics,
       );
+      newPillStatuses = statuses;
       blocklyRef.current.updateProofStatuses(statuses);
       newLeafPills = result.leafGoals.map(
         lg => pillForPosition(workspace, sourceInfo, pills, lg.position),
@@ -175,14 +177,22 @@ function App() {
     }
     setLeafPills(newLeafPills);
 
-    // Restore the selection by pill identity. If a selected *leaf* was just
-    // solved, do not turn it into a historical pill inspection: advance to the
-    // current main goal. Only preserve a bare position when the user had
-    // explicitly selected a pill.
+    // Restore the selection by pill identity. If a selected leaf was genuinely
+    // solved, advance to the current main goal. If it disappeared only because
+    // elaboration failed inside its subproof, keep inspecting that subproof.
+    // An explicitly selected pill is also preserved.
     const restoredLeaf = prevKey
       ? newLeafPills.findIndex(p => p?.blockId === prevKey.blockId && p?.target === prevKey.target)
       : -1;
-    const restoredLoc = (sel?.kind === 'pill' && prevKey && restoredLeaf < 0 && workspace)
+    const prevStatus = prevKey
+      ? newPillStatuses.find(
+          s => s.blockId === prevKey.blockId && s.target === prevKey.target,
+        )?.status
+      : undefined;
+    const preserveBarePosition =
+      sel?.kind === 'pill' ||
+      (sel?.kind === 'leaf' && prevStatus !== 'complete');
+    const restoredLoc = (preserveBarePosition && prevKey && restoredLeaf < 0 && workspace)
       ? resolveMarkerLocation(workspace, sourceInfo, prevKey.blockId, prevKey.target)
       : undefined;
     if (restoredLeaf >= 0) {

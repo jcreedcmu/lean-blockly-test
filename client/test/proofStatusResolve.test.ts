@@ -126,9 +126,9 @@ test('two arms incomplete → both arm pills flip independently', () => {
   expect(statusOf(r, 'C', 'BODY2')).toBe('incomplete'); // line 5 ∈ [4,5]
 });
 
-test('non-goal-state diagnostics (e.g. type mismatch) are ignored', () => {
+test('a type mismatch inside an arm makes that subproof incomplete', () => {
   const r = resolveProofStatuses(ws, sourceInfo, pills, [diag(5, 4, 'type mismatch\n…')]);
-  expect(statusOf(r, 'C', 'BODY2')).toBe('complete');
+  expect(statusOf(r, 'C', 'BODY2')).toBe('incomplete');
   expect(r.unmatched).toHaveLength(0);
 });
 
