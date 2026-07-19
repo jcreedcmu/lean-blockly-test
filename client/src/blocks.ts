@@ -4,6 +4,7 @@ import { attachAbbreviationRewriter } from './abbreviations';
 import './FieldProofStatus';
 import './FieldGoalMarker';
 import { applyBeforePills } from './beforePills';
+import { nasTheoremBlockSpecs } from './nasTheoremBlocks';
 
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
@@ -157,6 +158,7 @@ export function defineBlocks() {
   defineMisc();
   defineSpecialize();
   defineTermTheorems();
+  defineLet();
   defineCalc();
 }
 
@@ -173,6 +175,40 @@ function defineTermTheorems() {
       'colour': 260,
       'tooltip': '∃ N > 0, 1/N < ε  (provide proof that ε > 0)',
       'helpUrl': '',
+    },
+    ...nasTheoremBlockSpecs.map(spec => ({
+      type: spec.type,
+      message0: spec.message,
+      args0: spec.args.map(arg => ({
+        type: 'input_value',
+        name: arg.name,
+        check: 'proposition',
+      })),
+      inputsInline: spec.inline,
+      output: 'proposition',
+      colour: 260,
+      tooltip: spec.tooltip,
+      helpUrl: '',
+    })),
+  ]);
+}
+
+function defineLet() {
+  defineBlocksWithBeforePills([
+    {
+      type: 'tactic_let',
+      message0: 'let %1 : %2 := %3',
+      args0: [
+        { type: 'input_value', name: 'NAME', check: 'proposition' },
+        { type: 'input_value', name: 'TYPE', check: 'proposition' },
+        { type: 'input_value', name: 'DEFINITION', check: 'proposition' },
+      ],
+      inputsInline: true,
+      previousStatement: 'tactic',
+      nextStatement: 'tactic',
+      style: 'procedure_blocks',
+      tooltip: 'Introduce a local definition: let name : type := definition',
+      helpUrl: '',
     },
   ]);
 }

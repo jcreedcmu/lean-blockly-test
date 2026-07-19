@@ -451,6 +451,35 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
     });
   });
 
+  test('NAS theorem blocks emit applications with their explicit arguments', () => {
+    const theoremTerm: Block = {
+      type: 'term_nas_even_symmetric_relation',
+      id: 'nas-even-relation',
+      inputs: {
+        SET: { block: prop('Party') },
+        RELATION: { block: prop('Handshake') },
+        SYMMETRY: { block: prop('Handshake_symm') },
+        IRREFLEXIVITY: { block: prop('Handshake_irref') },
+      },
+    };
+    const exact: Block = {
+      type: 'tactic_exact',
+      id: 'exact-nas-helper',
+      inputs: { ARG: { block: theoremTerm } },
+    };
+
+    const { leanCode } = workspaceToLean(
+      workspace(lemma('demo', ': Even relationCard', exact)),
+    );
+
+    expect(leanCode).toBe(
+      'theorem demo : Even relationCard := by\n' +
+      '  exact even_card_symmetric_irreflexive_relation (Party) (Handshake) ' +
+      '(Handshake_symm) (Handshake_irref)\n' +
+      '  skip\n',
+    );
+  });
+
   describe('broad block ranges', () => {
     // Generated text:
     //   theorem foo : T := by      line 0   block L

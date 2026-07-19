@@ -1,4 +1,5 @@
 import * as blockly from 'blockly';
+import { nasTheoremBlockSpecs } from './nasTheoremBlocks';
 
 /*
 Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.0 license
@@ -170,6 +171,19 @@ const LeanTheoremsCategory: CategoryItem = {
       kind: 'block',
       type: 'term_archprop',
     },
+    ...nasTheoremBlockSpecs.map(spec => ({
+      kind: 'block' as const,
+      type: spec.type,
+      inputs: Object.fromEntries(spec.args.map(arg => [
+        arg.name,
+        {
+          shadow: {
+            type: 'prop',
+            fields: { PROP_NAME: arg.defaultValue },
+          },
+        },
+      ])),
+    })),
   ],
 };
 

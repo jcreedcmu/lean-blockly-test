@@ -3,6 +3,7 @@
  */
 
 import type { BlocklyState } from './Blockly';
+import { nasTheoremBlockSpecByType } from './nasTheoremBlocks';
 
 // Type definitions for the serialized block structure
 export interface SerializedBlock {
@@ -167,6 +168,17 @@ function blockToChunks(
   const blockId = block.id;
 
   let chunks: CodeChunk[] = [];
+
+  const nasTheoremSpec = nasTheoremBlockSpecByType.get(tp);
+  if (nasTheoremSpec) {
+    const theoremChunks: CodeChunk[] = [chunk(nasTheoremSpec.theoremName, blockId)];
+    for (const arg of nasTheoremSpec.args) {
+      const argBlock = inputBlock(inputs[arg.name]);
+      if (!argBlock) continue;
+      theoremChunks.push(text(' ('), ...blockToChunks(argBlock, ''), text(')'));
+    }
+    return theoremChunks;
+  }
 
   // Add indent unless noFirstIndent is set
   const indentChunk = noFirstIndent ? [] : [text(indent)];

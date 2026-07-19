@@ -126,27 +126,27 @@ Statement NumOddHandshakes_is_Even
     (Handshake : Person → Person → Prop)
     (Handshake_symm : ∀ x y, Handshake x y → Handshake y x)
     (Handshake_irref : ∀ x, ¬ Handshake x x)
-    (NumHandshakes : Person → ℕ)
-    (NumHandshakes_Is : ∀ x, NumHandshakes x = {y ∈ Party | Handshake x y}.card)
+    (HandshakeCount : Person → ℕ)
+    (HandshakeCount_Is : ∀ x, HandshakeCount x = {y ∈ Party | Handshake x y}.card)
     (NumOddHandshakes : ℕ)
-    (NumOddHandshakes_Is : NumOddHandshakes = {x ∈ Party | Odd (NumHandshakes x)}.card) :
+    (NumOddHandshakes_Is : NumOddHandshakes = {x ∈ Party | Odd (HandshakeCount x)}.card) :
     Even NumOddHandshakes := by
-  let NumTotHandshakes := ∑ x ∈ Party, NumHandshakes x
-  let EvenPeople := Party.filter fun x => Even (NumHandshakes x)
-  let OddPeople := Party.filter fun x => Odd (NumHandshakes x)
-  let NumTotEven := ∑ x ∈ EvenPeople, NumHandshakes x
-  let NumTotOdd := ∑ x ∈ OddPeople, NumHandshakes x
+  let NumTotHandshakes := ∑ x ∈ Party, HandshakeCount x
+  let EvenPeople := Party.filter fun x => Even (HandshakeCount x)
+  let OddPeople := Party.filter fun x => Odd (HandshakeCount x)
+  let NumTotEven := ∑ x ∈ EvenPeople, HandshakeCount x
+  let NumTotOdd := ∑ x ∈ OddPeople, HandshakeCount x
   have NumTotHandshakes_is_Even : Even NumTotHandshakes := by
-    simp only [NumTotHandshakes, NumHandshakes_Is]
+    simp only [NumTotHandshakes, HandshakeCount_Is]
     rw [sum_card_fibers_eq_card_relation Party Handshake]
     exact even_card_symmetric_irreflexive_relation
       Party Handshake Handshake_symm Handshake_irref
   have NumTot_split : NumTotHandshakes = NumTotEven + NumTotOdd := by
     simpa only [NumTotHandshakes, NumTotEven, NumTotOdd, EvenPeople, OddPeople] using
-      sum_eq_sum_even_add_sum_odd Party NumHandshakes
+      sum_eq_sum_even_add_sum_odd Party HandshakeCount
   have NumTotEven_is_Even : Even NumTotEven := by
     simpa only [NumTotEven, EvenPeople] using
-      even_sum_even_terms Party NumHandshakes
+      even_sum_even_terms Party HandshakeCount
   have NumTotOdd_is_Even : Even NumTotOdd := by
     rw [NumTot_split] at NumTotHandshakes_is_Even
     exact even_right_of_even_add NumTotHandshakes_is_Even NumTotEven_is_Even
@@ -155,7 +155,7 @@ Statement NumOddHandshakes_is_Even
     have NumOddHandshakes_is_Odd : Odd OddPeople.card :=
       Nat.not_even_iff_odd.mp hOdd
     have NumTotOdd_is_Odd : Odd NumTotOdd := by
-      apply odd_sum_of_odd_terms_of_odd_card OddPeople NumHandshakes
+      apply odd_sum_of_odd_terms_of_odd_card OddPeople HandshakeCount
       · simp [OddPeople]
       · exact NumOddHandshakes_is_Odd
     exact (Nat.not_even_iff_odd.mpr NumTotOdd_is_Odd) NumTotOdd_is_Even
@@ -172,6 +172,9 @@ AllowBlock "tactic_at" "tactic_constructor" "tactic_have" "tactic_show"
 AllowBlock "tactic_conv" "tactic_sorry" "tactic_other" "tactic_refl"
 AllowBlock "tactic_ring_nf" "tactic_simp" "tactic_conclude" "tactic_rewrite_at"
 AllowBlock "tactic_transform" "tactic_exact" "prop_declaration" "prop" "term_archprop"
+AllowBlock "term_nas_sum_card_fibers" "term_nas_even_symmetric_relation"
+AllowBlock "term_nas_split_even_odd" "term_nas_even_sum_even_terms"
+AllowBlock "term_nas_even_remainder" "term_nas_odd_sum_of_odd_card"
 AllowAllAffordances
 
 Conclusion "The number of partygoers with an odd number of handshakes is even."

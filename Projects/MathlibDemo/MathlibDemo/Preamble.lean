@@ -409,3 +409,112 @@ private def convForSubterm (needle : String) : MetaM (Option (Array String)) :=
 #guard_msgs in #eval convForSubterm "x^3"
 
 end ConvPathTests
+
+/-!
+Hard-coded parity helpers for the standalone NAS presentation level.
+
+These live in the compiled preamble so theorem-expression blocks in the
+browser can refer to them without re-elaborating their proofs on every edit.
+-/
+
+open Classical
+
+theorem sum_card_fibers_eq_card_relation
+    {α : Type}
+    (s : Finset α)
+    (R : α → α → Prop) :
+    (∑ x ∈ s, {y ∈ s | R x y}.card) =
+      ((s ×ˢ s).filter fun p => R p.1 p.2).card := by
+  classical
+  calc
+    _ = ∑ x ∈ s, ∑ y ∈ s, if R x y then 1 else 0 := by
+      apply Finset.sum_congr rfl
+      intro x hx
+      rw [Finset.card_eq_sum_ones, Finset.sum_filter]
+    _ = ∑ p ∈ s ×ˢ s, if R p.1 p.2 then 1 else 0 := by
+      rw [Finset.sum_product]
+    _ = _ := by
+      rw [Finset.card_eq_sum_ones, Finset.sum_filter]
+
+theorem even_card_symmetric_irreflexive_relation
+    {α : Type}
+    (s : Finset α)
+    (R : α → α → Prop)
+    (hsymm : ∀ x y, R x y → R y x)
+    (hirref : ∀ x, ¬ R x x) :
+    Even ((s ×ˢ s).filter fun p => R p.1 p.2).card := by
+  classical
+  rw [← sum_card_fibers_eq_card_relation s R]
+  induction s using Finset.induction_on with
+  | empty => simp
+  | @insert a s ha ih =>
+      let n := {y ∈ s | R a y}.card
+      have hrow : {y ∈ insert a s | R a y}.card = n := by
+        rw [Finset.filter_insert]
+        simp [n, hirref]
+      have hcol (x : α) (hx : x ∈ s) :
+          {y ∈ insert a s | R x y}.card =
+            {y ∈ s | R x y}.card + if R x a then 1 else 0 := by
+        rw [Finset.filter_insert]
+        by_cases h : R x a <;> simp [ha, h]
+      have hindicator :
+          ∑ x ∈ s, (if R x a then 1 else 0) = n := by
+        rw [← Finset.card_filter]
+        congr 1
+        ext x
+        simp only [Finset.mem_filter]
+        constructor
+        · rintro ⟨hx, hxa⟩
+          exact ⟨hx, hsymm x a hxa⟩
+        · rintro ⟨hx, hax⟩
+          exact ⟨hx, hsymm a x hax⟩
+      have hsumcol :
+          (∑ x ∈ s, {y ∈ insert a s | R x y}.card) =
+            ∑ x ∈ s, ({y ∈ s | R x y}.card + if R x a then 1 else 0) := by
+        apply Finset.sum_congr rfl
+        intro x hx
+        exact hcol x hx
+      rw [Finset.sum_insert ha, hrow, hsumcol, Finset.sum_add_distrib, hindicator]
+      have hn : Even (2 * n) := by simp
+      simpa [n, two_mul, add_assoc, add_comm, add_left_comm] using ih.add hn
+
+theorem sum_eq_sum_even_add_sum_odd
+    {α : Type}
+    (s : Finset α)
+    (f : α → ℕ) :
+    (∑ x ∈ s, f x) =
+      (∑ x ∈ s.filter fun x => Even (f x), f x) +
+      (∑ x ∈ s.filter fun x => Odd (f x), f x) := by
+  rw [← Finset.sum_filter_add_sum_filter_not s (fun x => Even (f x))]
+  congr 2
+  ext x
+  simp only [Finset.mem_filter, and_congr_right_iff]
+  intro hx
+  exact Nat.not_even_iff_odd
+
+theorem even_sum_even_terms
+    {α : Type}
+    (s : Finset α)
+    (f : α → ℕ) :
+    Even (∑ x ∈ s.filter fun x => Even (f x), f x) := by
+  apply Finset.even_sum
+  simp
+
+theorem even_right_of_even_add
+    {a b : ℕ}
+    (hab : Even (a + b))
+    (ha : Even a) :
+    Even b :=
+  (Nat.even_add.mp hab).mp ha
+
+theorem odd_sum_of_odd_terms_of_odd_card
+    {α : Type}
+    (s : Finset α)
+    (f : α → ℕ)
+    (hall : ∀ x ∈ s, Odd (f x))
+    (hcard : Odd s.card) :
+    Odd (∑ x ∈ s, f x) := by
+  rw [Finset.odd_sum_iff_odd_card_odd]
+  have hfilter : s.filter (fun x => Odd (f x)) = s :=
+    Finset.filter_eq_self.mpr hall
+  rwa [hfilter]
