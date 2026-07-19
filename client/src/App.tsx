@@ -175,13 +175,14 @@ function App() {
     }
     setLeafPills(newLeafPills);
 
-    // Restore the selection by pill identity: prefer the leaf the pill now
-    // governs; else, if the pill still resolves, keep it as a bare position;
-    // else fall back to the main goal.
+    // Restore the selection by pill identity. If a selected *leaf* was just
+    // solved, do not turn it into a historical pill inspection: advance to the
+    // current main goal. Only preserve a bare position when the user had
+    // explicitly selected a pill.
     const restoredLeaf = prevKey
       ? newLeafPills.findIndex(p => p?.blockId === prevKey.blockId && p?.target === prevKey.target)
       : -1;
-    const restoredLoc = (prevKey && restoredLeaf < 0 && workspace)
+    const restoredLoc = (sel?.kind === 'pill' && prevKey && restoredLeaf < 0 && workspace)
       ? resolveMarkerLocation(workspace, sourceInfo, prevKey.blockId, prevKey.target)
       : undefined;
     if (restoredLeaf >= 0) {
