@@ -199,9 +199,9 @@ function defineLet() {
       type: 'tactic_let',
       message0: 'let %1 : %2 := %3',
       args0: [
-        { type: 'input_value', name: 'NAME', check: 'proposition' },
-        { type: 'input_value', name: 'TYPE', check: 'proposition' },
-        { type: 'input_value', name: 'DEFINITION', check: 'proposition' },
+        { type: 'field_monospace_input', name: 'NAME', text: 'x' },
+        { type: 'field_monospace_input', name: 'TYPE', text: 'ℕ' },
+        { type: 'field_monospace_input', name: 'DEFINITION', text: '0' },
       ],
       inputsInline: true,
       previousStatement: 'tactic',

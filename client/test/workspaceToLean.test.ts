@@ -480,14 +480,14 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
     );
   });
 
-  test('let block emits a typed local definition from its three value inputs', () => {
+  test('let block emits a typed local definition from its three text fields', () => {
     const letBlock: Block = {
       type: 'tactic_let',
       id: 'let-total',
-      inputs: {
-        NAME: { block: prop('NumTotHandshakes') },
-        TYPE: { block: prop('ℕ') },
-        DEFINITION: { block: prop('∑ x ∈ Party, HandshakeCount x') },
+      fields: {
+        NAME: 'NumTotHandshakes',
+        TYPE: 'ℕ',
+        DEFINITION: '∑ x ∈ Party, HandshakeCount x',
       },
     };
 

@@ -345,18 +345,12 @@ function blockToChunks(
     }
 
     case 'tactic_let': {
-      const nameChunks = blockToChunks(inputBlock(inputs['NAME']), '');
-      const typeChunks = blockToChunks(inputBlock(inputs['TYPE']), '');
-      const definitionChunks = blockToChunks(inputBlock(inputs['DEFINITION']), '');
+      const name = fields['NAME'] ?? 'x';
+      const type = fields['TYPE'] ?? 'ℕ';
+      const definition = fields['DEFINITION'] ?? '0';
       chunks = [
         ...indentChunk,
-        chunk('let ', blockId),
-        ...nameChunks,
-        text(' : '),
-        ...typeChunks,
-        text(' := '),
-        ...definitionChunks,
-        text('\n'),
+        chunk(`let ${name} : ${type} := ${definition}\n`, blockId),
       ];
       break;
     }
