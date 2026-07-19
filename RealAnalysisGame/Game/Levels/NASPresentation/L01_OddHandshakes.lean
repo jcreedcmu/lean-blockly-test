@@ -62,7 +62,7 @@ private lemma even_card_symmetric_irreflexive_relation
       have hn : Even (2 * n) := by simp
       simpa [n, two_mul, add_assoc, add_comm, add_left_comm] using ih.add hn
 
-private lemma even_sum_relation_fibers
+private lemma even_sum_relation_counts
     {α : Type}
     (s : Finset α)
     {R : α → α → Prop}
@@ -171,7 +171,7 @@ Statement NumOddHandshakes_is_Even
   let NumTotEven := ∑ x ∈ EvenPeople, HandshakeCount x
   let NumTotOdd := ∑ x ∈ OddPeople, HandshakeCount x
   have NumTotHandshakes_is_Even : Even NumTotHandshakes := by
-    convert even_sum_relation_fibers
+    convert even_sum_relation_counts
       Party Handshake_symm Handshake_irref using 3
     exact HandshakeCount_Is _
   have NumTot_split : NumTotHandshakes = NumTotEven + NumTotOdd :=

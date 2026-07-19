@@ -473,7 +473,7 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
 
     expect(leanCode).toBe(
       'theorem demo : Even total := by\n' +
-      '  convert even_sum_relation_fibers (Party) (Handshake_symm) ' +
+      '  convert even_sum_relation_counts (Party) (Handshake_symm) ' +
       '(Handshake_irref) using 3\n' +
       '  skip\n',
     );

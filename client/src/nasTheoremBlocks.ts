@@ -19,17 +19,21 @@ export type NasTheoremBlockSpec = {
 export const nasTheoremBlockSpecs: NasTheoremBlockSpec[] = [
   {
     type: 'term_nas_even_total_relation_counts',
-    theoremName: 'even_sum_relation_fibers',
-    message:
-      'even_sum_relation_fibers  set %1  symmetry %2  irreflexivity %3',
+    theoremName: 'even_sum_relation_counts',
+    message: 'even_sum_relation_counts %1 %2 %3',
     args: [
-      { name: 'SET', defaultValue: 'Party' },
-      { name: 'SYMMETRY', defaultValue: 'Handshake_symm' },
-      { name: 'IRREFLEXIVITY', defaultValue: 'Handshake_irref' },
+      { name: 'SET', defaultValue: 'Finset α' },
+      { name: 'SYMMETRY', defaultValue: 'symmetry' },
+      { name: 'IRREFLEXIVITY', defaultValue: 'irreflexivity' },
     ],
-    inline: true,
+    inline: false,
     tooltip:
-      'For a symmetric, irreflexive relation, the sum of the sizes of its finite-set fibers is even.',
+      'On any finite set, if a relation is symmetric and nothing is related ' +
+      'to itself, then the total number of related ordered pairs is even.\n\n' +
+      'Technical statement:\n{α : Type} (s : Finset α) {R : α → α → Prop}\n' +
+      '(symmetry : ∀ x y, R x y → R y x)\n' +
+      '(irreflexivity : ∀ x, ¬ R x x) :\n' +
+      'Even (∑ x ∈ s, {y ∈ s | R x y}.card)',
   },
   {
     type: 'term_nas_split_even_odd',

@@ -76,7 +76,7 @@ def FunCont (f : ℝ → ℝ) : Prop :=
 def SeqLim (a : ℕ → ℝ) (L : ℝ) : Prop :=
   ∀ ε > 0, ∃ N, ∀ n > N, |a n - L| < ε
 
-theorem even_sum_relation_fibers
+theorem even_sum_relation_counts
     {α : Type}
     (s : Finset α)
     {R : α → α → Prop}
