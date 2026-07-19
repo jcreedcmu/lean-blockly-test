@@ -46,6 +46,15 @@ const LeanTacticsCategory: CategoryItem = {
     },
     {
       kind: 'block',
+      type: 'tactic_let',
+      inputs: {
+        NAME: { shadow: { type: 'prop', fields: { PROP_NAME: 'x' } } },
+        TYPE: { shadow: { type: 'prop', fields: { PROP_NAME: 'ℕ' } } },
+        DEFINITION: { shadow: { type: 'prop', fields: { PROP_NAME: '0' } } },
+      },
+    },
+    {
+      kind: 'block',
       type: 'tactic_intro',
     },
     {

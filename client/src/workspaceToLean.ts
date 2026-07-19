@@ -344,6 +344,23 @@ function blockToChunks(
       break;
     }
 
+    case 'tactic_let': {
+      const nameChunks = blockToChunks(inputBlock(inputs['NAME']), '');
+      const typeChunks = blockToChunks(inputBlock(inputs['TYPE']), '');
+      const definitionChunks = blockToChunks(inputBlock(inputs['DEFINITION']), '');
+      chunks = [
+        ...indentChunk,
+        chunk('let ', blockId),
+        ...nameChunks,
+        text(' : '),
+        ...typeChunks,
+        text(' := '),
+        ...definitionChunks,
+        text('\n'),
+      ];
+      break;
+    }
+
     case 'tactic_at': {
       const hypChunks = blockToChunks(inputBlock(inputs['HYP']), '');
       const hyp = hypChunks.map(c => c.text).join('');

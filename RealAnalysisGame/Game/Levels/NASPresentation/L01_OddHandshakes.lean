@@ -166,7 +166,7 @@ NewTactic «sorry»
 
 -- Keep this standalone playground unrestricted without relying on permissions
 -- inherited from the tutorial worlds.
-AllowBlock "tactic_unfold" "tactic_calc" "tactic_intro" "tactic_use"
+AllowBlock "tactic_unfold" "tactic_calc" "tactic_let" "tactic_intro" "tactic_use"
 AllowBlock "tactic_rewrite" "tactic_apply" "tactic_specialize" "tactic_choose"
 AllowBlock "tactic_at" "tactic_constructor" "tactic_have" "tactic_show"
 AllowBlock "tactic_conv" "tactic_sorry" "tactic_other" "tactic_refl"

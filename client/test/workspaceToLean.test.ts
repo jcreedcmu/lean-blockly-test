@@ -480,6 +480,28 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
     );
   });
 
+  test('let block emits a typed local definition from its three value inputs', () => {
+    const letBlock: Block = {
+      type: 'tactic_let',
+      id: 'let-total',
+      inputs: {
+        NAME: { block: prop('NumTotHandshakes') },
+        TYPE: { block: prop('ℕ') },
+        DEFINITION: { block: prop('∑ x ∈ Party, HandshakeCount x') },
+      },
+    };
+
+    const { leanCode } = workspaceToLean(
+      workspace(lemma('demo', ': True', letBlock)),
+    );
+
+    expect(leanCode).toBe(
+      'theorem demo : True := by\n' +
+      '  let NumTotHandshakes : ℕ := ∑ x ∈ Party, HandshakeCount x\n' +
+      '  skip\n',
+    );
+  });
+
   describe('broad block ranges', () => {
     // Generated text:
     //   theorem foo : T := by      line 0   block L
