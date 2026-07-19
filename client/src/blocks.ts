@@ -143,9 +143,11 @@ blockly.fieldRegistry.register('field_monospace_input', FieldMonospaceInput);
 // Register extensions (must happen exactly once, before any block definitions)
 blockly.Extensions.register('lemma_init', function(this: blockly.Block) {
   (this as blockly.BlockSvg).addClass('lemma-block');
-  // THEOREM_NAME is used by codegen but not displayed; the user-visible
-  // label is THEOREM_BLOCK_LABEL (e.g. "theorem foo" or "Example").
+  // These fields are retained in serialized workspace data for codegen, but
+  // the theorem block itself stays compact: its label is followed directly
+  // by the proof. The complete declaration is visible in the infoview.
   this.getField('THEOREM_NAME')?.setVisible(false);
+  this.getField('THEOREM_DECLARATION')?.setVisible(false);
 });
 
 export function defineBlocks() {
@@ -407,7 +409,7 @@ function defineLemma() {
     {
       'type': 'lemma',
       'extensions': ['lemma_init'],
-      'message0': '%1 %2 %3   %4 %5 Proof: %6 %7 %8',
+      'message0': '%1 %2 %3 %4 Proof: %5 %6 %7',
       'args0': [
         {
           'type': 'field_label_serializable',
@@ -418,9 +420,6 @@ function defineLemma() {
           'type': 'field_label_serializable',
           'name': 'THEOREM_NAME',
           'text': 'theorem_name',
-        },
-        {
-          'type': 'input_dummy',
         },
         {
           'type': 'field_theorem_statement',
