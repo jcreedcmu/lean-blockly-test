@@ -335,15 +335,6 @@ function blockToChunks(
       break;
     }
 
-    case 'term_archprop': {
-      const argChunks = blockToChunks(inputs['ARG']?.block, '');
-      chunks = [
-        chunk('ArchProp', blockId),
-        ...(argChunks.length > 0 ? [text(' '), ...argChunks] : []),
-      ];
-      break;
-    }
-
     case 'tactic_let': {
       const name = fields['NAME'] ?? 'x';
       const type = fields['TYPE'] ?? 'ℕ';

@@ -67,7 +67,7 @@ describe('shouldGetBeforePill', () => {
   });
 
   it('excludes non-tactic blocks', () => {
-    for (const type of ['prop', 'prop_declaration', 'term_archprop', 'lemma']) {
+    for (const type of ['prop', 'prop_declaration', 'term_nas_split_even_odd', 'lemma']) {
       expect(shouldGetBeforePill({ type, message0: 'x' })).toBe(false);
     }
   });

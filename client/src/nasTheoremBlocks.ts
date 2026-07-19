@@ -18,36 +18,24 @@ export type NasTheoremBlockSpec = {
  */
 export const nasTheoremBlockSpecs: NasTheoremBlockSpec[] = [
   {
-    type: 'term_nas_sum_card_fibers',
-    theoremName: 'sum_card_fibers_eq_card_relation',
-    message: 'fiber sum = relation cardinality  set %1  relation %2',
-    args: [
-      { name: 'SET', defaultValue: 'Party' },
-      { name: 'RELATION', defaultValue: 'Handshake' },
-    ],
-    inline: true,
-    tooltip:
-      'The sum of the sizes of all relation fibers equals the number of related ordered pairs.',
-  },
-  {
-    type: 'term_nas_even_symmetric_relation',
-    theoremName: 'even_card_symmetric_irreflexive_relation',
+    type: 'term_nas_even_total_relation_counts',
+    theoremName: 'even_sum_relation_counts',
     message:
-      'symmetric irreflexive relation has even cardinality  set %1  relation %2  symmetry %3  irreflexivity %4',
+      'even_sum_relation_counts  set %1  symmetry %2  irreflexivity %3  counts equal fibers %4',
     args: [
       { name: 'SET', defaultValue: 'Party' },
-      { name: 'RELATION', defaultValue: 'Handshake' },
       { name: 'SYMMETRY', defaultValue: 'Handshake_symm' },
       { name: 'IRREFLEXIVITY', defaultValue: 'Handshake_irref' },
+      { name: 'COUNT_IS', defaultValue: 'HandshakeCount_Is' },
     ],
     inline: false,
     tooltip:
-      'A symmetric, irreflexive relation on a finite set contains an even number of ordered pairs.',
+      'For a symmetric, irreflexive relation inferred from the supplied proofs, the sum of its finite-set fiber counts is even.',
   },
   {
     type: 'term_nas_split_even_odd',
     theoremName: 'sum_eq_sum_even_add_sum_odd',
-    message: 'total = even-term sum + odd-term sum  set %1  values %2',
+    message: 'sum_eq_sum_even_add_sum_odd  set %1  values %2',
     args: [
       { name: 'SET', defaultValue: 'Party' },
       { name: 'VALUES', defaultValue: 'HandshakeCount' },
@@ -59,7 +47,7 @@ export const nasTheoremBlockSpecs: NasTheoremBlockSpec[] = [
   {
     type: 'term_nas_even_sum_even_terms',
     theoremName: 'even_sum_even_terms',
-    message: 'sum of even terms is even  set %1  values %2',
+    message: 'even_sum_even_terms  set %1  values %2',
     args: [
       { name: 'SET', defaultValue: 'Party' },
       { name: 'VALUES', defaultValue: 'HandshakeCount' },
@@ -69,31 +57,31 @@ export const nasTheoremBlockSpecs: NasTheoremBlockSpec[] = [
       'The sum of those values in the set which are even is itself even.',
   },
   {
-    type: 'term_nas_even_remainder',
-    theoremName: 'even_right_of_even_add',
-    message: 'even remainder  whole sum even %1  first part even %2',
+    type: 'term_nas_even_right_of_split',
+    theoremName: 'even_right_of_even_split',
+    message:
+      'even_right_of_even_split  split %1  total even %2  left side even %3',
     args: [
-      { name: 'WHOLE_EVEN', defaultValue: 'NumTotHandshakes_is_Even' },
-      { name: 'FIRST_EVEN', defaultValue: 'NumTotEven_is_Even' },
+      { name: 'SPLIT', defaultValue: 'NumTot_split' },
+      { name: 'TOTAL_EVEN', defaultValue: 'NumTotHandshakes_is_Even' },
+      { name: 'LEFT_EVEN', defaultValue: 'NumTotEven_is_Even' },
     ],
     inline: false,
     tooltip:
-      'If a + b is even and a is even, then the remaining summand b is even.',
+      'If total = left + right, and total and left are even, then right is even.',
   },
   {
-    type: 'term_nas_odd_sum_of_odd_card',
-    theoremName: 'odd_sum_of_odd_terms_of_odd_card',
-    message:
-      'odd number of odd terms gives odd sum  set %1  values %2  all terms odd %3  number of terms odd %4',
+    type: 'term_nas_even_card_odd_terms',
+    theoremName: 'even_card_of_even_sum_over_odd_terms',
+    message: 'even_card_of_even_sum_over_odd_terms  set %1  values %2  odd-term sum even %3',
     args: [
-      { name: 'SET', defaultValue: 'OddPeople' },
+      { name: 'SET', defaultValue: 'Party' },
       { name: 'VALUES', defaultValue: 'HandshakeCount' },
-      { name: 'ALL_ODD', defaultValue: 'by simp [OddPeople]' },
-      { name: 'CARD_ODD', defaultValue: 'NumOddHandshakes_is_Odd' },
+      { name: 'SUM_EVEN', defaultValue: 'NumTotOdd_is_Even' },
     ],
     inline: false,
     tooltip:
-      'If every term is odd and the finite set has odd cardinality, then the sum of its terms is odd.',
+      'If the sum of all odd-valued terms is even, then the set of those terms has even cardinality.',
   },
 ];
 

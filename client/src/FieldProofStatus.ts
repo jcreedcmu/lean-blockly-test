@@ -1,7 +1,7 @@
 import * as blockly from 'blockly';
 import { Field, FieldConfig } from 'blockly';
 import { dispatchMarkerClick, GoalPositionMarker } from './goalMarker';
-import { PILL_WIDTH, PILL_HEIGHT, createPill, updatePill, flashPillError } from './pill';
+import { PILL_HEIGHT, createPill, updatePill, flashPillError } from './pill';
 
 export type ProofStatus = 'unknown' | 'complete' | 'incomplete';
 
@@ -12,22 +12,31 @@ type StatusDecoration = { text: string; fill: string };
 
 /** The text decoration drawn to the right of the pill, conveying good/bad. */
 const STATUS_DECORATION: Record<ProofStatus, StatusDecoration> = {
-  complete: { text: '✓', fill: '#fff' },     // good
-  incomplete: { text: '✕', fill: '#fff' },  // bad
+  complete: { text: '✓', fill: '#166534' },
+  incomplete: { text: 'sorry', fill: '#8a5a00' },
   unknown: { text: '', fill: 'rgba(0,0,0,0)' }, // nothing yet
 };
 
 /**
- * Proof-position marker: the shared {@link createPill} marker pill (selectable,
- * white/blue, no label), plus a plain-text decoration to its right conveying
- * whether the proof is good (`✓`) or bad (`sorry`). The pill sits exactly where
- * the marker pill goes; the decoration overflows to the right of it. The custom
- * renderer centers the pill on the statement notch above.
+ * Proof-position marker with its status centered inside the pill: cream
+ * `sorry` for an unfinished subproof, pale green `✓` for a completed one, and
+ * an empty cream pill while Lean is checking. The custom renderer centers the
+ * pill on the statement notch above.
  */
 export class FieldProofStatus extends Field<string> implements GoalPositionMarker {
   private status_: ProofStatus = 'unknown';
   private pill_: SVGRectElement | null = null;
   private decoration_: SVGTextElement | null = null;
+  private incompleteDecoration_: StatusDecoration = STATUS_DECORATION.incomplete;
+  private completeDecoration_: StatusDecoration = STATUS_DECORATION.complete;
+  private decorationInside_ = true;
+  private pillWidth_ = 42;
+  private incompletePillFill_: string | null = '#fff4cc';
+  private incompletePillStroke_: string | null = '#d19a00';
+  private completePillFill_: string | null = '#dcfce7';
+  private completePillStroke_: string | null = '#16a34a';
+  private unknownPillFill_: string | null = '#fff4cc';
+  private unknownPillStroke_: string | null = '#d19a00';
   // Goal-position-marker state.
   private target_ = '';
   private selected_ = false;
@@ -40,16 +49,18 @@ export class FieldProofStatus extends Field<string> implements GoalPositionMarke
   }
 
   protected initView(): void {
-    this.pill_ = createPill(this.fieldGroup_ as SVGGElement);
+    this.pill_ = createPill(this.fieldGroup_ as SVGGElement, this.pillWidth_);
     this.decoration_ = blockly.utils.dom.createSvgElement(
       blockly.utils.Svg.TEXT,
       {
-        'x': String(PILL_WIDTH + DECORATION_GAP),
+        'x': String(this.decorationInside_
+          ? this.pillWidth_ / 2
+          : this.pillWidth_ + DECORATION_GAP),
         'y': String(PILL_HEIGHT / 2),
         'dominant-baseline': 'central',
-        'text-anchor': 'start',
+        'text-anchor': this.decorationInside_ ? 'middle' : 'start',
         'font-weight': 'bold',
-        'font-size': '12',
+        'font-size': this.decorationInside_ ? '10' : '12',
         'pointer-events': 'none',
       },
       this.fieldGroup_,
@@ -58,9 +69,37 @@ export class FieldProofStatus extends Field<string> implements GoalPositionMarke
   }
 
   private redraw_(): void {
-    if (this.pill_) updatePill(this.pill_, this.selected_);
+    if (this.pill_) {
+      updatePill(this.pill_, this.selected_);
+      if (this.status_ === 'incomplete') {
+        if (this.incompletePillFill_) {
+          this.pill_.setAttribute('fill', this.incompletePillFill_);
+        }
+        if (this.incompletePillStroke_) {
+          this.pill_.setAttribute('stroke', this.incompletePillStroke_);
+        }
+      } else if (this.status_ === 'complete') {
+        if (this.completePillFill_) {
+          this.pill_.setAttribute('fill', this.completePillFill_);
+        }
+        if (this.completePillStroke_) {
+          this.pill_.setAttribute('stroke', this.completePillStroke_);
+        }
+      } else {
+        if (this.unknownPillFill_) {
+          this.pill_.setAttribute('fill', this.unknownPillFill_);
+        }
+        if (this.unknownPillStroke_) {
+          this.pill_.setAttribute('stroke', this.unknownPillStroke_);
+        }
+      }
+    }
     if (this.decoration_) {
-      const d = STATUS_DECORATION[this.status_];
+      const d = this.status_ === 'incomplete'
+        ? this.incompleteDecoration_
+        : this.status_ === 'complete'
+          ? this.completeDecoration_
+          : STATUS_DECORATION.unknown;
       this.decoration_.textContent = d.text;
       this.decoration_.setAttribute('fill', d.fill);
     }
@@ -99,11 +138,11 @@ export class FieldProofStatus extends Field<string> implements GoalPositionMarke
   }
 
   getSize(): blockly.utils.Size {
-    return new blockly.utils.Size(PILL_WIDTH, PILL_HEIGHT);
+    return new blockly.utils.Size(this.pillWidth_, PILL_HEIGHT);
   }
 
   protected get size_(): blockly.utils.Size {
-    return new blockly.utils.Size(PILL_WIDTH, PILL_HEIGHT);
+    return new blockly.utils.Size(this.pillWidth_, PILL_HEIGHT);
   }
 
   protected set size_(_newValue: blockly.utils.Size) {
@@ -124,7 +163,38 @@ export class FieldProofStatus extends Field<string> implements GoalPositionMarke
 
   static fromJson(options: FieldConfig): FieldProofStatus {
     const field = new FieldProofStatus();
-    field.target_ = (options as { target?: string }).target ?? '';
+    const config = options as {
+      target?: string;
+      incompleteText?: string;
+      incompleteFill?: string;
+      completeText?: string;
+      completeFill?: string;
+      decorationInside?: boolean;
+      pillWidth?: number;
+      incompletePillFill?: string;
+      incompletePillStroke?: string;
+      completePillFill?: string;
+      completePillStroke?: string;
+      unknownPillFill?: string;
+      unknownPillStroke?: string;
+    };
+    field.target_ = config.target ?? '';
+    field.decorationInside_ = config.decorationInside ?? field.decorationInside_;
+    field.pillWidth_ = config.pillWidth ?? field.pillWidth_;
+    field.incompletePillFill_ = config.incompletePillFill ?? field.incompletePillFill_;
+    field.incompletePillStroke_ = config.incompletePillStroke ?? field.incompletePillStroke_;
+    field.completePillFill_ = config.completePillFill ?? field.completePillFill_;
+    field.completePillStroke_ = config.completePillStroke ?? field.completePillStroke_;
+    field.unknownPillFill_ = config.unknownPillFill ?? field.unknownPillFill_;
+    field.unknownPillStroke_ = config.unknownPillStroke ?? field.unknownPillStroke_;
+    field.incompleteDecoration_ = {
+      text: config.incompleteText ?? STATUS_DECORATION.incomplete.text,
+      fill: config.incompleteFill ?? STATUS_DECORATION.incomplete.fill,
+    };
+    field.completeDecoration_ = {
+      text: config.completeText ?? STATUS_DECORATION.complete.text,
+      fill: config.completeFill ?? STATUS_DECORATION.complete.fill,
+    };
     return field;
   }
 }

@@ -453,13 +453,13 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
 
   test('NAS theorem blocks emit applications with their explicit arguments', () => {
     const theoremTerm: Block = {
-      type: 'term_nas_even_symmetric_relation',
-      id: 'nas-even-relation',
+      type: 'term_nas_even_total_relation_counts',
+      id: 'nas-even-total',
       inputs: {
         SET: { block: prop('Party') },
-        RELATION: { block: prop('Handshake') },
         SYMMETRY: { block: prop('Handshake_symm') },
         IRREFLEXIVITY: { block: prop('Handshake_irref') },
+        COUNT_IS: { block: prop('HandshakeCount_Is') },
       },
     };
     const exact: Block = {
@@ -469,13 +469,13 @@ theorem fun_limit_fact FunLimAt (fun x => (x^2 - 1) / (x - 1)) 2 1 := by
     };
 
     const { leanCode } = workspaceToLean(
-      workspace(lemma('demo', ': Even relationCard', exact)),
+      workspace(lemma('demo', ': Even total', exact)),
     );
 
     expect(leanCode).toBe(
-      'theorem demo : Even relationCard := by\n' +
-      '  exact even_card_symmetric_irreflexive_relation (Party) (Handshake) ' +
-      '(Handshake_symm) (Handshake_irref)\n' +
+      'theorem demo : Even total := by\n' +
+      '  exact even_sum_relation_counts (Party) (Handshake_symm) ' +
+      '(Handshake_irref) (HandshakeCount_Is)\n' +
       '  skip\n',
     );
   });

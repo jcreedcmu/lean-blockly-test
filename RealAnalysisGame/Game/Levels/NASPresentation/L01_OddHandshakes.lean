@@ -62,6 +62,19 @@ private lemma even_card_symmetric_irreflexive_relation
       have hn : Even (2 * n) := by simp
       simpa [n, two_mul, add_assoc, add_comm, add_left_comm] using ih.add hn
 
+private lemma even_sum_relation_counts
+    {α : Type}
+    (s : Finset α)
+    {R : α → α → Prop}
+    (hsymm : ∀ x y, R x y → R y x)
+    (hirref : ∀ x, ¬ R x x)
+    {Count : α → ℕ}
+    (Count_Is : ∀ x, Count x = {y ∈ s | R x y}.card) :
+    Even (∑ x ∈ s, Count x) := by
+  simp only [Count_Is]
+  rw [sum_card_fibers_eq_card_relation s R]
+  exact even_card_symmetric_irreflexive_relation s R hsymm hirref
+
 private lemma sum_eq_sum_even_add_sum_odd
     {α : Type}
     (s : Finset α)
@@ -91,6 +104,15 @@ private lemma even_right_of_even_add
     Even b :=
   (Nat.even_add.mp hab).mp ha
 
+private lemma even_right_of_even_split
+    {total evenPart oddPart : ℕ}
+    (hsplit : total = evenPart + oddPart)
+    (htotal : Even total)
+    (hevenPart : Even evenPart) :
+    Even oddPart := by
+  rw [hsplit] at htotal
+  exact even_right_of_even_add htotal hevenPart
+
 private lemma odd_sum_of_odd_terms_of_odd_card
     {α : Type}
     (s : Finset α)
@@ -102,6 +124,21 @@ private lemma odd_sum_of_odd_terms_of_odd_card
   have hfilter : s.filter (fun x => Odd (f x)) = s :=
     Finset.filter_eq_self.mpr hall
   rwa [hfilter]
+
+private lemma even_card_of_even_sum_over_odd_terms
+    {α : Type}
+    (s : Finset α)
+    (f : α → ℕ)
+    (hsum : Even (∑ x ∈ s.filter fun x => Odd (f x), f x)) :
+    Even (s.filter fun x => Odd (f x)).card := by
+  by_contra hcard
+  have hcardOdd : Odd (s.filter (fun x => Odd (f x))).card :=
+    Nat.not_even_iff_odd.mp hcard
+  have hsumOdd : Odd (∑ x ∈ s.filter fun x => Odd (f x), f x) := by
+    apply odd_sum_of_odd_terms_of_odd_card
+    · simp
+    · exact hcardOdd
+  exact (Nat.not_even_iff_odd.mpr hsumOdd) hsum
 
 World "NASPresentation"
 Level 1
@@ -136,31 +173,21 @@ Statement NumOddHandshakes_is_Even
   let OddPeople := Party.filter fun x => Odd (HandshakeCount x)
   let NumTotEven := ∑ x ∈ EvenPeople, HandshakeCount x
   let NumTotOdd := ∑ x ∈ OddPeople, HandshakeCount x
-  have NumTotHandshakes_is_Even : Even NumTotHandshakes := by
-    simp only [NumTotHandshakes, HandshakeCount_Is]
-    rw [sum_card_fibers_eq_card_relation Party Handshake]
-    exact even_card_symmetric_irreflexive_relation
-      Party Handshake Handshake_symm Handshake_irref
-  have NumTot_split : NumTotHandshakes = NumTotEven + NumTotOdd := by
-    simpa only [NumTotHandshakes, NumTotEven, NumTotOdd, EvenPeople, OddPeople] using
-      sum_eq_sum_even_add_sum_odd Party HandshakeCount
-  have NumTotEven_is_Even : Even NumTotEven := by
-    simpa only [NumTotEven, EvenPeople] using
-      even_sum_even_terms Party HandshakeCount
-  have NumTotOdd_is_Even : Even NumTotOdd := by
-    rw [NumTot_split] at NumTotHandshakes_is_Even
-    exact even_right_of_even_add NumTotHandshakes_is_Even NumTotEven_is_Even
-  have NumOddHandshakes_is_Even : Even OddPeople.card := by
-    by_contra hOdd
-    have NumOddHandshakes_is_Odd : Odd OddPeople.card :=
-      Nat.not_even_iff_odd.mp hOdd
-    have NumTotOdd_is_Odd : Odd NumTotOdd := by
-      apply odd_sum_of_odd_terms_of_odd_card OddPeople HandshakeCount
-      · simp [OddPeople]
-      · exact NumOddHandshakes_is_Odd
-    exact (Nat.not_even_iff_odd.mpr NumTotOdd_is_Odd) NumTotOdd_is_Even
+  have NumTotHandshakes_is_Even : Even NumTotHandshakes :=
+    even_sum_relation_counts
+      Party Handshake_symm Handshake_irref HandshakeCount_Is
+  have NumTot_split : NumTotHandshakes = NumTotEven + NumTotOdd :=
+    sum_eq_sum_even_add_sum_odd Party HandshakeCount
+  have NumTotEven_is_Even : Even NumTotEven :=
+    even_sum_even_terms Party HandshakeCount
+  have NumTotOdd_is_Even : Even NumTotOdd :=
+    even_right_of_even_split
+      NumTot_split NumTotHandshakes_is_Even NumTotEven_is_Even
+  have OddPeople_is_Even : Even OddPeople.card :=
+    even_card_of_even_sum_over_odd_terms
+      Party HandshakeCount NumTotOdd_is_Even
   rw [NumOddHandshakes_Is]
-  simpa only [OddPeople] using NumOddHandshakes_is_Even
+  exact OddPeople_is_Even
 
 NewTactic «sorry»
 
@@ -171,10 +198,10 @@ AllowBlock "tactic_rewrite" "tactic_apply" "tactic_specialize" "tactic_choose"
 AllowBlock "tactic_at" "tactic_constructor" "tactic_have" "tactic_show"
 AllowBlock "tactic_conv" "tactic_sorry" "tactic_other" "tactic_refl"
 AllowBlock "tactic_ring_nf" "tactic_simp" "tactic_conclude" "tactic_rewrite_at"
-AllowBlock "tactic_transform" "tactic_exact" "prop_declaration" "prop" "term_archprop"
-AllowBlock "term_nas_sum_card_fibers" "term_nas_even_symmetric_relation"
+AllowBlock "tactic_transform" "tactic_exact" "prop_declaration" "prop"
+AllowBlock "term_nas_even_total_relation_counts"
 AllowBlock "term_nas_split_even_odd" "term_nas_even_sum_even_terms"
-AllowBlock "term_nas_even_remainder" "term_nas_odd_sum_of_odd_card"
+AllowBlock "term_nas_even_right_of_split" "term_nas_even_card_odd_terms"
 AllowAllAffordances
 
 Conclusion "The number of partygoers with an odd number of handshakes is even."

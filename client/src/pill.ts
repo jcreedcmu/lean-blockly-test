@@ -11,12 +11,15 @@ export const PILL_WIDTH = 26;
 export const PILL_HEIGHT = 14;
 
 /** Create the marker pill (a rounded rect) inside a field group. */
-export function createPill(parent: SVGGElement): SVGRectElement {
+export function createPill(
+  parent: SVGGElement,
+  width: number = PILL_WIDTH,
+): SVGRectElement {
   return blockly.utils.dom.createSvgElement(
     blockly.utils.Svg.RECT,
     {
       'x': '0', 'y': '0',
-      'width': String(PILL_WIDTH), 'height': String(PILL_HEIGHT),
+      'width': String(width), 'height': String(PILL_HEIGHT),
       'rx': String(PILL_HEIGHT / 2), 'ry': String(PILL_HEIGHT / 2),
       'stroke-width': '1',
     },

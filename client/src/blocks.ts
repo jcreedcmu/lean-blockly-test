@@ -3,7 +3,6 @@ import { FieldLabelSerializable, FieldTextInput, FieldConfig } from 'blockly';
 import { attachAbbreviationRewriter } from './abbreviations';
 import './FieldProofStatus';
 import './FieldGoalMarker';
-import { applyBeforePills } from './beforePills';
 import { nasTheoremBlockSpecs } from './nasTheoremBlocks';
 
 /*
@@ -15,10 +14,10 @@ Adapted from https://github.com/aneilmac/blockly-plugin-lean under the Apache 2.
 // turning it into infinite recursion.
 const defineBlocksRaw = blockly.defineBlocksWithJsonArray.bind(blockly);
 
-/** Like `blockly.defineBlocksWithJsonArray`, but first gives leaf tactics a
- * left "before" goal-marker pill (see {@link applyBeforePills}). */
+/** Register block definitions without the former automatic goal-position
+ * ovals. Proof-status fields on blocks with subproofs remain. */
 function defineBlocksWithBeforePills(defs: Array<Record<string, unknown>>): void {
-  defineBlocksRaw(applyBeforePills(defs));
+  defineBlocksRaw(defs);
 }
 
 /**
@@ -164,18 +163,6 @@ export function defineBlocks() {
 
 function defineTermTheorems() {
   defineBlocksWithBeforePills([
-    {
-      'type': 'term_archprop',
-      'message0': 'ArchProp %1',
-      'args0': [
-        { 'type': 'input_value', 'name': 'ARG', 'check': 'proposition' },
-      ],
-      'inputsInline': true,
-      'output': 'proposition',
-      'colour': 260,
-      'tooltip': '∃ N > 0, 1/N < ε  (provide proof that ε > 0)',
-      'helpUrl': '',
-    },
     ...nasTheoremBlockSpecs.map(spec => ({
       type: spec.type,
       message0: spec.message,
@@ -375,9 +362,8 @@ function defineMisc() {
   // never drag a term into them, so they read as fields rather than sockets.
   defineBlocksWithBeforePills([{
     'type': 'tactic_intro',
-    'message0': '%1 intro %2 %3 %4',
+    'message0': 'intro %1 %2 %3',
     'args0': [
-      { 'type': 'field_goal_marker', 'name': 'GOAL_AT' },
       { 'type': 'field_monospace_input', 'name': 'NAME', 'text': 'h' },
       { 'type': 'input_dummy', 'name': 'EXTRA_NAMES' },
       { 'type': 'input_dummy', 'name': 'CONTROLS' },
@@ -851,13 +837,8 @@ function defineTactics() {
       "type": "tactic_conv",
       "tooltip": "Enter conv mode to rewrite a subexpression of the goal",
       "helpUrl": "conv",
-      "message0": "%1 conv => %2 %3 %4 %5",
+      "message0": "conv => %1 %2 %3",
       "args0": [
-        {
-          "type": "field_goal_marker",
-          "name": "GOAL_AT",
-          "target": "BODY"
-        },
         {
           "type": "input_dummy"
         },
@@ -865,11 +846,6 @@ function defineTactics() {
           "type": "input_statement",
           "name": "BODY",
           "check": "tactic"
-        },
-        {
-          "type": "field_goal_marker",
-          "name": "GOAL_AFTER",
-          "target": "AFTER"
         },
         {
           "type": "input_dummy",

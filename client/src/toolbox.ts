@@ -37,16 +37,25 @@ const LeanTacticsCategory: CategoryItem = {
   contents: [
     {
       kind: 'block',
+      type: 'tactic_let',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_apply',
+      id: 'tutorial-toolbox-apply',
+    },
+    {
+      kind: 'block',
+      type: 'tactic_have',
+    },
+    {
+      kind: 'block',
       type: 'tactic_unfold',
       inputs: { ARG: { shadow: { type: 'prop', fields: { PROP_NAME: 'h' } } } },
     },
     {
       kind: 'block',
       type: 'tactic_calc',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_let',
     },
     {
       kind: 'block',
@@ -59,11 +68,6 @@ const LeanTacticsCategory: CategoryItem = {
     {
       kind: 'block',
       type: 'tactic_rewrite',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_apply',
-      id: 'tutorial-toolbox-apply',
     },
     {
       kind: 'block',
@@ -80,10 +84,6 @@ const LeanTacticsCategory: CategoryItem = {
     {
       kind: 'block',
       type: 'tactic_constructor',
-    },
-    {
-      kind: 'block',
-      type: 'tactic_have',
     },
     {
       kind: 'block',
@@ -171,10 +171,6 @@ const LeanTheoremsCategory: CategoryItem = {
   kind: 'category',
   name: 'Theorems',
   contents: [
-    {
-      kind: 'block',
-      type: 'term_archprop',
-    },
     ...nasTheoremBlockSpecs.map(spec => ({
       kind: 'block' as const,
       type: spec.type,

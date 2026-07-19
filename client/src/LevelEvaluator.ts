@@ -76,7 +76,43 @@ def FunCont (f : ℝ → ℝ) : Prop :=
 def SeqLim (a : ℕ → ℝ) (L : ℝ) : Prop :=
   ∀ ε > 0, ∃ N, ∀ n > N, |a n - L| < ε
 
-theorem ArchProp {ε : ℝ} (hε : ε > 0) : ∃ N > (0 : ℕ), 1 / (N : ℝ) < ε := by sorry
+theorem even_sum_relation_counts
+    {α : Type}
+    (s : Finset α)
+    {R : α → α → Prop}
+    (hsymm : ∀ x y, R x y → R y x)
+    (hirref : ∀ x, ¬ R x x)
+    {Count : α → ℕ}
+    (Count_Is : ∀ x, Count x = {y ∈ s | R x y}.card) :
+    Even (∑ x ∈ s, Count x) := by sorry
+
+theorem sum_eq_sum_even_add_sum_odd
+    {α : Type}
+    (s : Finset α)
+    (f : α → ℕ) :
+    (∑ x ∈ s, f x) =
+      (∑ x ∈ s.filter fun x => Even (f x), f x) +
+      (∑ x ∈ s.filter fun x => Odd (f x), f x) := by sorry
+
+theorem even_sum_even_terms
+    {α : Type}
+    (s : Finset α)
+    (f : α → ℕ) :
+    Even (∑ x ∈ s.filter fun x => Even (f x), f x) := by sorry
+
+theorem even_right_of_even_split
+    {total evenPart oddPart : ℕ}
+    (hsplit : total = evenPart + oddPart)
+    (htotal : Even total)
+    (hevenPart : Even evenPart) :
+    Even oddPart := by sorry
+
+theorem even_card_of_even_sum_over_odd_terms
+    {α : Type}
+    (s : Finset α)
+    (f : α → ℕ)
+    (hsum : Even (∑ x ∈ s.filter fun x => Odd (f x), f x)) :
+    Even (s.filter fun x => Odd (f x)).card := by sorry
 
 `;
 

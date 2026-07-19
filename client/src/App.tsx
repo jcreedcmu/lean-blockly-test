@@ -618,7 +618,10 @@ function App() {
           title={tutorial.hasSteps ? 'Start tutorial' : 'No tutorial for this level'}
         >&#x2753;</button>
         <span className="navbar-level-label">
-          {currentWorld.name} &mdash; {currentLevel.name} ({nav.levelIndex + 1}/{currentWorld.levels.length})
+          {currentWorld.id === 'NASPresentation'
+            ? currentLevel.name
+            : <>{currentWorld.name} &mdash; {currentLevel.name}</>
+          } ({nav.levelIndex + 1}/{currentWorld.levels.length})
         </span>
       </div>
       <div className="navbar-right">
