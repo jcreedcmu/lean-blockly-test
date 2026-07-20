@@ -595,6 +595,10 @@ function App() {
   const overrideGoal = selection?.kind === 'pill' ? pillGoals : null;
   const goalInfoMap = evaluation?.goalInfoMap ?? new Map();
   const diagnostics = evaluation?.diagnostics ?? [];
+  // Lean errors still drive proof status and the per-subproof `sorry` pills,
+  // but their raw technical messages are too noisy for the player-facing
+  // infoview. Keep non-error diagnostics such as useful warnings visible.
+  const visibleDiagnostics = diagnostics.filter(d => (d.severity ?? 1) !== 1);
 
   return <div className="app-root">
     <Tutorial
@@ -713,9 +717,9 @@ function App() {
             onSubexprDrag={(enterArgs, e) => blocklyRef.current?.startEnterDrag(enterArgs, e)}
           />
         )}
-        {diagnostics.length > 0 && (
+        {visibleDiagnostics.length > 0 && (
           <div className="diagnostics">
-            {diagnostics.map((d, i) => (
+            {visibleDiagnostics.map((d, i) => (
               <div
                 key={i}
                 className={`diagnostic severity-${d.severity ?? 1}`}
