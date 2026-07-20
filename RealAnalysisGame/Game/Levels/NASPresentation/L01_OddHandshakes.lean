@@ -102,13 +102,13 @@ private lemma even_right_of_even_add
   (Nat.even_add.mp hab).mp ha
 
 private lemma even_right_of_even_split
-    {total evenPart oddPart : ℕ}
-    (hsplit : total = evenPart + oddPart)
-    (htotal : Even total)
-    (hevenPart : Even evenPart) :
-    Even oddPart := by
-  rw [hsplit] at htotal
-  exact even_right_of_even_add htotal hevenPart
+    {x y z : ℕ}
+    (hsplit : x = y + z)
+    (hx : Even x)
+    (hy : Even y) :
+    Even z := by
+  rw [hsplit] at hx
+  exact even_right_of_even_add hx hy
 
 private lemma odd_sum_of_odd_terms_of_odd_card
     {α : Type}

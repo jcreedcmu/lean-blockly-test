@@ -71,18 +71,18 @@ export const nasTheoremBlockSpecs: NasTheoremBlockSpec[] = [
     theoremName: 'even_right_of_even_split',
     message: 'even_right_of_even_split %1 %2 %3',
     args: [
-      { name: 'SPLIT', defaultValue: 'total = evenPart + oddPart' },
-      { name: 'TOTAL_EVEN', defaultValue: 'Even total' },
-      { name: 'LEFT_EVEN', defaultValue: 'Even evenPart' },
+      { name: 'SPLIT', defaultValue: 'x = y + z' },
+      { name: 'TOTAL_EVEN', defaultValue: 'Even x' },
+      { name: 'LEFT_EVEN', defaultValue: 'Even y' },
     ],
     inline: false,
     tooltip:
-      'If total = left + right, and total and left are even, then right is even.\n\n' +
-      'Technical statement:\n{total evenPart oddPart : ℕ}\n' +
-      '(hsplit : total = evenPart + oddPart)\n' +
-      '(htotal : Even total)\n' +
-      '(hevenPart : Even evenPart) :\n' +
-      'Even oddPart',
+      'If x = y + z, and x and y are even, then z is even.\n\n' +
+      'Technical statement:\n{x y z : ℕ}\n' +
+      '(hsplit : x = y + z)\n' +
+      '(hx : Even x)\n' +
+      '(hy : Even y) :\n' +
+      'Even z',
   },
   {
     type: 'term_nas_even_card_odd_terms',

@@ -99,11 +99,11 @@ theorem even_sum_even_terms
     Even (∑ x ∈ s.filter fun x => Even (f x), f x) := by sorry
 
 theorem even_right_of_even_split
-    {total evenPart oddPart : ℕ}
-    (hsplit : total = evenPart + oddPart)
-    (htotal : Even total)
-    (hevenPart : Even evenPart) :
-    Even oddPart := by sorry
+    {x y z : ℕ}
+    (hsplit : x = y + z)
+    (hx : Even x)
+    (hy : Even y) :
+    Even z := by sorry
 
 theorem even_card_of_even_sum_over_odd_terms
     {α : Type}
