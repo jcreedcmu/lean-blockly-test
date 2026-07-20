@@ -108,7 +108,7 @@ theorem even_right_of_even_split
 theorem even_card_of_even_sum_over_odd_terms
     {α : Type}
     (s : Finset α)
-    (f : α → ℕ)
+    {f : α → ℕ}
     (hsum : Even (∑ x ∈ s.filter fun x => Odd (f x), f x)) :
     Even (s.filter fun x => Odd (f x)).card := by sorry
 

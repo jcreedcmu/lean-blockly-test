@@ -125,7 +125,7 @@ private lemma odd_sum_of_odd_terms_of_odd_card
 private lemma even_card_of_even_sum_over_odd_terms
     {α : Type}
     (s : Finset α)
-    (f : α → ℕ)
+    {f : α → ℕ}
     (hsum : Even (∑ x ∈ s.filter fun x => Odd (f x), f x)) :
     Even (s.filter fun x => Odd (f x)).card := by
   by_contra hcard
@@ -182,7 +182,7 @@ Statement NumOddHandshakes_is_Even
       NumTot_split NumTotHandshakes_is_Even NumTotEven_is_Even
   have OddPeople_is_Even : Even OddPeople.card :=
     even_card_of_even_sum_over_odd_terms
-      Party HandshakeCount NumTotOdd_is_Even
+      Party NumTotOdd_is_Even
   rw [NumOddHandshakes_Is]
   exact OddPeople_is_Even
 
